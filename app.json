@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.manapuljasper.mothersbook"
+      "bundleIdentifier": "com.manapuljasper.mothersbook",
+      "deploymentTarget": "16.0"
     },
     "android": {
       "adaptiveIcon": {
@@ -29,6 +30,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0"
+          }
+        }
+      ],
       "expo-router"
     ],
     "scheme": "mothers-book"
