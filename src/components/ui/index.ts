@@ -7,4 +7,6 @@ export {
 
 export { AnimatedView, AnimatedNumber } from "./AnimatedView";
 
+export { AnimatedCollapsible } from "./AnimatedCollapsible";
+
 export { DoseButton } from "./DoseButton";

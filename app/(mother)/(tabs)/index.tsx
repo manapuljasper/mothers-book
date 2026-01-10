@@ -1,5 +1,6 @@
 import { View, Text, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import {
   useAuthStore,
   useBookletStore,
@@ -9,6 +10,7 @@ import { formatDate } from "../../../src/utils";
 import { CardPressable } from "../../../src/components/ui";
 
 export default function MotherHomeScreen() {
+  const router = useRouter();
   const { motherProfile } = useAuthStore();
   const { getBookletsByMother } = useBookletStore();
   const { getActiveMedications } = useMedicationStore();
@@ -75,7 +77,11 @@ export default function MotherHomeScreen() {
             </View>
           ) : (
             activeBooklets.map((booklet) => (
-              <CardPressable key={booklet.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm">
+              <CardPressable
+                key={booklet.id}
+                className="bg-white rounded-xl p-4 mb-3 shadow-sm"
+                onPress={() => router.push(`/booklet/${booklet.id}`)}
+              >
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1">
                     <Text className="font-semibold text-gray-900 text-lg">
@@ -115,7 +121,11 @@ export default function MotherHomeScreen() {
             {booklets
               .filter((b) => b.status !== "active")
               .map((booklet) => (
-                <CardPressable key={booklet.id} className="bg-gray-100 rounded-xl p-4 mb-3">
+                <CardPressable
+                  key={booklet.id}
+                  className="bg-gray-100 rounded-xl p-4 mb-3"
+                  onPress={() => router.push(`/booklet/${booklet.id}`)}
+                >
                   <Text className="font-medium text-gray-700">
                     {booklet.label}
                   </Text>
