@@ -48,3 +48,11 @@ export {
   useDeactivateMedication,
   useLogIntake,
 } from './medication';
+
+// Doctor hooks
+export {
+  doctorKeys,
+  useAllDoctors,
+  useDoctorById,
+  useSearchDoctors,
+} from './doctors';

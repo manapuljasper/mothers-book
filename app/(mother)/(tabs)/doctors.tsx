@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from "react-native";
 import { useState } from "react";
-import { StorageService, StorageKey } from "../../../src/services";
 import { useThemeStore } from "../../../src/stores";
+import { useAllDoctors, useSearchDoctors } from "../../../src/hooks";
 import type { DoctorProfile } from "../../../src/types";
 
 export default function DoctorsScreen() {
@@ -9,20 +9,15 @@ export default function DoctorsScreen() {
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
 
-  // Get all doctors from storage
-  const allDoctors =
-    StorageService.get<DoctorProfile[]>(StorageKey.DOCTOR_PROFILES) || [];
+  // Get all doctors from Supabase
+  const { data: allDoctors = [], isLoading: isLoadingAll } = useAllDoctors();
 
-  // Filter by search
-  const filteredDoctors = allDoctors.filter(
-    (d) =>
-      d.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.clinicName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.clinicAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (d.specialization?.toLowerCase() || "").includes(
-        searchQuery.toLowerCase()
-      )
-  );
+  // Search doctors when query is entered
+  const { data: searchResults, isLoading: isSearching } = useSearchDoctors(searchQuery);
+
+  // Use search results if searching, otherwise use all doctors
+  const doctors = searchQuery.length > 0 ? (searchResults || []) : allDoctors;
+  const isLoading = searchQuery.length > 0 ? isSearching : isLoadingAll;
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
@@ -39,14 +34,21 @@ export default function DoctorsScreen() {
 
       {/* Doctor List */}
       <ScrollView className="flex-1 px-6 py-4">
-        {filteredDoctors.length === 0 ? (
+        {isLoading ? (
+          <View className="items-center py-12">
+            <ActivityIndicator size="large" color={isDark ? "#f472b6" : "#db2777"} />
+            <Text className="text-gray-500 dark:text-gray-400 mt-4">
+              Loading doctors...
+            </Text>
+          </View>
+        ) : doctors.length === 0 ? (
           <View className="items-center py-12">
             <Text className="text-gray-500 dark:text-gray-400 text-center">
               No doctors found
             </Text>
           </View>
         ) : (
-          filteredDoctors.map((doctor) => (
+          doctors.map((doctor) => (
             <Pressable
               key={doctor.id}
               className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"

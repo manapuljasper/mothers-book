@@ -48,3 +48,10 @@ export {
   logIntake,
   getMedicationAdherence,
 } from './medications.api';
+
+// Doctor APIs
+export {
+  getAllDoctors,
+  getDoctorById,
+  searchDoctors,
+} from './doctors.api';
