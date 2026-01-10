@@ -12,7 +12,9 @@ export default function MotherProfileScreen() {
 
   const booklets = motherProfile ? getBookletsByMother(motherProfile.id) : [];
   const activeBooklet = booklets.find((b) => b.status === "active");
-  const connectedDoctors = activeBooklet ? getAccessibleDoctors(activeBooklet.id) : [];
+  const connectedDoctors = activeBooklet
+    ? getAccessibleDoctors(activeBooklet.id)
+    : [];
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -51,7 +53,7 @@ export default function MotherProfileScreen() {
     : null;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
       <ScrollView className="flex-1">
         {/* Header */}
         <View className="bg-pink-600 px-6 py-8 items-center">
@@ -99,7 +101,11 @@ export default function MotherProfileScreen() {
               <Text className="font-semibold text-gray-900 mb-3">
                 Baby Information
               </Text>
-              <InfoRow label="Baby Name" value={motherProfile.babyName} isLast />
+              <InfoRow
+                label="Baby Name"
+                value={motherProfile.babyName}
+                isLast
+              />
             </View>
           </View>
         )}
@@ -147,14 +153,18 @@ export default function MotherProfileScreen() {
           </Pressable>
 
           <Pressable className="bg-white rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50">
-            <Text className="text-gray-900 font-medium">Notification Settings</Text>
+            <Text className="text-gray-900 font-medium">
+              Notification Settings
+            </Text>
           </Pressable>
 
           <Pressable
             className="bg-white rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50"
             onPress={handleResetData}
           >
-            <Text className="text-amber-600 font-medium">Reset Sample Data</Text>
+            <Text className="text-amber-600 font-medium">
+              Reset Sample Data
+            </Text>
           </Pressable>
 
           <Pressable

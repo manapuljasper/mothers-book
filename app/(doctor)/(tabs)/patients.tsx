@@ -1,8 +1,12 @@
-import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
+import { View, Text, ScrollView, TextInput } from "react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore, useBookletStore } from "../../../src/stores";
 import { formatRelativeDate, formatDate } from "../../../src/utils";
+import {
+  AnimatedView,
+  CardPressable,
+} from "../../../src/components/ui";
 
 export default function PatientsScreen() {
   const { doctorProfile } = useAuthStore();
@@ -21,40 +25,37 @@ export default function PatientsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="bg-white px-6 py-4 border-b border-gray-200">
+      <AnimatedView entering="fade" className="bg-white px-6 py-4 border-b border-gray-200">
         <Text className="text-2xl font-bold text-gray-900">Patients</Text>
         <Text className="text-gray-500 text-sm">
           {patientBooklets.length} active booklets
         </Text>
-      </View>
+      </AnimatedView>
 
       {/* Search */}
-      <View className="px-6 py-4 bg-white border-b border-gray-100">
+      <AnimatedView entering="fadeUp" delay={100} className="px-6 py-4 bg-white border-b border-gray-100">
         <TextInput
           className="bg-gray-100 rounded-lg px-4 py-3"
           placeholder="Search patients..."
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-      </View>
+      </AnimatedView>
 
       {/* Patient List */}
       <ScrollView className="flex-1 px-6 py-4">
         {filteredBooklets.length === 0 ? (
-          <View className="items-center py-12">
+          <AnimatedView entering="fadeUp" delay={200} className="items-center py-12">
             <Text className="text-gray-500 text-center">
               {searchQuery ? "No patients found" : "No patients yet"}
             </Text>
             <Text className="text-gray-400 text-sm text-center mt-2">
               Scan a patient's QR code to add them
             </Text>
-          </View>
+          </AnimatedView>
         ) : (
           filteredBooklets.map((booklet) => (
-            <Pressable
-              key={booklet.id}
-              className="bg-white rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50"
-            >
+            <CardPressable key={booklet.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm">
               <View className="flex-row justify-between items-start">
                 <View className="flex-1">
                   <Text className="font-semibold text-gray-900 text-lg">
@@ -105,7 +106,7 @@ export default function PatientsScreen() {
                   </View>
                 )}
               </View>
-            </Pressable>
+            </CardPressable>
           ))
         )}
       </ScrollView>

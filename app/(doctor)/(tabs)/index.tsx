@@ -1,7 +1,12 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore, useBookletStore, useMedicalStore } from "../../../src/stores";
 import { formatRelativeDate } from "../../../src/utils";
+import {
+  AnimatedView,
+  CardPressable,
+  AnimatedNumber,
+} from "../../../src/components/ui";
 
 export default function DoctorDashboard() {
   const { doctorProfile } = useAuthStore();
@@ -25,46 +30,55 @@ export default function DoctorDashboard() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1">
         {/* Header */}
-        <View className="bg-blue-600 px-6 py-8">
+        <AnimatedView entering="fade" className="bg-blue-600 px-6 py-8">
           <Text className="text-white text-lg">Welcome back,</Text>
           <Text className="text-white text-2xl font-bold">
             {doctorProfile?.fullName || "Doctor"}
           </Text>
-        </View>
+        </AnimatedView>
 
         {/* Stats */}
         <View className="flex-row px-4 -mt-4">
-          <View className="flex-1 bg-white rounded-xl p-4 mx-2 shadow-sm">
-            <Text className="text-3xl font-bold text-blue-600">
-              {patientBooklets.length}
-            </Text>
+          <AnimatedView
+            entering="fadeUp"
+            delay={100}
+            className="flex-1 bg-white rounded-xl p-4 mx-2 shadow-sm"
+          >
+            <AnimatedNumber
+              value={patientBooklets.length}
+              className="text-3xl font-bold text-blue-600"
+            />
             <Text className="text-gray-500 text-sm">Active Patients</Text>
-          </View>
-          <View className="flex-1 bg-white rounded-xl p-4 mx-2 shadow-sm">
-            <Text className="text-3xl font-bold text-amber-600">
-              {pendingLabs.length}
-            </Text>
+          </AnimatedView>
+          <AnimatedView
+            entering="fadeUp"
+            delay={200}
+            className="flex-1 bg-white rounded-xl p-4 mx-2 shadow-sm"
+          >
+            <AnimatedNumber
+              value={pendingLabs.length}
+              className="text-3xl font-bold text-amber-600"
+            />
             <Text className="text-gray-500 text-sm">Pending Labs</Text>
-          </View>
+          </AnimatedView>
         </View>
 
         {/* Upcoming Appointments */}
         <View className="px-6 mt-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
-            Upcoming Appointments
-          </Text>
+          <AnimatedView entering="fade" delay={250}>
+            <Text className="text-lg font-semibold text-gray-900 mb-4">
+              Upcoming Appointments
+            </Text>
+          </AnimatedView>
           {upcomingAppointments.length === 0 ? (
-            <View className="bg-white rounded-xl p-6">
+            <AnimatedView entering="fadeUp" delay={300} className="bg-white rounded-xl p-6">
               <Text className="text-gray-500 text-center">
                 No upcoming appointments
               </Text>
-            </View>
+            </AnimatedView>
           ) : (
             upcomingAppointments.map((booklet) => (
-              <View
-                key={booklet.id}
-                className="bg-white rounded-xl p-4 mb-3 shadow-sm"
-              >
+              <CardPressable key={booklet.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm">
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1">
                     <Text className="font-semibold text-gray-900">
@@ -78,21 +92,20 @@ export default function DoctorDashboard() {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </CardPressable>
             ))
           )}
         </View>
 
         {/* Recent Patients */}
         <View className="px-6 mt-6 mb-8">
-          <Text className="text-lg font-semibold text-gray-900 mb-4">
-            Recent Patients
-          </Text>
+          <AnimatedView entering="fade" delay={350}>
+            <Text className="text-lg font-semibold text-gray-900 mb-4">
+              Recent Patients
+            </Text>
+          </AnimatedView>
           {patientBooklets.slice(0, 5).map((booklet) => (
-            <Pressable
-              key={booklet.id}
-              className="bg-white rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50"
-            >
+            <CardPressable key={booklet.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm">
               <Text className="font-semibold text-gray-900">
                 {booklet.motherName}
               </Text>
@@ -102,7 +115,7 @@ export default function DoctorDashboard() {
                   Last visit: {formatRelativeDate(booklet.lastVisitDate)}
                 </Text>
               )}
-            </Pressable>
+            </CardPressable>
           ))}
         </View>
       </ScrollView>

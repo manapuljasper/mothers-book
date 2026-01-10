@@ -8,7 +8,8 @@ export default function DoctorsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Get all doctors from storage
-  const allDoctors = StorageService.get<DoctorProfile[]>(StorageKey.DOCTOR_PROFILES) || [];
+  const allDoctors =
+    StorageService.get<DoctorProfile[]>(StorageKey.DOCTOR_PROFILES) || [];
 
   // Filter by search
   const filteredDoctors = allDoctors.filter(
@@ -16,11 +17,13 @@ export default function DoctorsScreen() {
       d.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       d.clinicName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       d.clinicAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (d.specialization?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+      (d.specialization?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      )
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
       {/* Header */}
       <View className="bg-white px-6 py-4 border-b border-gray-200">
         <Text className="text-2xl font-bold text-gray-900">Find a Doctor</Text>
@@ -111,7 +114,8 @@ export default function DoctorsScreen() {
         )}
 
         <Text className="text-gray-400 text-xs text-center py-4">
-          Connect with a doctor by visiting their clinic and scanning their QR code
+          Connect with a doctor by visiting their clinic and scanning their QR
+          code
         </Text>
       </ScrollView>
     </SafeAreaView>

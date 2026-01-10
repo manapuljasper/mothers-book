@@ -1,7 +1,12 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuthStore, useBookletStore, useMedicationStore } from "../../../src/stores";
-import { formatDate, formatRelativeDate } from "../../../src/utils";
+import {
+  useAuthStore,
+  useBookletStore,
+  useMedicationStore,
+} from "../../../src/stores";
+import { formatDate } from "../../../src/utils";
+import { CardPressable } from "../../../src/components/ui";
 
 export default function MotherHomeScreen() {
   const { motherProfile } = useAuthStore();
@@ -16,14 +21,13 @@ export default function MotherHomeScreen() {
       )
     : [];
 
-  // Get today's medications that haven't been taken
   const pendingMeds = activeMedications.filter((m) => {
     const takenToday = m.todayLogs.filter((l) => l.status === "taken").length;
     return takenToday < m.frequencyPerDay;
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
       <ScrollView className="flex-1">
         {/* Header */}
         <View className="bg-pink-600 px-6 py-8">
@@ -55,9 +59,9 @@ export default function MotherHomeScreen() {
             <Text className="text-lg font-semibold text-gray-900">
               My Booklets
             </Text>
-            <Pressable>
+            <CardPressable>
               <Text className="text-pink-600 font-medium">+ New</Text>
-            </Pressable>
+            </CardPressable>
           </View>
 
           {activeBooklets.length === 0 ? (
@@ -71,10 +75,7 @@ export default function MotherHomeScreen() {
             </View>
           ) : (
             activeBooklets.map((booklet) => (
-              <Pressable
-                key={booklet.id}
-                className="bg-white rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50"
-              >
+              <CardPressable key={booklet.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm">
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1">
                     <Text className="font-semibold text-gray-900 text-lg">
@@ -93,11 +94,14 @@ export default function MotherHomeScreen() {
                   </View>
                 </View>
                 {booklet.notes && (
-                  <Text className="text-gray-500 text-sm mt-2" numberOfLines={2}>
+                  <Text
+                    className="text-gray-500 text-sm mt-2"
+                    numberOfLines={2}
+                  >
                     {booklet.notes}
                   </Text>
                 )}
-              </Pressable>
+              </CardPressable>
             ))
           )}
         </View>
@@ -111,17 +115,16 @@ export default function MotherHomeScreen() {
             {booklets
               .filter((b) => b.status !== "active")
               .map((booklet) => (
-                <Pressable
-                  key={booklet.id}
-                  className="bg-gray-100 rounded-xl p-4 mb-3 active:bg-gray-200"
-                >
-                  <Text className="font-medium text-gray-700">{booklet.label}</Text>
+                <CardPressable key={booklet.id} className="bg-gray-100 rounded-xl p-4 mb-3">
+                  <Text className="font-medium text-gray-700">
+                    {booklet.label}
+                  </Text>
                   {booklet.actualDeliveryDate && (
                     <Text className="text-gray-500 text-sm">
                       Delivered: {formatDate(booklet.actualDeliveryDate)}
                     </Text>
                   )}
-                </Pressable>
+                </CardPressable>
               ))}
           </View>
         )}
@@ -133,19 +136,18 @@ export default function MotherHomeScreen() {
               Today's Medications
             </Text>
             {pendingMeds.slice(0, 3).map((med) => (
-              <View
-                key={med.id}
-                className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3"
-              >
+              <View key={med.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
                 <View className="flex-row justify-between items-center">
                   <View>
-                    <Text className="font-semibold text-gray-900">{med.name}</Text>
+                    <Text className="font-semibold text-gray-900">
+                      {med.name}
+                    </Text>
                     <Text className="text-gray-500 text-sm">{med.dosage}</Text>
                   </View>
                   <View className="bg-amber-100 px-3 py-1 rounded-full">
                     <Text className="text-amber-700 text-sm">
-                      {med.todayLogs.filter((l) => l.status === "taken").length}/
-                      {med.frequencyPerDay} taken
+                      {med.todayLogs.filter((l) => l.status === "taken").length}
+                      /{med.frequencyPerDay} taken
                     </Text>
                   </View>
                 </View>
