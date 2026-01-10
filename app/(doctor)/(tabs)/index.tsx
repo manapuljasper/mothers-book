@@ -1,5 +1,4 @@
 import { View, Text, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthStore, useBookletStore, useMedicalStore } from "../../../src/stores";
 import { formatRelativeDate } from "../../../src/utils";
@@ -25,18 +24,9 @@ export default function DoctorDashboard() {
     .slice(0, 5);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1">
-        {/* Header */}
-        <View className="bg-blue-500 px-6 py-8">
-          <Text className="text-white text-lg">Welcome back,</Text>
-          <Text className="text-white text-2xl font-bold">
-            {doctorProfile?.fullName || "Doctor"}
-          </Text>
-        </View>
-
-        {/* Stats */}
-        <View className="flex-row px-4 -mt-4">
+    <ScrollView className="flex-1 bg-gray-50">
+      {/* Stats */}
+      <View className="flex-row px-4 pt-4">
           <View className="flex-1 bg-white rounded-xl p-5 mx-2 border border-gray-100">
             <Text className="text-3xl font-bold text-blue-500">
               {patientBooklets.length}
@@ -110,7 +100,6 @@ export default function DoctorDashboard() {
             </CardPressable>
           ))}
         </View>
-      </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }

@@ -1,7 +1,10 @@
 import { useState, useMemo } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { ChevronLeft, ChevronDown, ChevronUp } from "lucide-react-native";
 import {
   useBookletStore,
@@ -15,6 +18,7 @@ import { CardPressable, AnimatedCollapsible } from "../../../src/components/ui";
 export default function BookletDetailScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const { getBookletById, getAccessibleDoctors } = useBookletStore();
   const { getEntriesByBooklet, getLabsByEntry } = useMedicalStore();
@@ -74,10 +78,10 @@ export default function BookletDetailScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
-      <ScrollView className="flex-1">
+    <SafeAreaView className="flex-1 bg-pink-500" edges={[]}>
+      <ScrollView className="flex-1 bg-gray-50">
         {/* Header */}
-        <View className="bg-pink-500 px-6 py-6">
+        <View className="bg-pink-500 px-6 py-6" style={{ paddingTop: insets.top }}>
           <CardPressable onPress={() => router.back()} className="flex-row items-center mb-3">
             <ChevronLeft size={20} color="#fbcfe8" strokeWidth={1.5} />
             <Text className="text-pink-200 ml-1">Back</Text>

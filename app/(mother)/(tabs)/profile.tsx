@@ -1,6 +1,5 @@
 import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore, useBookletStore } from "../../../src/stores";
 import { resetSampleData } from "../../../src/data";
 import { formatDate, calculateAge } from "../../../src/utils";
@@ -53,21 +52,20 @@ export default function MotherProfileScreen() {
     : null;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
-      <ScrollView className="flex-1">
-        {/* Header */}
-        <View className="bg-pink-600 px-6 py-8 items-center">
-          <View className="w-24 h-24 bg-pink-400 rounded-full items-center justify-center mb-4">
-            <Text className="text-4xl">👩</Text>
-          </View>
-          <Text className="text-white text-xl font-bold">
-            {motherProfile?.fullName}
-          </Text>
-          {age && <Text className="text-pink-200">{age} years old</Text>}
+    <ScrollView className="flex-1 bg-gray-50">
+      {/* Profile Avatar */}
+      <View className="items-center py-6">
+        <View className="w-20 h-20 bg-pink-100 rounded-full items-center justify-center mb-3">
+          <Text className="text-3xl">👩</Text>
         </View>
+        <Text className="text-gray-900 text-lg font-bold">
+          {motherProfile?.fullName}
+        </Text>
+        {age && <Text className="text-gray-500 text-sm">{age} years old</Text>}
+      </View>
 
-        {/* Personal Info */}
-        <View className="px-6 -mt-4">
+      {/* Personal Info */}
+      <View className="px-6">
           <View className="bg-white rounded-xl p-4 shadow-sm">
             <Text className="font-semibold text-gray-900 mb-3">
               Personal Information
@@ -175,11 +173,10 @@ export default function MotherProfileScreen() {
           </Pressable>
         </View>
 
-        <Text className="text-gray-400 text-xs text-center py-8">
-          Mother's Book v1.0.0 - Phase 1
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
+      <Text className="text-gray-400 text-xs text-center py-8">
+        Mother's Book v1.0.0 - Phase 1
+      </Text>
+    </ScrollView>
   );
 }
 

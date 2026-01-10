@@ -1,5 +1,4 @@
 import { View, Text, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   useAuthStore,
@@ -29,18 +28,9 @@ export default function MotherHomeScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
-      <ScrollView className="flex-1">
-        {/* Header */}
-        <View className="bg-pink-600 px-6 py-8">
-          <Text className="text-white text-lg">Hello,</Text>
-          <Text className="text-white text-2xl font-bold">
-            {motherProfile?.fullName || "Mom"}
-          </Text>
-        </View>
-
-        {/* Quick Stats */}
-        <View className="flex-row px-4 -mt-4">
+    <ScrollView className="flex-1 bg-gray-50">
+      {/* Quick Stats */}
+      <View className="flex-row px-4 pt-4">
           <View className="flex-1 bg-white rounded-xl p-5 mx-2 border border-gray-100">
             <Text className="text-3xl font-bold text-pink-500">
               {activeBooklets.length}
@@ -165,7 +155,6 @@ export default function MotherHomeScreen() {
             ))}
           </View>
         )}
-      </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }

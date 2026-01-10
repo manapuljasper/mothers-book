@@ -1,6 +1,5 @@
 import { View, Text, ScrollView, Pressable, TextInput } from "react-native";
 import { useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StorageService, StorageKey } from "../../../src/services";
 import type { DoctorProfile } from "../../../src/types";
 
@@ -23,15 +22,7 @@ export default function DoctorsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
-      {/* Header */}
-      <View className="bg-white px-6 py-4 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900">Find a Doctor</Text>
-        <Text className="text-gray-500 text-sm">
-          Browse and connect with OB-GYNs
-        </Text>
-      </View>
-
+    <View className="flex-1 bg-gray-50">
       {/* Search */}
       <View className="px-6 py-4 bg-white border-b border-gray-100">
         <TextInput
@@ -118,6 +109,6 @@ export default function DoctorsScreen() {
           code
         </Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

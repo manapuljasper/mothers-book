@@ -1,6 +1,5 @@
-import { View, Text, Pressable, TextInput, Alert } from "react-native";
+import { View, Text, Pressable, TextInput, Alert, ScrollView } from "react-native";
 import { useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore, useBookletStore } from "../../../src/stores";
 
 export default function ScanQRScreen() {
@@ -35,16 +34,7 @@ export default function ScanQRScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white px-6 py-4 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900">Scan QR Code</Text>
-        <Text className="text-gray-500 text-sm">
-          Scan a patient's QR code to access their booklet
-        </Text>
-      </View>
-
-      <View className="flex-1 px-6 py-8">
+    <ScrollView className="flex-1 bg-gray-50 px-6 py-4">
         {/* Camera Placeholder */}
         <View className="bg-gray-200 rounded-2xl aspect-square items-center justify-center mb-8">
           <Text className="text-6xl mb-4">📷</Text>
@@ -81,14 +71,13 @@ export default function ScanQRScreen() {
           </Pressable>
         </View>
 
-        {/* Sample Booklet IDs */}
-        <View className="mt-6">
-          <Text className="text-gray-500 text-sm mb-2">Sample Booklet IDs:</Text>
-          <Text className="text-gray-400 text-xs">
-            book-001 (Maria - Active), book-003 (Anna), book-004 (Sofia)
-          </Text>
-        </View>
+      {/* Sample Booklet IDs */}
+      <View className="mt-6">
+        <Text className="text-gray-500 text-sm mb-2">Sample Booklet IDs:</Text>
+        <Text className="text-gray-400 text-xs">
+          book-001 (Maria - Active), book-003 (Anna), book-004 (Sofia)
+        </Text>
       </View>
-    </SafeAreaView>
+    </ScrollView>
   );
 }

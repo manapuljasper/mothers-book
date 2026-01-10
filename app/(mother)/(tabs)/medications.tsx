@@ -1,5 +1,4 @@
 import { View, Text, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   useAuthStore,
   useBookletStore,
@@ -32,19 +31,7 @@ export default function MedicationsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
-      {/* Header */}
-      <AnimatedView
-        entering="fade"
-        className="bg-white px-6 py-4 border-b border-gray-200"
-      >
-        <Text className="text-2xl font-bold text-gray-900">Medications</Text>
-        <Text className="text-gray-500 text-sm">
-          Track your daily medication intake
-        </Text>
-      </AnimatedView>
-
-      <ScrollView className="flex-1 px-6 py-4">
+    <ScrollView className="flex-1 bg-gray-50 px-6 py-4">
         {activeMedications.length === 0 ? (
           <AnimatedView
             entering="fadeUp"
@@ -145,7 +132,6 @@ export default function MedicationsScreen() {
             );
           })
         )}
-      </ScrollView>
-    </SafeAreaView>
+    </ScrollView>
   );
 }

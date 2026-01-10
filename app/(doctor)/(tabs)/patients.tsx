@@ -1,6 +1,5 @@
 import { View, Text, ScrollView, TextInput } from "react-native";
 import { useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import { useAuthStore, useBookletStore } from "../../../src/stores";
@@ -23,15 +22,7 @@ export default function PatientsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white px-6 py-4 border-b border-gray-100">
-        <Text className="text-2xl font-bold text-gray-900">Patients</Text>
-        <Text className="text-gray-400 text-sm">
-          {patientBooklets.length} active booklets
-        </Text>
-      </View>
-
+    <View className="flex-1 bg-gray-50">
       {/* Search */}
       <View className="px-6 py-4 bg-white border-b border-gray-100">
         <View className="flex-row items-center bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
@@ -118,6 +109,6 @@ export default function PatientsScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

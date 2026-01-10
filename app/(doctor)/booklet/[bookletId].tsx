@@ -3,7 +3,10 @@ import type { TextInput as RNTextInput } from "react-native";
 import { View, Text, ScrollView, Pressable, TextInput, Modal, Alert, Image, ActivityIndicator } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import {
   ChevronLeft,
@@ -58,6 +61,7 @@ interface PendingLab {
 export default function DoctorBookletDetailScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const { doctorProfile } = useAuthStore();
 
@@ -394,10 +398,10 @@ export default function DoctorBookletDetailScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
-      <ScrollView className="flex-1">
+    <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
+      <ScrollView className="flex-1 bg-gray-50">
         {/* Header */}
-        <View className="bg-blue-500 px-6 py-6">
+        <View className="bg-blue-500 px-6 py-6" style={{ paddingTop: insets.top }}>
           <CardPressable
             onPress={() => router.back()}
             className="flex-row items-center mb-3"

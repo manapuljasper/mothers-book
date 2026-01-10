@@ -189,6 +189,36 @@ Reset to default sample data: Profile → Reset Sample Data
 
 ## UI & Animation Conventions
 
+### Safe Area Handling for Colored Backgrounds
+When a screen has a colored header/background that should extend to the screen edges (behind the status bar), do NOT use `SafeAreaView` with `edges={["top"]}`. This creates a white gap at the top.
+
+Instead, use this pattern:
+1. Set `SafeAreaView` to `edges={[]}` (or just `["bottom"]` if needed)
+2. Set the `SafeAreaView` background to match the header color
+3. Apply `useSafeAreaInsets()` and add `paddingTop: insets.top` to the colored header content
+
+```tsx
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
+export default function Screen() {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
+      <ScrollView className="flex-1 bg-gray-50">
+        {/* Header extends to screen edge, content has safe padding */}
+        <View className="bg-blue-500 px-6 py-6" style={{ paddingTop: insets.top }}>
+          <Text className="text-white">Header Content</Text>
+        </View>
+        {/* Rest of screen content */}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+```
+
+This ensures the colored background fills the entire top of the screen while keeping content below the status bar.
+
 ### Interactive Elements
 All new clickable/tappable elements should use the appropriate animated pressable component from `src/components/ui`:
 - `CardPressable` - For cards and larger tappable areas (scale: 0.98)

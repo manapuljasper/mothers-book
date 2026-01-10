@@ -1,6 +1,5 @@
 import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../../src/stores";
 import { resetSampleData } from "../../../src/data";
 
@@ -41,21 +40,20 @@ export default function DoctorProfileScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1">
-        {/* Header */}
-        <View className="bg-blue-600 px-6 py-8 items-center">
-          <View className="w-24 h-24 bg-blue-400 rounded-full items-center justify-center mb-4">
-            <Text className="text-4xl">👨‍⚕️</Text>
-          </View>
-          <Text className="text-white text-xl font-bold">
-            {doctorProfile?.fullName}
-          </Text>
-          <Text className="text-blue-200">{doctorProfile?.specialization}</Text>
+    <ScrollView className="flex-1 bg-gray-50">
+      {/* Profile Avatar */}
+      <View className="items-center py-6">
+        <View className="w-20 h-20 bg-blue-100 rounded-full items-center justify-center mb-3">
+          <Text className="text-3xl">👨‍⚕️</Text>
         </View>
+        <Text className="text-gray-900 text-lg font-bold">
+          {doctorProfile?.fullName}
+        </Text>
+        <Text className="text-gray-500 text-sm">{doctorProfile?.specialization}</Text>
+      </View>
 
-        {/* Info Cards */}
-        <View className="px-6 -mt-4">
+      {/* Info Cards */}
+      <View className="px-6">
           <View className="bg-white rounded-xl p-4 shadow-sm">
             <InfoRow label="PRC Number" value={doctorProfile?.prcNumber} />
             <InfoRow label="Clinic" value={doctorProfile?.clinicName} />
@@ -98,11 +96,10 @@ export default function DoctorProfileScreen() {
           </Pressable>
         </View>
 
-        <Text className="text-gray-400 text-xs text-center py-8">
-          Mother's Book v1.0.0 - Phase 1
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
+      <Text className="text-gray-400 text-xs text-center py-8">
+        Mother's Book v1.0.0 - Phase 1
+      </Text>
+    </ScrollView>
   );
 }
 
