@@ -1,22 +1,24 @@
 import { View, Text, ScrollView, Pressable, Alert, Switch } from "react-native";
 import { useRouter } from "expo-router";
 import { Moon, Sun } from "lucide-react-native";
-import { useAuthStore, useBookletStore, useThemeStore } from "../../../src/stores";
-import { resetSampleData } from "../../../src/data";
+import { useAuthStore, useThemeStore } from "../../../src/stores";
+import {
+  useBookletsByMother,
+  useBookletDoctors,
+  useSignOut,
+} from "../../../src/hooks";
 import { formatDate, calculateAge } from "../../../src/utils";
 
 export default function MotherProfileScreen() {
   const router = useRouter();
-  const { motherProfile, logout } = useAuthStore();
-  const { getBookletsByMother, getAccessibleDoctors } = useBookletStore();
+  const { motherProfile } = useAuthStore();
+  const signOutMutation = useSignOut();
   const { colorScheme, toggleTheme } = useThemeStore();
   const isDark = colorScheme === "dark";
 
-  const booklets = motherProfile ? getBookletsByMother(motherProfile.id) : [];
+  const { data: booklets = [] } = useBookletsByMother(motherProfile?.id);
   const activeBooklet = booklets.find((b) => b.status === "active");
-  const connectedDoctors = activeBooklet
-    ? getAccessibleDoctors(activeBooklet.id)
-    : [];
+  const { data: connectedDoctors = [] } = useBookletDoctors(activeBooklet?.id);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -24,30 +26,12 @@ export default function MotherProfileScreen() {
       {
         text: "Logout",
         style: "destructive",
-        onPress: () => {
-          logout();
+        onPress: async () => {
+          await signOutMutation.mutateAsync();
           router.replace("/(auth)/login");
         },
       },
     ]);
-  };
-
-  const handleResetData = () => {
-    Alert.alert(
-      "Reset Data",
-      "This will reset all data to the default sample data. Continue?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Reset",
-          style: "destructive",
-          onPress: () => {
-            resetSampleData();
-            Alert.alert("Success", "Data has been reset to defaults.");
-          },
-        },
-      ]
-    );
   };
 
   const age = motherProfile?.birthdate
@@ -64,7 +48,7 @@ export default function MotherProfileScreen() {
         <Text className="text-gray-900 dark:text-white text-lg font-bold">
           {motherProfile?.fullName}
         </Text>
-        {age && (
+        {!!age && (
           <Text className="text-gray-500 dark:text-gray-400 text-sm">
             {age} years old
           </Text>
@@ -182,15 +166,6 @@ export default function MotherProfileScreen() {
         </Pressable>
 
         <Pressable
-          className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
-          onPress={handleResetData}
-        >
-          <Text className="text-amber-600 dark:text-amber-400 font-medium">
-            Reset Sample Data
-          </Text>
-        </Pressable>
-
-        <Pressable
           className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
           onPress={handleLogout}
         >
@@ -218,7 +193,9 @@ function InfoRow({
 }) {
   return (
     <View
-      className={`py-3 ${!isLast ? "border-b border-gray-100 dark:border-gray-700" : ""}`}
+      className={`py-3 ${
+        !isLast ? "border-b border-gray-100 dark:border-gray-700" : ""
+      }`}
     >
       <Text className="text-gray-500 dark:text-gray-400 text-sm">{label}</Text>
       <Text className="text-gray-900 dark:text-white font-medium mt-1">

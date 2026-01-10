@@ -2,11 +2,12 @@ import { View, Text, ScrollView, Pressable, Alert, Switch } from "react-native";
 import { useRouter } from "expo-router";
 import { Moon, Sun } from "lucide-react-native";
 import { useAuthStore, useThemeStore } from "../../../src/stores";
-import { resetSampleData } from "../../../src/data";
+import { useSignOut } from "../../../src/hooks";
 
 export default function DoctorProfileScreen() {
   const router = useRouter();
-  const { doctorProfile, logout } = useAuthStore();
+  const { doctorProfile } = useAuthStore();
+  const signOutMutation = useSignOut();
   const { colorScheme, toggleTheme } = useThemeStore();
   const isDark = colorScheme === "dark";
 
@@ -16,30 +17,12 @@ export default function DoctorProfileScreen() {
       {
         text: "Logout",
         style: "destructive",
-        onPress: () => {
-          logout();
+        onPress: async () => {
+          await signOutMutation.mutateAsync();
           router.replace("/(auth)/login");
         },
       },
     ]);
-  };
-
-  const handleResetData = () => {
-    Alert.alert(
-      "Reset Data",
-      "This will reset all data to the default sample data. Continue?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Reset",
-          style: "destructive",
-          onPress: () => {
-            resetSampleData();
-            Alert.alert("Success", "Data has been reset to defaults.");
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -107,15 +90,6 @@ export default function DoctorProfileScreen() {
         <Pressable className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700">
           <Text className="text-gray-900 dark:text-white font-medium">
             Notification Settings
-          </Text>
-        </Pressable>
-
-        <Pressable
-          className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
-          onPress={handleResetData}
-        >
-          <Text className="text-amber-600 dark:text-amber-400 font-medium">
-            Reset Sample Data
           </Text>
         </Pressable>
 

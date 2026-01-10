@@ -77,19 +77,13 @@ export function useCreateMedication() {
   return useMutation({
     mutationFn: (data: Omit<Medication, 'id' | 'createdAt'>) => api.createMedication(data),
     onSuccess: (newMed) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({
-        queryKey: medicationKeys.listByBooklet(newMed.bookletId),
-      });
+      // Invalidate all medication lists since we don't have bookletId directly
+      queryClient.invalidateQueries({ queryKey: medicationKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: medicationKeys.listByEntry(newMed.medicalEntryId),
       });
-      queryClient.invalidateQueries({
-        queryKey: medicationKeys.active(newMed.bookletId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: medicationKeys.today(newMed.bookletId),
-      });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
       // Set new medication in cache
       queryClient.setQueryData(medicationKeys.detail(newMed.id), newMed);
     },
@@ -103,9 +97,7 @@ export function useUpdateMedication() {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Medication> }) =>
       api.updateMedication(id, updates),
     onSuccess: (updatedMed) => {
-      queryClient.invalidateQueries({
-        queryKey: medicationKeys.listByBooklet(updatedMed.bookletId),
-      });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: medicationKeys.listByEntry(updatedMed.medicalEntryId),
       });
@@ -122,9 +114,7 @@ export function useDeactivateMedication() {
   return useMutation({
     mutationFn: (id: string) => api.deactivateMedication(id),
     onSuccess: (deactivatedMed) => {
-      queryClient.invalidateQueries({
-        queryKey: medicationKeys.listByBooklet(deactivatedMed.bookletId),
-      });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.lists() });
       queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
       queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
       queryClient.setQueryData(medicationKeys.detail(deactivatedMed.id), deactivatedMed);
@@ -151,9 +141,7 @@ export function useLogIntake() {
     }) => api.logIntake(medicationId, doseIndex, status, userId, date),
     onSuccess: (log) => {
       // Invalidate medication queries to refresh intake logs
-      queryClient.invalidateQueries({
-        queryKey: medicationKeys.listByBooklet(log.bookletId),
-      });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.lists() });
       queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
       queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
       queryClient.invalidateQueries({

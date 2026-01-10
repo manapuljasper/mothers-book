@@ -7,7 +7,7 @@
  */
 
 // Client utilities
-export { mockDelay, mockRequest, mockMutation, ApiError } from './client';
+export { supabase, ApiError, handleSupabaseError, toCamelCase, toSnakeCase } from './client';
 export type { ApiResponse, PaginatedResponse } from './client';
 
 // Booklet APIs

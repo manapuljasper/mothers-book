@@ -1,18 +1,13 @@
 import "../global.css";
 import { useEffect } from "react";
-import { View } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useColorScheme } from "nativewind";
-import { initializeSampleData } from "../src/data";
-import {
-  useBookletStore,
-  useMedicalStore,
-  useMedicationStore,
-  useThemeStore,
-} from "../src/stores";
+import { useAuthStore, useThemeStore } from "../src/stores";
+import { useInitializeAuth } from "../src/hooks";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -41,32 +36,48 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export default function RootLayout() {
+function AuthInitializer({ children }: { children: React.ReactNode }) {
+  const { isInitialized, isLoading } = useAuthStore();
+  const initializeAuthMutation = useInitializeAuth();
   const { colorScheme } = useThemeStore();
+  const isDark = colorScheme === "dark";
 
-  // Initialize sample data and load stores on app start
   useEffect(() => {
-    initializeSampleData();
-
-    // Load data into stores (kept for backward compatibility during migration)
-    useBookletStore.getState().loadBooklets();
-    useMedicalStore.getState().loadMedicalData();
-    useMedicationStore.getState().loadMedications();
+    initializeAuthMutation.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Show loading screen while auth is initializing
+  if (!isInitialized || isLoading) {
+    return (
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: isDark ? "#111827" : "#f9fafb" }}
+      >
+        <ActivityIndicator size="large" color={isDark ? "#818cf8" : "#6366f1"} />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <KeyboardProvider>
         <ThemeProvider>
-          <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(doctor)" />
-              <Stack.Screen name="(mother)" />
-            </Stack>
-          </View>
-          <StatusBar style={"light"} />
+          <AuthInitializer>
+            <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(doctor)" />
+                <Stack.Screen name="(mother)" />
+              </Stack>
+            </View>
+            <StatusBar style={"light"} />
+          </AuthInitializer>
         </ThemeProvider>
       </KeyboardProvider>
     </QueryClientProvider>

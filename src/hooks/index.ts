@@ -4,6 +4,9 @@
  * Central export point for all React Query hooks organized by feature.
  */
 
+// Auth hooks
+export { useSignIn, useSignUp, useSignOut, useInitializeAuth } from './auth';
+
 // Booklet hooks
 export {
   bookletKeys,

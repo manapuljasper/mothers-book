@@ -1,10 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
-import { mmkvStorage } from '../services/storage.service';
+import { createClient } from "@supabase/supabase-js";
+import { mmkvStorage } from "../services/storage.service";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+console.log("supabaseUrl", supabaseUrl);
+console.log("supabasePublishableKey", supabasePublishableKey);
+
+export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
     storage: mmkvStorage,
     autoRefreshToken: true,

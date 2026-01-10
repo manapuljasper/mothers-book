@@ -11,6 +11,8 @@ export default function DoctorDashboard() {
   const { getBookletsByDoctor } = useBookletStore();
   const { getPendingLabs } = useMedicalStore();
 
+  console.log("[DoctorDashboard] doctorProfile:", doctorProfile);
+
   const patientBooklets = doctorProfile ? getBookletsByDoctor(doctorProfile.id) : [];
   const pendingLabs = getPendingLabs();
 

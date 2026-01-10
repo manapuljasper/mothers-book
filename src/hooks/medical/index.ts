@@ -104,18 +104,10 @@ export function useCreateLabRequest() {
   return useMutation({
     mutationFn: (data: Omit<LabRequest, 'id'>) => api.createLabRequest(data),
     onSuccess: (newLab) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.labsByBooklet(newLab.bookletId),
-      });
+      // Invalidate all lab queries since we don't have bookletId directly on LabRequest
+      queryClient.invalidateQueries({ queryKey: medicalKeys.labs() });
       queryClient.invalidateQueries({
         queryKey: medicalKeys.labsByEntry(newLab.medicalEntryId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.pendingLabs(newLab.bookletId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.pendingLabs(undefined),
       });
     },
   });
@@ -135,13 +127,11 @@ export function useUpdateLabStatus() {
       results?: string;
     }) => api.updateLabStatus(id, status, results),
     onSuccess: (updatedLab) => {
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.labsByBooklet(updatedLab.bookletId),
-      });
+      // Invalidate all lab queries since we don't have bookletId directly on LabRequest
+      queryClient.invalidateQueries({ queryKey: medicalKeys.labs() });
       queryClient.invalidateQueries({
         queryKey: medicalKeys.labsByEntry(updatedLab.medicalEntryId),
       });
-      queryClient.invalidateQueries({ queryKey: medicalKeys.pendingLabs() });
     },
   });
 }
