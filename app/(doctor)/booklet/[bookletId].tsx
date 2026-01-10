@@ -1,8 +1,10 @@
-import { useState, useMemo } from "react";
-import { View, Text, ScrollView, Pressable, TextInput, Modal } from "react-native";
+import { useState, useMemo, useCallback, useRef } from "react";
+import type { TextInput as RNTextInput } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, Modal, Alert, Image } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import {
   ChevronLeft,
   ChevronDown,
@@ -12,6 +14,8 @@ import {
   FlaskConical,
   X,
   Trash2,
+  Camera,
+  ImageIcon,
 } from "lucide-react-native";
 import {
   useAuthStore,
@@ -89,12 +93,16 @@ export default function DoctorBookletDetailScreen() {
     notes: "",
     diagnosis: "",
     recommendations: "",
-    bloodPressure: "",
+    bpSystolic: "",
+    bpDiastolic: "",
     weight: "",
     fetalHeartRate: "",
     fundalHeight: "",
     aog: "",
   });
+
+  // Ref for blood pressure diastolic input (for keyboard navigation)
+  const bpDiastolicRef = useRef<RNTextInput>(null);
 
   // Pending medications and labs to be created with the entry
   const [pendingMeds, setPendingMeds] = useState<PendingMedication[]>([]);
@@ -114,6 +122,115 @@ export default function DoctorBookletDetailScreen() {
     description: "",
     notes: "",
   });
+
+  // Attachments (photos)
+  const [attachments, setAttachments] = useState<string[]>([]);
+
+  // Check if form has unsaved data
+  const hasUnsavedChanges = useCallback(() => {
+    return (
+      entryForm.notes !== "" ||
+      entryForm.diagnosis !== "" ||
+      entryForm.recommendations !== "" ||
+      entryForm.bpSystolic !== "" ||
+      entryForm.bpDiastolic !== "" ||
+      entryForm.weight !== "" ||
+      entryForm.fetalHeartRate !== "" ||
+      entryForm.fundalHeight !== "" ||
+      entryForm.aog !== "" ||
+      pendingMeds.length > 0 ||
+      pendingLabs.length > 0 ||
+      attachments.length > 0
+    );
+  }, [entryForm, pendingMeds, pendingLabs, attachments]);
+
+  // Image picker - take photo
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "Camera permission is needed to take photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setAttachments([...attachments, result.assets[0].uri]);
+    }
+  };
+
+  // Image picker - choose from gallery
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission Required", "Photo library permission is needed to select photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const newUris = result.assets.map((asset) => asset.uri);
+      setAttachments([...attachments, ...newUris]);
+    }
+  };
+
+  // Remove attachment
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
+  };
+
+  // Handle modal close with confirmation
+  const handleCloseModal = () => {
+    if (hasUnsavedChanges()) {
+      Alert.alert(
+        "Discard Changes?",
+        "You have unsaved changes. Are you sure you want to discard them?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: () => {
+              resetForm();
+              setShowEntryModal(false);
+            },
+          },
+        ]
+      );
+    } else {
+      setShowEntryModal(false);
+    }
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setEntryForm({
+      entryType: "prenatal_checkup",
+      notes: "",
+      diagnosis: "",
+      recommendations: "",
+      bpSystolic: "",
+      bpDiastolic: "",
+      weight: "",
+      fetalHeartRate: "",
+      fundalHeight: "",
+      aog: "",
+    });
+    setPendingMeds([]);
+    setPendingLabs([]);
+    setCurrentMed({ name: "", dosageAmount: "", dosageUnit: "mg", instructions: "", frequencyPerDay: "1" });
+    setCurrentLab({ description: "", notes: "" });
+    setAttachments([]);
+  };
 
   // Get entry for selected date
   const selectedEntry = useMemo(() => {
@@ -175,10 +292,24 @@ export default function DoctorBookletDetailScreen() {
     setPendingLabs(pendingLabs.filter((l) => l.id !== id));
   };
 
-  // Handlers
-  const handleSaveEntry = () => {
+  // Confirm and save entry
+  const handleConfirmSave = () => {
+    Alert.alert(
+      "Save Entry",
+      "Are you sure you want to save this medical entry?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Save", onPress: saveEntry },
+      ]
+    );
+  };
+
+  // Actually save the entry
+  const saveEntry = () => {
     const vitals: Record<string, string | number | undefined> = {};
-    if (entryForm.bloodPressure) vitals.bloodPressure = entryForm.bloodPressure;
+    if (entryForm.bpSystolic && entryForm.bpDiastolic) {
+      vitals.bloodPressure = `${entryForm.bpSystolic}/${entryForm.bpDiastolic}`;
+    }
     if (entryForm.weight) vitals.weight = parseFloat(entryForm.weight);
     if (entryForm.fetalHeartRate)
       vitals.fetalHeartRate = parseInt(entryForm.fetalHeartRate);
@@ -196,6 +327,7 @@ export default function DoctorBookletDetailScreen() {
       diagnosis: entryForm.diagnosis || undefined,
       recommendations: entryForm.recommendations || undefined,
       vitals: Object.keys(vitals).length > 0 ? vitals : undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     // Create all pending medications linked to this entry
@@ -226,21 +358,7 @@ export default function DoctorBookletDetailScreen() {
     });
 
     // Reset form and close modal
-    setEntryForm({
-      entryType: "prenatal_checkup",
-      notes: "",
-      diagnosis: "",
-      recommendations: "",
-      bloodPressure: "",
-      weight: "",
-      fetalHeartRate: "",
-      fundalHeight: "",
-      aog: "",
-    });
-    setPendingMeds([]);
-    setPendingLabs([]);
-    setCurrentMed({ name: "", dosageAmount: "", dosageUnit: "mg", instructions: "", frequencyPerDay: "1" });
-    setCurrentLab({ description: "", notes: "" });
+    resetForm();
     setShowEntryModal(false);
   };
 
@@ -616,6 +734,32 @@ export default function DoctorBookletDetailScreen() {
                       </Text>
                     </View>
                   )}
+
+                  {/* Attachments */}
+                  {selectedEntry.attachments && selectedEntry.attachments.length > 0 && (
+                    <View className="mt-3 pt-3 border-t border-gray-100">
+                      <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                        Attachments ({selectedEntry.attachments.length})
+                      </Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {selectedEntry.attachments.map((uri, index) => (
+                          <Pressable
+                            key={index}
+                            onPress={() => {
+                              // Could open full-screen image viewer here
+                            }}
+                            className="mr-2"
+                          >
+                            <Image
+                              source={{ uri }}
+                              className="w-16 h-16 rounded-lg"
+                              resizeMode="cover"
+                            />
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
               )}
             </>
@@ -632,7 +776,7 @@ export default function DoctorBookletDetailScreen() {
         <SafeAreaView className="flex-1 bg-white">
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
             <Text className="text-xl font-bold text-gray-900">Add Entry</Text>
-            <Pressable onPress={() => setShowEntryModal(false)}>
+            <Pressable onPress={handleCloseModal}>
               <X size={24} color="#6b7280" strokeWidth={1.5} />
             </Pressable>
           </View>
@@ -672,12 +816,29 @@ export default function DoctorBookletDetailScreen() {
             <View className="flex-row flex-wrap">
               <View className="w-1/2 pr-2 mb-3">
                 <Text className="text-gray-400 text-xs mb-1">Blood Pressure</Text>
-                <TextInput
-                  className="border border-gray-200 rounded-lg px-3 py-2"
-                  placeholder="120/80"
-                  value={entryForm.bloodPressure}
-                  onChangeText={(v) => setEntryForm({ ...entryForm, bloodPressure: v })}
-                />
+                <View className="flex-row items-center">
+                  <TextInput
+                    className="border border-gray-200 rounded-lg px-3 py-2 flex-1"
+                    placeholder="120"
+                    keyboardType="numeric"
+                    maxLength={3}
+                    returnKeyType="next"
+                    value={entryForm.bpSystolic}
+                    onChangeText={(v) => setEntryForm({ ...entryForm, bpSystolic: v })}
+                    onSubmitEditing={() => bpDiastolicRef.current?.focus()}
+                    blurOnSubmit={false}
+                  />
+                  <Text className="text-gray-400 text-lg mx-2">/</Text>
+                  <TextInput
+                    ref={bpDiastolicRef}
+                    className="border border-gray-200 rounded-lg px-3 py-2 flex-1"
+                    placeholder="80"
+                    keyboardType="numeric"
+                    maxLength={3}
+                    value={entryForm.bpDiastolic}
+                    onChangeText={(v) => setEntryForm({ ...entryForm, bpDiastolic: v })}
+                  />
+                </View>
               </View>
               <View className="w-1/2 pl-2 mb-3">
                 <Text className="text-gray-400 text-xs mb-1">Weight (kg)</Text>
@@ -966,9 +1127,60 @@ export default function DoctorBookletDetailScreen() {
               </View>
             </View>
 
+            {/* Attachments Section */}
+            <View className="border-t border-gray-100 pt-4 mt-4">
+              <View className="flex-row items-center mb-3">
+                <ImageIcon size={18} color="#6366f1" strokeWidth={1.5} />
+                <Text className="text-gray-700 font-semibold ml-2">Attachments</Text>
+              </View>
+
+              {/* Display selected photos */}
+              {attachments.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="mb-3"
+                >
+                  {attachments.map((uri, index) => (
+                    <View key={index} className="mr-2 relative">
+                      <Image
+                        source={{ uri }}
+                        className="w-20 h-20 rounded-lg"
+                        resizeMode="cover"
+                      />
+                      <Pressable
+                        onPress={() => handleRemoveAttachment(index)}
+                        className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+                      >
+                        <X size={12} color="white" strokeWidth={2} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              {/* Photo picker buttons */}
+              <View className="flex-row">
+                <Pressable
+                  onPress={handleTakePhoto}
+                  className="flex-1 flex-row items-center justify-center border border-indigo-400 bg-white px-3 py-3 rounded-xl mr-2"
+                >
+                  <Camera size={18} color="#6366f1" strokeWidth={1.5} />
+                  <Text className="text-indigo-600 font-medium ml-2">Take Photo</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handlePickImage}
+                  className="flex-1 flex-row items-center justify-center border border-indigo-400 bg-white px-3 py-3 rounded-xl"
+                >
+                  <ImageIcon size={18} color="#6366f1" strokeWidth={1.5} />
+                  <Text className="text-indigo-600 font-medium ml-2">Gallery</Text>
+                </Pressable>
+              </View>
+            </View>
+
             {/* Save Button */}
             <Pressable
-              onPress={handleSaveEntry}
+              onPress={handleConfirmSave}
               className="bg-blue-500 py-4 rounded-xl items-center mt-6 mb-8"
             >
               <Text className="text-white font-semibold">Save Entry</Text>

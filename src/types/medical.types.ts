@@ -31,6 +31,7 @@ export interface MedicalEntry {
   diagnosis?: string;
   recommendations?: string;
   followUpDate?: Date;
+  attachments?: string[]; // Array of image URIs
   createdAt: Date;
   updatedAt?: Date;
 }
