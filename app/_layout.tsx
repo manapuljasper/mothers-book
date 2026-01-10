@@ -7,7 +7,12 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useColorScheme } from "nativewind";
 import { initializeSampleData } from "../src/data";
-import { useBookletStore, useMedicalStore, useMedicationStore, useThemeStore } from "../src/stores";
+import {
+  useBookletStore,
+  useMedicalStore,
+  useMedicationStore,
+  useThemeStore,
+} from "../src/stores";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -61,7 +66,7 @@ export default function RootLayout() {
               <Stack.Screen name="(mother)" />
             </Stack>
           </View>
-          <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+          <StatusBar style={"light"} />
         </ThemeProvider>
       </KeyboardProvider>
     </QueryClientProvider>

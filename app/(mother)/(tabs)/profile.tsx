@@ -73,7 +73,7 @@ export default function MotherProfileScreen() {
 
       {/* Personal Info */}
       <View className="px-6">
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <Text className="font-semibold text-gray-900 dark:text-white mb-3">
             Personal Information
           </Text>
@@ -102,7 +102,7 @@ export default function MotherProfileScreen() {
       {/* Baby Info */}
       {motherProfile?.babyName && (
         <View className="px-6 mt-4">
-          <View className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
             <Text className="font-semibold text-gray-900 dark:text-white mb-3">
               Baby Information
             </Text>
@@ -113,7 +113,7 @@ export default function MotherProfileScreen() {
 
       {/* Connected Doctors */}
       <View className="px-6 mt-4">
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
           <Text className="font-semibold text-gray-900 dark:text-white mb-3">
             My Doctors ({connectedDoctors.length})
           </Text>
@@ -150,7 +150,7 @@ export default function MotherProfileScreen() {
         </Text>
 
         {/* Dark Mode Toggle */}
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 shadow-sm flex-row items-center justify-between">
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 flex-row items-center justify-between">
           <View className="flex-row items-center">
             {isDark ? (
               <Moon size={20} color="#9ca3af" strokeWidth={1.5} />
@@ -169,20 +169,20 @@ export default function MotherProfileScreen() {
           />
         </View>
 
-        <Pressable className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50 dark:active:bg-gray-700">
+        <Pressable className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700">
           <Text className="text-gray-900 dark:text-white font-medium">
             Edit Profile
           </Text>
         </Pressable>
 
-        <Pressable className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50 dark:active:bg-gray-700">
+        <Pressable className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700">
           <Text className="text-gray-900 dark:text-white font-medium">
             Notification Settings
           </Text>
         </Pressable>
 
         <Pressable
-          className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50 dark:active:bg-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
           onPress={handleResetData}
         >
           <Text className="text-amber-600 dark:text-amber-400 font-medium">
@@ -191,7 +191,7 @@ export default function MotherProfileScreen() {
         </Pressable>
 
         <Pressable
-          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm active:bg-gray-50 dark:active:bg-gray-700"
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
           onPress={handleLogout}
         >
           <Text className="text-red-600 dark:text-red-400 font-medium">

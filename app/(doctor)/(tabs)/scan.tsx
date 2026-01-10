@@ -49,7 +49,7 @@ export default function ScanQRScreen() {
       </View>
 
       {/* Manual Entry */}
-      <View className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+      <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
         <Text className="font-semibold text-gray-900 dark:text-white mb-4">
           Manual Entry (Demo Mode)
         </Text>

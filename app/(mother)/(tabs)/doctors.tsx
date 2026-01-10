@@ -49,7 +49,7 @@ export default function DoctorsScreen() {
           filteredDoctors.map((doctor) => (
             <Pressable
               key={doctor.id}
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 shadow-sm active:bg-gray-50 dark:active:bg-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
             >
               {/* Doctor Header */}
               <View className="flex-row">

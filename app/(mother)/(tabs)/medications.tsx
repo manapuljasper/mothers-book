@@ -58,7 +58,7 @@ export default function MedicationsScreen() {
             <AnimatedView
               key={med.id}
               layout
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 shadow-sm"
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700"
             >
               {/* Medication Info */}
               <View className="flex-row justify-between items-start mb-3">
