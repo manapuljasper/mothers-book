@@ -1,10 +1,10 @@
 import { View, Text, ScrollView, TextInput } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { Search } from "lucide-react-native";
+import { Search, Users, QrCode } from "lucide-react-native";
 import { useAuthStore, useBookletStore, useThemeStore } from "../../../src/stores";
 import { formatRelativeDate, formatDate } from "../../../src/utils";
-import { CardPressable } from "../../../src/components/ui";
+import { CardPressable, EmptyState } from "../../../src/components/ui";
 
 export default function PatientsScreen() {
   const router = useRouter();
@@ -42,13 +42,27 @@ export default function PatientsScreen() {
       {/* Patient List */}
       <ScrollView className="flex-1 px-6 py-4">
         {filteredBooklets.length === 0 ? (
-          <View className="items-center py-12">
-            <Text className="text-gray-400 text-center">
-              {searchQuery ? "No patients found" : "No patients yet"}
-            </Text>
-            <Text className="text-gray-300 dark:text-gray-500 text-sm text-center mt-2">
-              Scan a patient's QR code to add them
-            </Text>
+          <View className="mt-4">
+            {searchQuery ? (
+              <EmptyState
+                icon={Search}
+                title="No results found"
+                description="Try a different search term"
+              />
+            ) : (
+              <EmptyState
+                icon={Users}
+                iconColor="#3b82f6"
+                iconBgClassName="bg-blue-50 dark:bg-blue-900/30"
+                title="No patients yet"
+                description="Scan a patient's QR code to add them to your list"
+                action={{
+                  label: "Scan QR Code",
+                  icon: QrCode,
+                  onPress: () => router.push("/(doctor)/(tabs)/scan"),
+                }}
+              />
+            )}
           </View>
         ) : (
           filteredBooklets.map((booklet) => (

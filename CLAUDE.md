@@ -279,6 +279,32 @@ When implementing collapsible sections, use animated height transitions:
 - **No staggered list animations** - items should appear immediately
 - **Haptic feedback** only for meaningful actions (toggles, confirmations), not navigation
 
+### Component Reusability Check
+Before writing or duplicating UI patterns, always evaluate whether a reusable component would be better:
+
+**Create a reusable component when:**
+- The same UI pattern appears (or will appear) 2+ times
+- The pattern has consistent structure (e.g., icon + title + description + optional action)
+- Multiple instances would need identical styling/dark mode updates
+- The pattern represents a common UI concept (empty states, stat cards, list items, modals)
+
+**Keep inline when:**
+- Truly one-off UI that won't repeat
+- The "pattern" is just a few lines with no real structure
+- Abstracting would add complexity without benefit
+
+**When creating reusable components:**
+- Place in `src/components/ui/` for presentational (dumb) components
+- Place in `src/components/` for smart components with business logic
+- Use clear prop interfaces with sensible defaults
+- Support dark mode via NativeWind classes
+
+**Examples of good candidates:**
+- `EmptyState` - icon, title, description, optional action button
+- `StatCard` - value, label, optional trend indicator
+- `SectionHeader` - title with optional "See all" action
+- `InfoRow` - label + value pairs in consistent layout
+
 ## Development Notes
 
 - All dates are stored as Date objects (MMKV serializes/deserializes them)

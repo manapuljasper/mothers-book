@@ -1,8 +1,9 @@
 import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
+import { QrCode, Calendar, Users } from "lucide-react-native";
 import { useAuthStore, useBookletStore, useMedicalStore } from "../../../src/stores";
 import { formatRelativeDate } from "../../../src/utils";
-import { CardPressable } from "../../../src/components/ui";
+import { CardPressable, EmptyState } from "../../../src/components/ui";
 
 export default function DoctorDashboard() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export default function DoctorDashboard() {
     })
     .slice(0, 5);
 
+  const hasNoPatients = patientBooklets.length === 0;
+
   return (
     <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Stats */}
@@ -41,65 +44,94 @@ export default function DoctorDashboard() {
         </View>
       </View>
 
-      {/* Upcoming Appointments */}
-      <View className="px-6 mt-8">
-        <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Upcoming Appointments
-        </Text>
-        {upcomingAppointments.length === 0 ? (
-          <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-            <Text className="text-gray-400 text-center">
-              No upcoming appointments
+      {/* Welcome Empty State - when no patients */}
+      {hasNoPatients ? (
+        <View className="px-6 mt-8 mb-8">
+          <EmptyState
+            icon={QrCode}
+            iconColor="#3b82f6"
+            iconBgClassName="bg-blue-50 dark:bg-blue-900/30"
+            title={`Welcome, Dr. ${doctorProfile?.fullName?.split(" ").pop()}!`}
+            description="Start by scanning a patient's QR code to add them to your patient list."
+            action={{
+              label: "Scan QR Code",
+              onPress: () => router.push("/(doctor)/(tabs)/scan"),
+            }}
+          />
+        </View>
+      ) : (
+        <>
+          {/* Upcoming Appointments */}
+          <View className="px-6 mt-8">
+            <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Upcoming Appointments
             </Text>
+            {upcomingAppointments.length === 0 ? (
+              <EmptyState
+                icon={Calendar}
+                title="No upcoming appointments"
+                description="Schedule appointments during patient visits"
+                size="small"
+              />
+            ) : (
+              upcomingAppointments.map((booklet) => (
+                <CardPressable
+                  key={booklet.id}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
+                  onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
+                >
+                  <View className="flex-row justify-between items-start">
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-900 dark:text-white">
+                        {booklet.motherName}
+                      </Text>
+                      <Text className="text-gray-400 text-sm">{booklet.label}</Text>
+                    </View>
+                    <View className="border border-blue-300 dark:border-blue-500 px-3 py-1 rounded-full">
+                      <Text className="text-blue-500 text-sm font-medium">
+                        {formatRelativeDate(booklet.nextAppointment!)}
+                      </Text>
+                    </View>
+                  </View>
+                </CardPressable>
+              ))
+            )}
           </View>
-        ) : (
-          upcomingAppointments.map((booklet) => (
-            <CardPressable
-              key={booklet.id}
-              className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
-              onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
-            >
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
+
+          {/* Recent Patients */}
+          <View className="px-6 mt-8 mb-8">
+            <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Recent Patients
+            </Text>
+            {patientBooklets.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No patients yet"
+                description="Scan a patient's QR code to get started"
+                size="small"
+              />
+            ) : (
+              patientBooklets.slice(0, 5).map((booklet) => (
+                <CardPressable
+                  key={booklet.id}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
+                  onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
+                >
                   <Text className="font-semibold text-gray-900 dark:text-white">
                     {booklet.motherName}
                   </Text>
                   <Text className="text-gray-400 text-sm">{booklet.label}</Text>
-                </View>
-                <View className="border border-blue-300 dark:border-blue-500 px-3 py-1 rounded-full">
-                  <Text className="text-blue-500 text-sm font-medium">
-                    {formatRelativeDate(booklet.nextAppointment!)}
-                  </Text>
-                </View>
-              </View>
-            </CardPressable>
-          ))
-        )}
-      </View>
-
-      {/* Recent Patients */}
-      <View className="px-6 mt-8 mb-8">
-        <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Recent Patients
-        </Text>
-        {patientBooklets.slice(0, 5).map((booklet) => (
-          <CardPressable
-            key={booklet.id}
-            className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
-            onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
-          >
-            <Text className="font-semibold text-gray-900 dark:text-white">
-              {booklet.motherName}
-            </Text>
-            <Text className="text-gray-400 text-sm">{booklet.label}</Text>
-            {booklet.lastVisitDate && (
-              <Text className="text-gray-400 text-xs mt-1">
-                Last visit: {formatRelativeDate(booklet.lastVisitDate)}
-              </Text>
+                  {booklet.lastVisitDate && (
+                    <Text className="text-gray-400 text-xs mt-1">
+                      Last visit: {formatRelativeDate(booklet.lastVisitDate)}
+                    </Text>
+                  )}
+                </CardPressable>
+              ))
             )}
-          </CardPressable>
-        ))}
-      </View>
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
