@@ -34,13 +34,13 @@ export function AnimatedView({
       case "fade":
         return FadeIn.delay(delay).duration(300);
       case "fadeDown":
-        return FadeInDown.delay(delay).damping(15);
+        return FadeInDown.delay(delay).duration(300);
       case "fadeUp":
-        return FadeInUp.delay(delay).damping(15);
+        return FadeInUp.delay(delay).duration(300);
       case "slideRight":
-        return SlideInRight.delay(delay).damping(15);
+        return SlideInRight.delay(delay).duration(300);
       case "zoom":
-        return ZoomIn.delay(delay).damping(15);
+        return ZoomIn.delay(delay).duration(200);
       case "none":
         return undefined;
       default:
@@ -53,7 +53,7 @@ export function AnimatedView({
       className={className}
       style={style}
       entering={getEnteringAnimation()}
-      layout={layout ? Layout.springify().damping(15) : undefined}
+      layout={layout ? Layout.duration(200) : undefined}
       {...props}
     >
       {children}
@@ -69,7 +69,7 @@ interface AnimatedNumberProps {
 
 export function AnimatedNumber({ value, className }: AnimatedNumberProps) {
   return (
-    <Animated.Text className={className} entering={ZoomIn.damping(12)}>
+    <Animated.Text className={className} entering={ZoomIn.duration(200)}>
       {value}
     </Animated.Text>
   );

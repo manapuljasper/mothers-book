@@ -1,10 +1,12 @@
 import { View, Text, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useAuthStore, useBookletStore, useMedicalStore } from "../../../src/stores";
 import { formatRelativeDate } from "../../../src/utils";
 import { CardPressable } from "../../../src/components/ui";
 
 export default function DoctorDashboard() {
+  const router = useRouter();
   const { doctorProfile } = useAuthStore();
   const { getBookletsByDoctor } = useBookletStore();
   const { getPendingLabs } = useMedicalStore();
@@ -62,7 +64,11 @@ export default function DoctorDashboard() {
             </View>
           ) : (
             upcomingAppointments.map((booklet) => (
-              <CardPressable key={booklet.id} className="bg-white rounded-xl p-5 mb-3 border border-gray-100">
+              <CardPressable
+                key={booklet.id}
+                className="bg-white rounded-xl p-5 mb-3 border border-gray-100"
+                onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
+              >
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1">
                     <Text className="font-semibold text-gray-900">
@@ -87,7 +93,11 @@ export default function DoctorDashboard() {
             Recent Patients
           </Text>
           {patientBooklets.slice(0, 5).map((booklet) => (
-            <CardPressable key={booklet.id} className="bg-white rounded-xl p-5 mb-3 border border-gray-100">
+            <CardPressable
+              key={booklet.id}
+              className="bg-white rounded-xl p-5 mb-3 border border-gray-100"
+              onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
+            >
               <Text className="font-semibold text-gray-900">
                 {booklet.motherName}
               </Text>

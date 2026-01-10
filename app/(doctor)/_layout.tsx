@@ -16,6 +16,7 @@ export default function DoctorLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="booklet" />
     </Stack>
   );
 }

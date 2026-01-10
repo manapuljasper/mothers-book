@@ -31,7 +31,13 @@ export function AnimatedCollapsible({
 
   const onLayout = (event: LayoutChangeEvent) => {
     const measuredHeight = event.nativeEvent.layout.height;
-    if (measuredHeight > 0 && measuredHeight !== contentHeight) {
+    // Guard against NaN or invalid values
+    if (
+      measuredHeight > 0 &&
+      !isNaN(measuredHeight) &&
+      isFinite(measuredHeight) &&
+      measuredHeight !== contentHeight
+    ) {
       setContentHeight(measuredHeight);
       // If initially expanded, set height immediately
       if (expanded) {

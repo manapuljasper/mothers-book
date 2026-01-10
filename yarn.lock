@@ -5747,6 +5747,7 @@ __metadata:
     prettier-plugin-tailwindcss: "npm:^0.7.2"
     react: "npm:19.1.0"
     react-native: "npm:0.81.5"
+    react-native-keyboard-controller: "npm:^1.20.4"
     react-native-mmkv: "npm:3.3.3"
     react-native-qrcode-svg: "npm:^6.3.21"
     react-native-reanimated: "npm:~4.1.1"
@@ -6584,6 +6585,19 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: 10c0/87d20b900aded7d44c90afb946a7aa03c23a94ca3dd547bdddc2303b85357e4aab22567a57b19f1558d6c8be7058e3dcf34faa1e15182d1604f90974266d9a1d
+  languageName: node
+  linkType: hard
+
+"react-native-keyboard-controller@npm:^1.20.4":
+  version: 1.20.4
+  resolution: "react-native-keyboard-controller@npm:1.20.4"
+  dependencies:
+    react-native-is-edge-to-edge: "npm:^1.2.1"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+    react-native-reanimated: ">=3.0.0"
+  checksum: 10c0/62fffc6a88c0487a1277f0be575f3db21845a08bb0ce3fdcd39b995924dddb05008cf382dab573755a03d7234d75b62b8c37934dd0c59cbb3dd76cc8a8fd6934
   languageName: node
   linkType: hard
 

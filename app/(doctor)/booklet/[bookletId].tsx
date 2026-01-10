@@ -1,0 +1,981 @@
+import { useState, useMemo } from "react";
+import { View, Text, ScrollView, Pressable, TextInput, Modal } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Pill,
+  FlaskConical,
+  X,
+  Trash2,
+} from "lucide-react-native";
+import {
+  useAuthStore,
+  useBookletStore,
+  useMedicalStore,
+  useMedicationStore,
+} from "../../../src/stores";
+import { formatDate } from "../../../src/utils";
+import {
+  ENTRY_TYPE_LABELS,
+  LAB_STATUS_LABELS,
+  EntryType,
+} from "../../../src/types";
+import { CardPressable, AnimatedCollapsible } from "../../../src/components/ui";
+
+const DOSAGE_UNITS = ["mg", "mcg", "g", "mL", "IU", "tablet", "capsule"] as const;
+type DosageUnit = typeof DOSAGE_UNITS[number];
+
+interface PendingMedication {
+  id: string;
+  name: string;
+  dosageAmount: string;
+  dosageUnit: DosageUnit;
+  instructions: string;
+  frequencyPerDay: string;
+}
+
+interface PendingLab {
+  id: string;
+  description: string;
+  notes: string;
+}
+
+export default function DoctorBookletDetailScreen() {
+  const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
+  const router = useRouter();
+
+  const { doctorProfile } = useAuthStore();
+  const { getBookletsByDoctor } = useBookletStore();
+  const { getEntriesByBooklet, getLabsByEntry, addEntry, addLabRequest } =
+    useMedicalStore();
+  const { getMedicationsByBooklet, addMedication } = useMedicationStore();
+
+  // Get booklet with mother info
+  const doctorBooklets = doctorProfile
+    ? getBookletsByDoctor(doctorProfile.id)
+    : [];
+  const booklet = doctorBooklets.find((b) => b.id === bookletId);
+
+  const entries = getEntriesByBooklet(bookletId);
+  const allMedications = getMedicationsByBooklet(bookletId);
+
+  // Get sorted unique dates from entries
+  const visitDates = useMemo(() => {
+    const dateStrings = entries.map((e) => {
+      const d = e.visitDate;
+      return typeof d === "string" ? d : new Date(d).toISOString().split("T")[0];
+    });
+    return [...new Set(dateStrings)].sort(
+      (a, b) => new Date(b).getTime() - new Date(a).getTime()
+    );
+  }, [entries]);
+
+  // State
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    visitDates[0] || null
+  );
+  const [medsExpanded, setMedsExpanded] = useState(true);
+  const [labsExpanded, setLabsExpanded] = useState(true);
+  const [showEntryModal, setShowEntryModal] = useState(false);
+
+  // Form state for Add Entry (includes pending meds and labs)
+  const [entryForm, setEntryForm] = useState({
+    entryType: "prenatal_checkup" as EntryType,
+    notes: "",
+    diagnosis: "",
+    recommendations: "",
+    bloodPressure: "",
+    weight: "",
+    fetalHeartRate: "",
+    fundalHeight: "",
+    aog: "",
+  });
+
+  // Pending medications and labs to be created with the entry
+  const [pendingMeds, setPendingMeds] = useState<PendingMedication[]>([]);
+  const [pendingLabs, setPendingLabs] = useState<PendingLab[]>([]);
+
+  // Current medication being added
+  const [currentMed, setCurrentMed] = useState({
+    name: "",
+    dosageAmount: "",
+    dosageUnit: "mg" as DosageUnit,
+    instructions: "",
+    frequencyPerDay: "1",
+  });
+
+  // Current lab being added
+  const [currentLab, setCurrentLab] = useState({
+    description: "",
+    notes: "",
+  });
+
+  // Get entry for selected date
+  const selectedEntry = useMemo(() => {
+    if (!selectedDate) return null;
+    return (
+      entries.find((e) => {
+        const d = e.visitDate;
+        const dateStr =
+          typeof d === "string" ? d : new Date(d).toISOString().split("T")[0];
+        return dateStr === selectedDate;
+      }) || null
+    );
+  }, [entries, selectedDate]);
+
+  if (!booklet || !doctorProfile) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <Text className="text-gray-400">Booklet not found</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const activeMeds = allMedications.filter((m) => m.isActive);
+  const bookletPendingLabs = getLabsByEntry("").filter(
+    (l) => l.bookletId === bookletId && l.status === "pending"
+  );
+
+  const getMedsForEntry = (entryId: string) => {
+    return allMedications.filter((m) => m.medicalEntryId === entryId);
+  };
+
+  // Add medication to pending list
+  const handleAddMedToPending = () => {
+    if (!currentMed.name || !currentMed.dosageAmount) return;
+    setPendingMeds([
+      ...pendingMeds,
+      { ...currentMed, id: Date.now().toString() },
+    ]);
+    setCurrentMed({ name: "", dosageAmount: "", dosageUnit: "mg", instructions: "", frequencyPerDay: "1" });
+  };
+
+  // Remove medication from pending list
+  const handleRemovePendingMed = (id: string) => {
+    setPendingMeds(pendingMeds.filter((m) => m.id !== id));
+  };
+
+  // Add lab to pending list
+  const handleAddLabToPending = () => {
+    if (!currentLab.description) return;
+    setPendingLabs([
+      ...pendingLabs,
+      { ...currentLab, id: Date.now().toString() },
+    ]);
+    setCurrentLab({ description: "", notes: "" });
+  };
+
+  // Remove lab from pending list
+  const handleRemovePendingLab = (id: string) => {
+    setPendingLabs(pendingLabs.filter((l) => l.id !== id));
+  };
+
+  // Handlers
+  const handleSaveEntry = () => {
+    const vitals: Record<string, string | number | undefined> = {};
+    if (entryForm.bloodPressure) vitals.bloodPressure = entryForm.bloodPressure;
+    if (entryForm.weight) vitals.weight = parseFloat(entryForm.weight);
+    if (entryForm.fetalHeartRate)
+      vitals.fetalHeartRate = parseInt(entryForm.fetalHeartRate);
+    if (entryForm.fundalHeight)
+      vitals.fundalHeight = parseFloat(entryForm.fundalHeight);
+    if (entryForm.aog) vitals.aog = entryForm.aog;
+
+    // Create the entry and get its ID
+    const entryId = addEntry({
+      bookletId,
+      doctorId: doctorProfile.id,
+      entryType: entryForm.entryType,
+      visitDate: new Date(),
+      notes: entryForm.notes,
+      diagnosis: entryForm.diagnosis || undefined,
+      recommendations: entryForm.recommendations || undefined,
+      vitals: Object.keys(vitals).length > 0 ? vitals : undefined,
+    });
+
+    // Create all pending medications linked to this entry
+    pendingMeds.forEach((med) => {
+      addMedication({
+        medicalEntryId: entryId,
+        bookletId,
+        createdByDoctorId: doctorProfile.id,
+        name: med.name,
+        dosage: `${med.dosageAmount} ${med.dosageUnit}`,
+        instructions: med.instructions,
+        startDate: new Date(),
+        frequencyPerDay: parseInt(med.frequencyPerDay) as 1 | 2 | 3 | 4,
+        isActive: true,
+      });
+    });
+
+    // Create all pending lab requests linked to this entry
+    pendingLabs.forEach((lab) => {
+      addLabRequest({
+        medicalEntryId: entryId,
+        bookletId,
+        description: lab.description,
+        status: "pending",
+        requestedDate: new Date(),
+        notes: lab.notes || undefined,
+      });
+    });
+
+    // Reset form and close modal
+    setEntryForm({
+      entryType: "prenatal_checkup",
+      notes: "",
+      diagnosis: "",
+      recommendations: "",
+      bloodPressure: "",
+      weight: "",
+      fetalHeartRate: "",
+      fundalHeight: "",
+      aog: "",
+    });
+    setPendingMeds([]);
+    setPendingLabs([]);
+    setCurrentMed({ name: "", dosageAmount: "", dosageUnit: "mg", instructions: "", frequencyPerDay: "1" });
+    setCurrentLab({ description: "", notes: "" });
+    setShowEntryModal(false);
+  };
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
+      <ScrollView className="flex-1">
+        {/* Header */}
+        <View className="bg-blue-500 px-6 py-6">
+          <CardPressable
+            onPress={() => router.back()}
+            className="flex-row items-center mb-3"
+          >
+            <ChevronLeft size={20} color="#bfdbfe" strokeWidth={1.5} />
+            <Text className="text-blue-200 ml-1">Back</Text>
+          </CardPressable>
+          <Text className="text-white text-2xl font-bold">
+            {booklet.motherName}
+          </Text>
+          <Text className="text-blue-200">{booklet.label}</Text>
+          <View className="flex-row items-center mt-2">
+            <View
+              className={`px-2 py-1 rounded-full border ${
+                booklet.status === "active"
+                  ? "border-white/50"
+                  : "border-white/30"
+              }`}
+            >
+              <Text className="text-white text-xs font-medium">
+                {booklet.status}
+              </Text>
+            </View>
+            {booklet.expectedDueDate && (
+              <Text className="text-blue-200 ml-3">
+                Due: {formatDate(booklet.expectedDueDate)}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Quick Stats */}
+        <View className="flex-row px-4 -mt-4">
+          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+            <Text className="text-2xl font-bold text-blue-500">
+              {entries.length}
+            </Text>
+            <Text className="text-gray-400 text-xs">Visits</Text>
+          </View>
+          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+            <Text className="text-2xl font-bold text-green-500">
+              {activeMeds.length}
+            </Text>
+            <Text className="text-gray-400 text-xs">Active Meds</Text>
+          </View>
+          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+            <Text className="text-2xl font-bold text-amber-500">
+              {bookletPendingLabs.length}
+            </Text>
+            <Text className="text-gray-400 text-xs">Pending Labs</Text>
+          </View>
+        </View>
+
+        {/* Add Entry Button */}
+        <View className="px-6 mt-6">
+          <Pressable
+            onPress={() => setShowEntryModal(true)}
+            className="flex-row items-center justify-center bg-blue-500 px-4 py-3 rounded-xl"
+          >
+            <Plus size={18} color="white" strokeWidth={1.5} />
+            <Text className="text-white font-medium ml-2">Add Entry</Text>
+          </Pressable>
+        </View>
+
+        {/* Visit History */}
+        <View className="px-6 mt-8">
+          <Text className="text-lg font-semibold text-gray-900 mb-3">
+            Visit History
+          </Text>
+          {visitDates.length === 0 ? (
+            <View className="bg-white rounded-xl p-6 border border-gray-100">
+              <Text className="text-gray-400 text-center">No visits yet</Text>
+              <Text className="text-gray-300 text-sm text-center mt-1">
+                Add your first entry above
+              </Text>
+            </View>
+          ) : (
+            <>
+              {/* Horizontal Date Selector */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mb-4"
+              >
+                {visitDates.map((date) => {
+                  const isSelected = date === selectedDate;
+                  const dateObj = new Date(date);
+                  const day = dateObj.getDate();
+                  const month = dateObj.toLocaleDateString("en-US", {
+                    month: "short",
+                  });
+
+                  return (
+                    <Pressable
+                      key={date}
+                      onPress={() => setSelectedDate(date)}
+                      className={`items-center justify-center px-4 py-3 mr-2 rounded-xl border ${
+                        isSelected
+                          ? "bg-blue-500 border-blue-500"
+                          : "bg-white border-gray-100"
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs ${
+                          isSelected ? "text-blue-200" : "text-gray-400"
+                        }`}
+                      >
+                        {month}
+                      </Text>
+                      <Text
+                        className={`text-xl font-bold ${
+                          isSelected ? "text-white" : "text-gray-700"
+                        }`}
+                      >
+                        {day}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Selected Entry Display */}
+              {selectedEntry && (
+                <View className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
+                  {/* Entry Header */}
+                  <View className="flex-row justify-between items-start">
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-900 text-lg">
+                        {ENTRY_TYPE_LABELS[selectedEntry.entryType]}
+                      </Text>
+                      <Text className="text-gray-400 text-sm">
+                        {selectedEntry.doctorName}
+                      </Text>
+                    </View>
+                    <View className="border border-blue-300 px-3 py-1 rounded-full">
+                      <Text className="text-blue-500 text-sm font-medium">
+                        {formatDate(selectedEntry.visitDate)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Vitals */}
+                  {selectedEntry.vitals &&
+                    Object.keys(selectedEntry.vitals).length > 0 && (
+                      <View className="flex-row flex-wrap mt-3 pt-3 border-t border-gray-100">
+                        {selectedEntry.vitals.bloodPressure && (
+                          <View className="mr-4 mb-2">
+                            <Text className="text-gray-400 text-xs">BP</Text>
+                            <Text className="text-gray-700 font-medium">
+                              {selectedEntry.vitals.bloodPressure}
+                            </Text>
+                          </View>
+                        )}
+                        {selectedEntry.vitals.weight && (
+                          <View className="mr-4 mb-2">
+                            <Text className="text-gray-400 text-xs">Weight</Text>
+                            <Text className="text-gray-700 font-medium">
+                              {selectedEntry.vitals.weight} kg
+                            </Text>
+                          </View>
+                        )}
+                        {selectedEntry.vitals.fetalHeartRate && (
+                          <View className="mr-4 mb-2">
+                            <Text className="text-gray-400 text-xs">FHR</Text>
+                            <Text className="text-gray-700 font-medium">
+                              {selectedEntry.vitals.fetalHeartRate} bpm
+                            </Text>
+                          </View>
+                        )}
+                        {selectedEntry.vitals.fundalHeight && (
+                          <View className="mr-4 mb-2">
+                            <Text className="text-gray-400 text-xs">
+                              Fundal Height
+                            </Text>
+                            <Text className="text-gray-700 font-medium">
+                              {selectedEntry.vitals.fundalHeight} cm
+                            </Text>
+                          </View>
+                        )}
+                        {selectedEntry.vitals.aog && (
+                          <View className="mr-4 mb-2">
+                            <Text className="text-gray-400 text-xs">AOG</Text>
+                            <Text className="text-gray-700 font-medium">
+                              {selectedEntry.vitals.aog}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+
+                  {/* Notes */}
+                  {selectedEntry.notes && (
+                    <Text className="text-gray-600 text-sm mt-3">
+                      {selectedEntry.notes}
+                    </Text>
+                  )}
+
+                  {/* Diagnosis */}
+                  {selectedEntry.diagnosis && (
+                    <View className="mt-3 border border-blue-200 rounded-lg p-3">
+                      <Text className="text-blue-600 text-sm">
+                        <Text className="font-semibold">Diagnosis: </Text>
+                        {selectedEntry.diagnosis}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Recommendations */}
+                  {selectedEntry.recommendations && (
+                    <View className="mt-2 border border-gray-200 rounded-lg p-3">
+                      <Text className="text-gray-600 text-sm">
+                        <Text className="font-semibold">Recommendations: </Text>
+                        {selectedEntry.recommendations}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Medications */}
+                  {getMedsForEntry(selectedEntry.id).length > 0 && (
+                    <View className="mt-3 pt-3 border-t border-gray-100">
+                      <Pressable
+                        onPress={() => setMedsExpanded(!medsExpanded)}
+                        className="flex-row justify-between items-center"
+                      >
+                        <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                          Medications (
+                          {getMedsForEntry(selectedEntry.id).length})
+                        </Text>
+                        {medsExpanded ? (
+                          <ChevronUp
+                            size={16}
+                            color="#9ca3af"
+                            strokeWidth={1.5}
+                          />
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            color="#9ca3af"
+                            strokeWidth={1.5}
+                          />
+                        )}
+                      </Pressable>
+                      <AnimatedCollapsible expanded={medsExpanded}>
+                        <View className="pt-2">
+                          {getMedsForEntry(selectedEntry.id).map((med) => (
+                            <View
+                              key={med.id}
+                              className="border border-gray-100 rounded-lg p-3 mb-2"
+                            >
+                              <View className="flex-row justify-between items-start">
+                                <View className="flex-1">
+                                  <Text className="font-medium text-gray-900">
+                                    {med.name}
+                                  </Text>
+                                  <Text className="text-gray-400 text-sm">
+                                    {med.dosage} • {med.frequencyPerDay}x daily
+                                  </Text>
+                                </View>
+                                <View
+                                  className={`px-2 py-1 rounded-full border ${
+                                    med.isActive
+                                      ? "border-green-400"
+                                      : "border-gray-300"
+                                  }`}
+                                >
+                                  <Text
+                                    className={`text-xs font-medium ${
+                                      med.isActive
+                                        ? "text-green-600"
+                                        : "text-gray-500"
+                                    }`}
+                                  >
+                                    {med.isActive ? "Active" : "Done"}
+                                  </Text>
+                                </View>
+                              </View>
+                              {med.instructions && (
+                                <Text className="text-gray-400 text-xs mt-1">
+                                  {med.instructions}
+                                </Text>
+                              )}
+                            </View>
+                          ))}
+                        </View>
+                      </AnimatedCollapsible>
+                    </View>
+                  )}
+
+                  {/* Labs */}
+                  {getLabsByEntry(selectedEntry.id).length > 0 && (
+                    <View className="mt-3 pt-3 border-t border-gray-100">
+                      <Pressable
+                        onPress={() => setLabsExpanded(!labsExpanded)}
+                        className="flex-row justify-between items-center"
+                      >
+                        <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                          Lab Requests (
+                          {getLabsByEntry(selectedEntry.id).length})
+                        </Text>
+                        {labsExpanded ? (
+                          <ChevronUp
+                            size={16}
+                            color="#9ca3af"
+                            strokeWidth={1.5}
+                          />
+                        ) : (
+                          <ChevronDown
+                            size={16}
+                            color="#9ca3af"
+                            strokeWidth={1.5}
+                          />
+                        )}
+                      </Pressable>
+                      <AnimatedCollapsible expanded={labsExpanded}>
+                        <View className="pt-2">
+                          {getLabsByEntry(selectedEntry.id).map((lab) => (
+                            <View
+                              key={lab.id}
+                              className="border border-gray-100 rounded-lg p-3 mb-2"
+                            >
+                              <View className="flex-row justify-between items-start">
+                                <Text className="font-medium text-gray-900 flex-1">
+                                  {lab.description}
+                                </Text>
+                                <View
+                                  className={`px-2 py-1 rounded-full border ${
+                                    lab.status === "completed"
+                                      ? "border-green-400"
+                                      : lab.status === "pending"
+                                      ? "border-amber-400"
+                                      : "border-gray-300"
+                                  }`}
+                                >
+                                  <Text
+                                    className={`text-xs font-medium ${
+                                      lab.status === "completed"
+                                        ? "text-green-600"
+                                        : lab.status === "pending"
+                                        ? "text-amber-600"
+                                        : "text-gray-500"
+                                    }`}
+                                  >
+                                    {LAB_STATUS_LABELS[lab.status]}
+                                  </Text>
+                                </View>
+                              </View>
+                              {lab.results && (
+                                <Text className="text-green-600 text-sm mt-2">
+                                  <Text className="font-medium">Results: </Text>
+                                  {lab.results}
+                                </Text>
+                              )}
+                            </View>
+                          ))}
+                        </View>
+                      </AnimatedCollapsible>
+                    </View>
+                  )}
+
+                  {/* Follow-up */}
+                  {selectedEntry.followUpDate && (
+                    <View className="mt-3 pt-3 border-t border-gray-100">
+                      <Text className="text-gray-500 text-sm">
+                        Follow-up: {formatDate(selectedEntry.followUpDate)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Add Entry Modal */}
+      <Modal
+        visible={showEntryModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView className="flex-1 bg-white">
+          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
+            <Text className="text-xl font-bold text-gray-900">Add Entry</Text>
+            <Pressable onPress={() => setShowEntryModal(false)}>
+              <X size={24} color="#6b7280" strokeWidth={1.5} />
+            </Pressable>
+          </View>
+          <KeyboardAwareScrollView
+            className="flex-1"
+            contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 16 }}
+            bottomOffset={20}
+          >
+            {/* Entry Type */}
+            <Text className="text-gray-500 text-sm mb-2">Entry Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+              {(Object.keys(ENTRY_TYPE_LABELS) as EntryType[]).map((type) => (
+                <Pressable
+                  key={type}
+                  onPress={() => setEntryForm({ ...entryForm, entryType: type })}
+                  className={`px-4 py-2 rounded-full mr-2 border ${
+                    entryForm.entryType === type
+                      ? "bg-blue-500 border-blue-500"
+                      : "bg-white border-gray-200"
+                  }`}
+                >
+                  <Text
+                    className={
+                      entryForm.entryType === type
+                        ? "text-white font-medium"
+                        : "text-gray-600"
+                    }
+                  >
+                    {ENTRY_TYPE_LABELS[type]}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* Vitals */}
+            <Text className="text-gray-500 text-sm mb-2 mt-2">Vitals</Text>
+            <View className="flex-row flex-wrap">
+              <View className="w-1/2 pr-2 mb-3">
+                <Text className="text-gray-400 text-xs mb-1">Blood Pressure</Text>
+                <TextInput
+                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  placeholder="120/80"
+                  value={entryForm.bloodPressure}
+                  onChangeText={(v) => setEntryForm({ ...entryForm, bloodPressure: v })}
+                />
+              </View>
+              <View className="w-1/2 pl-2 mb-3">
+                <Text className="text-gray-400 text-xs mb-1">Weight (kg)</Text>
+                <TextInput
+                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  placeholder="65"
+                  keyboardType="numeric"
+                  value={entryForm.weight}
+                  onChangeText={(v) => setEntryForm({ ...entryForm, weight: v })}
+                />
+              </View>
+              <View className="w-1/2 pr-2 mb-3">
+                <Text className="text-gray-400 text-xs mb-1">FHR (bpm)</Text>
+                <TextInput
+                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  placeholder="140"
+                  keyboardType="numeric"
+                  value={entryForm.fetalHeartRate}
+                  onChangeText={(v) => setEntryForm({ ...entryForm, fetalHeartRate: v })}
+                />
+              </View>
+              <View className="w-1/2 pl-2 mb-3">
+                <Text className="text-gray-400 text-xs mb-1">Fundal Height (cm)</Text>
+                <TextInput
+                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  placeholder="28"
+                  keyboardType="numeric"
+                  value={entryForm.fundalHeight}
+                  onChangeText={(v) => setEntryForm({ ...entryForm, fundalHeight: v })}
+                />
+              </View>
+              <View className="w-full mb-3">
+                <Text className="text-gray-400 text-xs mb-1">AOG</Text>
+                <TextInput
+                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  placeholder="28 weeks 3 days"
+                  value={entryForm.aog}
+                  onChangeText={(v) => setEntryForm({ ...entryForm, aog: v })}
+                />
+              </View>
+            </View>
+
+            {/* Notes */}
+            <Text className="text-gray-500 text-sm mb-2 mt-2">Notes</Text>
+            <TextInput
+              className="border border-gray-200 rounded-lg px-3 py-2 mb-4"
+              placeholder="Clinical notes..."
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              value={entryForm.notes}
+              onChangeText={(v) => setEntryForm({ ...entryForm, notes: v })}
+            />
+
+            {/* Diagnosis */}
+            <Text className="text-gray-500 text-sm mb-2">Diagnosis</Text>
+            <TextInput
+              className="border border-gray-200 rounded-lg px-3 py-2 mb-4"
+              placeholder="Diagnosis..."
+              value={entryForm.diagnosis}
+              onChangeText={(v) => setEntryForm({ ...entryForm, diagnosis: v })}
+            />
+
+            {/* Recommendations */}
+            <Text className="text-gray-500 text-sm mb-2">Recommendations</Text>
+            <TextInput
+              className="border border-gray-200 rounded-lg px-3 py-2 mb-4"
+              placeholder="Recommendations..."
+              multiline
+              numberOfLines={2}
+              textAlignVertical="top"
+              value={entryForm.recommendations}
+              onChangeText={(v) => setEntryForm({ ...entryForm, recommendations: v })}
+            />
+
+            {/* Medications Section */}
+            <View className="border-t border-gray-100 pt-4 mt-2">
+              <View className="flex-row items-center mb-3">
+                <Pill size={18} color="#22c55e" strokeWidth={1.5} />
+                <Text className="text-gray-700 font-semibold ml-2">Prescriptions</Text>
+              </View>
+
+              {/* Pending medications list */}
+              {pendingMeds.length > 0 && (
+                <View className="mb-3">
+                  {pendingMeds.map((med) => (
+                    <View
+                      key={med.id}
+                      className="flex-row items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3 mb-2"
+                    >
+                      <View className="flex-1">
+                        <Text className="font-medium text-gray-900">{med.name}</Text>
+                        <Text className="text-gray-500 text-sm">
+                          {med.dosageAmount} {med.dosageUnit} • {med.frequencyPerDay}x daily
+                        </Text>
+                      </View>
+                      <Pressable onPress={() => handleRemovePendingMed(med.id)}>
+                        <Trash2 size={18} color="#ef4444" strokeWidth={1.5} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Add medication form */}
+              <View className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                {/* Medication name */}
+                <View className="mb-3">
+                  <Text className="text-gray-400 text-xs mb-1">Medication</Text>
+                  <TextInput
+                    className="border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                    placeholder="e.g., Folic Acid"
+                    value={currentMed.name}
+                    onChangeText={(v) => setCurrentMed({ ...currentMed, name: v })}
+                  />
+                </View>
+
+                {/* Dosage amount and unit */}
+                <View className="mb-3">
+                  <Text className="text-gray-400 text-xs mb-1">Dosage</Text>
+                  <View className="flex-row">
+                    <TextInput
+                      className="border border-gray-200 rounded-lg px-3 py-2 bg-white w-20 mr-2"
+                      placeholder="400"
+                      keyboardType="numeric"
+                      value={currentMed.dosageAmount}
+                      onChangeText={(v) => setCurrentMed({ ...currentMed, dosageAmount: v })}
+                    />
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
+                      {DOSAGE_UNITS.map((unit) => (
+                        <Pressable
+                          key={unit}
+                          onPress={() => setCurrentMed({ ...currentMed, dosageUnit: unit })}
+                          className={`px-3 py-2 mr-1 rounded-lg border ${
+                            currentMed.dosageUnit === unit
+                              ? "bg-green-500 border-green-500"
+                              : "bg-white border-gray-200"
+                          }`}
+                        >
+                          <Text
+                            className={
+                              currentMed.dosageUnit === unit
+                                ? "text-white text-sm"
+                                : "text-gray-600 text-sm"
+                            }
+                          >
+                            {unit}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+
+                {/* Frequency and Instructions */}
+                <View className="flex-row mb-3">
+                  <View className="flex-1 pr-2">
+                    <Text className="text-gray-400 text-xs mb-1">Frequency</Text>
+                    <View className="flex-row">
+                      {["1", "2", "3", "4"].map((freq) => (
+                        <Pressable
+                          key={freq}
+                          onPress={() => setCurrentMed({ ...currentMed, frequencyPerDay: freq })}
+                          className={`px-3 py-2 mr-1 rounded-lg border ${
+                            currentMed.frequencyPerDay === freq
+                              ? "bg-green-500 border-green-500"
+                              : "bg-white border-gray-200"
+                          }`}
+                        >
+                          <Text
+                            className={
+                              currentMed.frequencyPerDay === freq
+                                ? "text-white text-sm"
+                                : "text-gray-600 text-sm"
+                            }
+                          >
+                            {freq}x
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                  <View className="flex-1 pl-2">
+                    <Text className="text-gray-400 text-xs mb-1">Instructions</Text>
+                    <TextInput
+                      className="border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                      placeholder="e.g., With food"
+                      value={currentMed.instructions}
+                      onChangeText={(v) => setCurrentMed({ ...currentMed, instructions: v })}
+                    />
+                  </View>
+                </View>
+
+                <Pressable
+                  onPress={handleAddMedToPending}
+                  disabled={!currentMed.name || !currentMed.dosageAmount}
+                  className={`flex-row items-center justify-center py-2 rounded-lg ${
+                    currentMed.name && currentMed.dosageAmount
+                      ? "bg-green-500"
+                      : "bg-gray-200"
+                  }`}
+                >
+                  <Plus
+                    size={16}
+                    color={currentMed.name && currentMed.dosageAmount ? "white" : "#9ca3af"}
+                    strokeWidth={1.5}
+                  />
+                  <Text
+                    className={`ml-1 font-medium ${
+                      currentMed.name && currentMed.dosageAmount
+                        ? "text-white"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    Add Medication
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Lab Requests Section */}
+            <View className="border-t border-gray-100 pt-4 mt-4">
+              <View className="flex-row items-center mb-3">
+                <FlaskConical size={18} color="#f59e0b" strokeWidth={1.5} />
+                <Text className="text-gray-700 font-semibold ml-2">Lab Requests</Text>
+              </View>
+
+              {/* Pending labs list */}
+              {pendingLabs.length > 0 && (
+                <View className="mb-3">
+                  {pendingLabs.map((lab) => (
+                    <View
+                      key={lab.id}
+                      className="flex-row items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2"
+                    >
+                      <View className="flex-1">
+                        <Text className="font-medium text-gray-900">{lab.description}</Text>
+                        {lab.notes && (
+                          <Text className="text-gray-500 text-sm">{lab.notes}</Text>
+                        )}
+                      </View>
+                      <Pressable onPress={() => handleRemovePendingLab(lab.id)}>
+                        <Trash2 size={18} color="#ef4444" strokeWidth={1.5} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Add lab form */}
+              <View className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                <Text className="text-gray-400 text-xs mb-1">Lab Test</Text>
+                <TextInput
+                  className="border border-gray-200 rounded-lg px-3 py-2 bg-white mb-3"
+                  placeholder="e.g., Complete Blood Count (CBC)"
+                  value={currentLab.description}
+                  onChangeText={(v) => setCurrentLab({ ...currentLab, description: v })}
+                />
+                <Text className="text-gray-400 text-xs mb-1">Notes (optional)</Text>
+                <TextInput
+                  className="border border-gray-200 rounded-lg px-3 py-2 bg-white mb-3"
+                  placeholder="Additional instructions..."
+                  value={currentLab.notes}
+                  onChangeText={(v) => setCurrentLab({ ...currentLab, notes: v })}
+                />
+                <Pressable
+                  onPress={handleAddLabToPending}
+                  disabled={!currentLab.description}
+                  className={`flex-row items-center justify-center py-2 rounded-lg ${
+                    currentLab.description ? "bg-amber-500" : "bg-gray-200"
+                  }`}
+                >
+                  <Plus
+                    size={16}
+                    color={currentLab.description ? "white" : "#9ca3af"}
+                    strokeWidth={1.5}
+                  />
+                  <Text
+                    className={`ml-1 font-medium ${
+                      currentLab.description ? "text-white" : "text-gray-400"
+                    }`}
+                  >
+                    Add Lab Request
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Save Button */}
+            <Pressable
+              onPress={handleSaveEntry}
+              className="bg-blue-500 py-4 rounded-xl items-center mt-6 mb-8"
+            >
+              <Text className="text-white font-semibold">Save Entry</Text>
+            </Pressable>
+          </KeyboardAwareScrollView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
+  );
+}

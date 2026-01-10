@@ -1,12 +1,14 @@
 import { View, Text, ScrollView, TextInput } from "react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import { useAuthStore, useBookletStore } from "../../../src/stores";
 import { formatRelativeDate, formatDate } from "../../../src/utils";
 import { CardPressable } from "../../../src/components/ui";
 
 export default function PatientsScreen() {
+  const router = useRouter();
   const { doctorProfile } = useAuthStore();
   const { getBookletsByDoctor } = useBookletStore();
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,7 +59,11 @@ export default function PatientsScreen() {
           </View>
         ) : (
           filteredBooklets.map((booklet) => (
-            <CardPressable key={booklet.id} className="bg-white rounded-xl p-5 mb-3 border border-gray-100">
+            <CardPressable
+              key={booklet.id}
+              className="bg-white rounded-xl p-5 mb-3 border border-gray-100"
+              onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
+            >
               <View className="flex-row justify-between items-start">
                 <View className="flex-1">
                   <Text className="font-semibold text-gray-900 text-lg">

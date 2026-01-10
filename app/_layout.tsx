@@ -2,6 +2,7 @@ import "../global.css";
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { initializeSampleData } from "../src/data";
 import { useBookletStore, useMedicalStore, useMedicationStore } from "../src/stores";
 
@@ -17,7 +18,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <KeyboardProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
@@ -25,6 +26,6 @@ export default function RootLayout() {
         <Stack.Screen name="(mother)" />
       </Stack>
       <StatusBar style="auto" />
-    </>
+    </KeyboardProvider>
   );
 }
