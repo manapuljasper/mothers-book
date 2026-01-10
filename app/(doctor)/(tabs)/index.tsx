@@ -7,7 +7,7 @@ import { CardPressable, EmptyState } from "../../../src/components/ui";
 
 export default function DoctorDashboard() {
   const router = useRouter();
-  const { doctorProfile } = useAuthStore();
+  const { currentUser, doctorProfile } = useAuthStore();
   const { getBookletsByDoctor } = useBookletStore();
   const { getPendingLabs } = useMedicalStore();
 
@@ -53,7 +53,7 @@ export default function DoctorDashboard() {
             icon={QrCode}
             iconColor="#3b82f6"
             iconBgClassName="bg-blue-50 dark:bg-blue-900/30"
-            title={`Welcome, Dr. ${doctorProfile?.fullName?.split(" ").pop()}!`}
+            title={`Welcome, Dr. ${currentUser?.fullName?.split(" ").pop()}!`}
             description="Start by scanning a patient's QR code to add them to your patient list."
             action={{
               label: "Scan QR Code",

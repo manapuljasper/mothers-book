@@ -49,7 +49,7 @@ export function useSignIn() {
 
 /**
  * Sign up mutation hook
- * Calls auth service and updates auth store on success
+ * Creates auth user and sets auth state (profile fetched later)
  */
 export function useSignUp() {
   const queryClient = useQueryClient();

@@ -4,13 +4,13 @@ export interface User {
   id: string;
   email: string;
   role: UserRole;
+  fullName: string;
   createdAt: Date;
 }
 
 export interface DoctorProfile {
   id: string;
   userId: string;
-  fullName: string;
   prcNumber: string;
   clinicName: string;
   clinicAddress: string;
@@ -20,12 +20,12 @@ export interface DoctorProfile {
   clinicSchedule?: string;
   latitude?: number;
   longitude?: number;
+  fullName?: string; // Optional - for API/store responses that include it
 }
 
 export interface MotherProfile {
   id: string;
   userId: string;
-  fullName: string;
   birthdate: Date;
   contactNumber?: string;
   address?: string;
@@ -33,4 +33,5 @@ export interface MotherProfile {
   emergencyContactName?: string;
   avatarUrl?: string;
   babyName?: string;
+  fullName?: string; // Optional - for API/store responses that include it
 }

@@ -11,7 +11,7 @@ import { formatDate, calculateAge } from "../../../src/utils";
 
 export default function MotherProfileScreen() {
   const router = useRouter();
-  const { motherProfile } = useAuthStore();
+  const { currentUser, motherProfile } = useAuthStore();
   const signOutMutation = useSignOut();
   const { colorScheme, toggleTheme } = useThemeStore();
   const isDark = colorScheme === "dark";
@@ -46,7 +46,7 @@ export default function MotherProfileScreen() {
           <Text className="text-3xl">👩</Text>
         </View>
         <Text className="text-gray-900 dark:text-white text-lg font-bold">
-          {motherProfile?.fullName}
+          {currentUser?.fullName}
         </Text>
         {!!age && (
           <Text className="text-gray-500 dark:text-gray-400 text-sm">

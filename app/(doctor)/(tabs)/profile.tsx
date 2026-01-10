@@ -6,7 +6,7 @@ import { useSignOut } from "../../../src/hooks";
 
 export default function DoctorProfileScreen() {
   const router = useRouter();
-  const { doctorProfile } = useAuthStore();
+  const { currentUser, doctorProfile } = useAuthStore();
   const signOutMutation = useSignOut();
   const { colorScheme, toggleTheme } = useThemeStore();
   const isDark = colorScheme === "dark";
@@ -33,7 +33,7 @@ export default function DoctorProfileScreen() {
           <Text className="text-3xl">👨‍⚕️</Text>
         </View>
         <Text className="text-gray-900 dark:text-white text-lg font-bold">
-          {doctorProfile?.fullName}
+          {currentUser?.fullName}
         </Text>
         <Text className="text-gray-500 dark:text-gray-400 text-sm">
           {doctorProfile?.specialization}
