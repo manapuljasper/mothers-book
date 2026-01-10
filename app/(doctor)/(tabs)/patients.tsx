@@ -1,12 +1,10 @@
 import { View, Text, ScrollView, TextInput } from "react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Search } from "lucide-react-native";
 import { useAuthStore, useBookletStore } from "../../../src/stores";
 import { formatRelativeDate, formatDate } from "../../../src/utils";
-import {
-  AnimatedView,
-  CardPressable,
-} from "../../../src/components/ui";
+import { CardPressable } from "../../../src/components/ui";
 
 export default function PatientsScreen() {
   const { doctorProfile } = useAuthStore();
@@ -25,54 +23,58 @@ export default function PatientsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       {/* Header */}
-      <AnimatedView entering="fade" className="bg-white px-6 py-4 border-b border-gray-200">
+      <View className="bg-white px-6 py-4 border-b border-gray-100">
         <Text className="text-2xl font-bold text-gray-900">Patients</Text>
-        <Text className="text-gray-500 text-sm">
+        <Text className="text-gray-400 text-sm">
           {patientBooklets.length} active booklets
         </Text>
-      </AnimatedView>
+      </View>
 
       {/* Search */}
-      <AnimatedView entering="fadeUp" delay={100} className="px-6 py-4 bg-white border-b border-gray-100">
-        <TextInput
-          className="bg-gray-100 rounded-lg px-4 py-3"
-          placeholder="Search patients..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </AnimatedView>
+      <View className="px-6 py-4 bg-white border-b border-gray-100">
+        <View className="flex-row items-center bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
+          <Search size={18} color="#9ca3af" strokeWidth={1.5} />
+          <TextInput
+            className="flex-1 ml-2 text-gray-900"
+            placeholder="Search patients..."
+            placeholderTextColor="#9ca3af"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </View>
 
       {/* Patient List */}
       <ScrollView className="flex-1 px-6 py-4">
         {filteredBooklets.length === 0 ? (
-          <AnimatedView entering="fadeUp" delay={200} className="items-center py-12">
-            <Text className="text-gray-500 text-center">
+          <View className="items-center py-12">
+            <Text className="text-gray-400 text-center">
               {searchQuery ? "No patients found" : "No patients yet"}
             </Text>
-            <Text className="text-gray-400 text-sm text-center mt-2">
+            <Text className="text-gray-300 text-sm text-center mt-2">
               Scan a patient's QR code to add them
             </Text>
-          </AnimatedView>
+          </View>
         ) : (
           filteredBooklets.map((booklet) => (
-            <CardPressable key={booklet.id} className="bg-white rounded-xl p-4 mb-3 shadow-sm">
+            <CardPressable key={booklet.id} className="bg-white rounded-xl p-5 mb-3 border border-gray-100">
               <View className="flex-row justify-between items-start">
                 <View className="flex-1">
                   <Text className="font-semibold text-gray-900 text-lg">
                     {booklet.motherName}
                   </Text>
-                  <Text className="text-gray-600">{booklet.label}</Text>
+                  <Text className="text-gray-400">{booklet.label}</Text>
                 </View>
                 <View
-                  className={`px-2 py-1 rounded-full ${
-                    booklet.status === "active" ? "bg-green-100" : "bg-gray-100"
+                  className={`px-2 py-1 rounded-full border ${
+                    booklet.status === "active" ? "border-green-400" : "border-gray-300"
                   }`}
                 >
                   <Text
                     className={`text-xs font-medium ${
                       booklet.status === "active"
-                        ? "text-green-700"
-                        : "text-gray-600"
+                        ? "text-green-600"
+                        : "text-gray-500"
                     }`}
                   >
                     {booklet.status}
@@ -82,7 +84,7 @@ export default function PatientsScreen() {
 
               <View className="flex-row mt-3 pt-3 border-t border-gray-100">
                 <View className="flex-1">
-                  <Text className="text-gray-400 text-xs">Last Visit</Text>
+                  <Text className="text-gray-300 text-xs">Last Visit</Text>
                   <Text className="text-gray-600 text-sm">
                     {booklet.lastVisitDate
                       ? formatRelativeDate(booklet.lastVisitDate)
@@ -90,7 +92,7 @@ export default function PatientsScreen() {
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-gray-400 text-xs">Next Appointment</Text>
+                  <Text className="text-gray-300 text-xs">Next Appointment</Text>
                   <Text className="text-gray-600 text-sm">
                     {booklet.nextAppointment
                       ? formatDate(booklet.nextAppointment)
@@ -99,7 +101,7 @@ export default function PatientsScreen() {
                 </View>
                 {booklet.expectedDueDate && (
                   <View className="flex-1">
-                    <Text className="text-gray-400 text-xs">Due Date</Text>
+                    <Text className="text-gray-300 text-xs">Due Date</Text>
                     <Text className="text-gray-600 text-sm">
                       {formatDate(booklet.expectedDueDate)}
                     </Text>

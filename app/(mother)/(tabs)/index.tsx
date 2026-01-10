@@ -41,17 +41,17 @@ export default function MotherHomeScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row px-4 -mt-4">
-          <View className="flex-1 bg-white rounded-xl p-4 mx-2 shadow-sm">
-            <Text className="text-3xl font-bold text-pink-600">
+          <View className="flex-1 bg-white rounded-xl p-5 mx-2 border border-gray-100">
+            <Text className="text-3xl font-bold text-pink-500">
               {activeBooklets.length}
             </Text>
-            <Text className="text-gray-500 text-sm">Active Booklets</Text>
+            <Text className="text-gray-400 text-sm">Active Booklets</Text>
           </View>
-          <View className="flex-1 bg-white rounded-xl p-4 mx-2 shadow-sm">
-            <Text className="text-3xl font-bold text-amber-600">
+          <View className="flex-1 bg-white rounded-xl p-5 mx-2 border border-gray-100">
+            <Text className="text-3xl font-bold text-amber-500">
               {pendingMeds.length}
             </Text>
-            <Text className="text-gray-500 text-sm">Meds Today</Text>
+            <Text className="text-gray-400 text-sm">Meds Today</Text>
           </View>
         </View>
 
@@ -67,7 +67,7 @@ export default function MotherHomeScreen() {
           </View>
 
           {activeBooklets.length === 0 ? (
-            <View className="bg-white rounded-xl p-6">
+            <View className="bg-white rounded-xl p-6 border border-gray-100">
               <Text className="text-gray-500 text-center">
                 No active booklets
               </Text>
@@ -79,7 +79,7 @@ export default function MotherHomeScreen() {
             activeBooklets.map((booklet) => (
               <CardPressable
                 key={booklet.id}
-                className="bg-white rounded-xl p-4 mb-3 shadow-sm"
+                className="bg-white rounded-xl p-5 mb-3 border border-gray-100"
                 onPress={() => router.push(`/booklet/${booklet.id}`)}
               >
                 <View className="flex-row justify-between items-start">
@@ -88,20 +88,20 @@ export default function MotherHomeScreen() {
                       {booklet.label}
                     </Text>
                     {booklet.expectedDueDate && (
-                      <Text className="text-pink-600 text-sm mt-1">
+                      <Text className="text-pink-500 text-sm mt-1">
                         Due: {formatDate(booklet.expectedDueDate)}
                       </Text>
                     )}
                   </View>
-                  <View className="bg-green-100 px-2 py-1 rounded-full">
-                    <Text className="text-green-700 text-xs font-medium">
+                  <View className="border border-green-400 px-2 py-1 rounded-full">
+                    <Text className="text-green-600 text-xs font-medium">
                       {booklet.status}
                     </Text>
                   </View>
                 </View>
                 {booklet.notes && (
                   <Text
-                    className="text-gray-500 text-sm mt-2"
+                    className="text-gray-400 text-sm mt-2"
                     numberOfLines={2}
                   >
                     {booklet.notes}
@@ -114,7 +114,7 @@ export default function MotherHomeScreen() {
 
         {/* Completed/Archived Booklets */}
         {booklets.filter((b) => b.status !== "active").length > 0 && (
-          <View className="px-6 mt-6">
+          <View className="px-6 mt-8">
             <Text className="text-lg font-semibold text-gray-900 mb-4">
               Past Booklets
             </Text>
@@ -123,14 +123,14 @@ export default function MotherHomeScreen() {
               .map((booklet) => (
                 <CardPressable
                   key={booklet.id}
-                  className="bg-gray-100 rounded-xl p-4 mb-3"
+                  className="bg-white rounded-xl p-5 mb-3 border border-gray-100"
                   onPress={() => router.push(`/booklet/${booklet.id}`)}
                 >
                   <Text className="font-medium text-gray-700">
                     {booklet.label}
                   </Text>
                   {booklet.actualDeliveryDate && (
-                    <Text className="text-gray-500 text-sm">
+                    <Text className="text-gray-400 text-sm">
                       Delivered: {formatDate(booklet.actualDeliveryDate)}
                     </Text>
                   )}
@@ -141,21 +141,21 @@ export default function MotherHomeScreen() {
 
         {/* Today's Medications Reminder */}
         {pendingMeds.length > 0 && (
-          <View className="px-6 mt-6 mb-8">
+          <View className="px-6 mt-8 mb-8">
             <Text className="text-lg font-semibold text-gray-900 mb-4">
               Today's Medications
             </Text>
             {pendingMeds.slice(0, 3).map((med) => (
-              <View key={med.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
+              <View key={med.id} className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
                 <View className="flex-row justify-between items-center">
                   <View>
                     <Text className="font-semibold text-gray-900">
                       {med.name}
                     </Text>
-                    <Text className="text-gray-500 text-sm">{med.dosage}</Text>
+                    <Text className="text-gray-400 text-sm">{med.dosage}</Text>
                   </View>
-                  <View className="bg-amber-100 px-3 py-1 rounded-full">
-                    <Text className="text-amber-700 text-sm">
+                  <View className="border border-amber-400 px-3 py-1 rounded-full">
+                    <Text className="text-amber-600 text-sm">
                       {med.todayLogs.filter((l) => l.status === "taken").length}
                       /{med.frequencyPerDay} taken
                     </Text>

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ChevronLeft, ChevronDown, ChevronUp } from "lucide-react-native";
 import {
   useBookletStore,
   useMedicalStore,
@@ -76,15 +77,16 @@ export default function BookletDetailScreen() {
     <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
       <ScrollView className="flex-1">
         {/* Header */}
-        <View className="bg-pink-600 px-6 py-6">
-          <CardPressable onPress={() => router.back()}>
-            <Text className="text-pink-200 mb-2">← Back</Text>
+        <View className="bg-pink-500 px-6 py-6">
+          <CardPressable onPress={() => router.back()} className="flex-row items-center mb-3">
+            <ChevronLeft size={20} color="#fbcfe8" strokeWidth={1.5} />
+            <Text className="text-pink-200 ml-1">Back</Text>
           </CardPressable>
           <Text className="text-white text-2xl font-bold">{booklet.label}</Text>
           <View className="flex-row items-center mt-2">
             <View
-              className={`px-2 py-1 rounded-full ${
-                booklet.status === "active" ? "bg-green-500" : "bg-gray-400"
+              className={`px-2 py-1 rounded-full border ${
+                booklet.status === "active" ? "border-white/50" : "border-white/30"
               }`}
             >
               <Text className="text-white text-xs font-medium">
@@ -101,29 +103,29 @@ export default function BookletDetailScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row px-4 -mt-4">
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 shadow-sm">
-            <Text className="text-2xl font-bold text-pink-600">
+          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+            <Text className="text-2xl font-bold text-pink-500">
               {entries.length}
             </Text>
-            <Text className="text-gray-500 text-xs">Visits</Text>
+            <Text className="text-gray-400 text-xs">Visits</Text>
           </View>
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 shadow-sm">
-            <Text className="text-2xl font-bold text-blue-600">
+          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+            <Text className="text-2xl font-bold text-blue-500">
               {activeMeds.length}
             </Text>
-            <Text className="text-gray-500 text-xs">Active Meds</Text>
+            <Text className="text-gray-400 text-xs">Active Meds</Text>
           </View>
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 shadow-sm">
-            <Text className="text-2xl font-bold text-green-600">
+          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+            <Text className="text-2xl font-bold text-green-500">
               {doctors.length}
             </Text>
-            <Text className="text-gray-500 text-xs">Doctors</Text>
+            <Text className="text-gray-400 text-xs">Doctors</Text>
           </View>
         </View>
 
         {/* Doctors with Access */}
         {doctors.length > 0 && (
-          <View className="px-6 mt-6">
+          <View className="px-6 mt-8">
             <Text className="text-lg font-semibold text-gray-900 mb-3">
               My Doctors
             </Text>
@@ -131,12 +133,12 @@ export default function BookletDetailScreen() {
               {doctors.map((doctor) => (
                 <View
                   key={doctor.id}
-                  className="bg-white rounded-xl p-3 mr-3 shadow-sm min-w-[140px]"
+                  className="bg-white rounded-xl p-4 mr-3 border border-gray-100 min-w-[140px]"
                 >
                   <Text className="font-medium text-gray-900">
                     {doctor.fullName}
                   </Text>
-                  <Text className="text-gray-500 text-xs">
+                  <Text className="text-gray-400 text-xs">
                     {doctor.specialization || "OB-GYN"}
                   </Text>
                 </View>
@@ -146,13 +148,13 @@ export default function BookletDetailScreen() {
         )}
 
         {/* Date Picker for Visits */}
-        <View className="px-6 mt-6">
+        <View className="px-6 mt-8">
           <Text className="text-lg font-semibold text-gray-900 mb-3">
             Visit History
           </Text>
           {visitDates.length === 0 ? (
-            <View className="bg-white rounded-xl p-6">
-              <Text className="text-gray-500 text-center">No visits yet</Text>
+            <View className="bg-white rounded-xl p-6 border border-gray-100">
+              <Text className="text-gray-400 text-center">No visits yet</Text>
             </View>
           ) : (
             <>
@@ -174,8 +176,8 @@ export default function BookletDetailScreen() {
                     <Pressable
                       key={date}
                       onPress={() => setSelectedDate(date)}
-                      className={`items-center justify-center px-4 py-3 mr-2 rounded-xl ${
-                        isSelected ? "bg-pink-600" : "bg-white"
+                      className={`items-center justify-center px-4 py-3 mr-2 rounded-xl border ${
+                        isSelected ? "bg-pink-500 border-pink-500" : "bg-white border-gray-100"
                       }`}
                     >
                       <Text
@@ -199,19 +201,19 @@ export default function BookletDetailScreen() {
 
               {/* Selected Entry Display */}
               {selectedEntry && (
-                <View className="bg-white rounded-xl p-4 mb-8 shadow-sm">
+                <View className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
                   {/* Entry Header */}
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1">
                       <Text className="font-semibold text-gray-900 text-lg">
                         {ENTRY_TYPE_LABELS[selectedEntry.entryType]}
                       </Text>
-                      <Text className="text-gray-500 text-sm">
+                      <Text className="text-gray-400 text-sm">
                         {selectedEntry.doctorName}
                       </Text>
                     </View>
-                    <View className="bg-pink-100 px-3 py-1 rounded-full">
-                      <Text className="text-pink-700 text-sm font-medium">
+                    <View className="border border-pink-300 px-3 py-1 rounded-full">
+                      <Text className="text-pink-500 text-sm font-medium">
                         {formatDate(selectedEntry.visitDate)}
                       </Text>
                     </View>
@@ -275,8 +277,8 @@ export default function BookletDetailScreen() {
 
                   {/* Diagnosis */}
                   {selectedEntry.diagnosis && (
-                    <View className="mt-3 bg-blue-50 rounded-lg p-3">
-                      <Text className="text-blue-800 text-sm">
+                    <View className="mt-3 border border-blue-200 rounded-lg p-3">
+                      <Text className="text-blue-600 text-sm">
                         <Text className="font-semibold">Diagnosis: </Text>
                         {selectedEntry.diagnosis}
                       </Text>
@@ -285,8 +287,8 @@ export default function BookletDetailScreen() {
 
                   {/* Recommendations */}
                   {selectedEntry.recommendations && (
-                    <View className="mt-2 bg-gray-50 rounded-lg p-3">
-                      <Text className="text-gray-700 text-sm">
+                    <View className="mt-2 border border-gray-200 rounded-lg p-3">
+                      <Text className="text-gray-600 text-sm">
                         <Text className="font-semibold">Recommendations: </Text>
                         {selectedEntry.recommendations}
                       </Text>
@@ -300,46 +302,48 @@ export default function BookletDetailScreen() {
                         onPress={() => setMedsExpanded(!medsExpanded)}
                         className="flex-row justify-between items-center"
                       >
-                        <Text className="text-xs font-semibold text-gray-500 uppercase">
-                          Medications Prescribed ({getMedsForEntry(selectedEntry.id).length})
+                        <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                          Medications ({getMedsForEntry(selectedEntry.id).length})
                         </Text>
-                        <Text className="text-gray-400">
-                          {medsExpanded ? "−" : "+"}
-                        </Text>
+                        {medsExpanded ? (
+                          <ChevronUp size={16} color="#9ca3af" strokeWidth={1.5} />
+                        ) : (
+                          <ChevronDown size={16} color="#9ca3af" strokeWidth={1.5} />
+                        )}
                       </Pressable>
                       <AnimatedCollapsible expanded={medsExpanded}>
                         <View className="pt-2">
                           {getMedsForEntry(selectedEntry.id).map((med) => (
                             <View
                               key={med.id}
-                              className="bg-green-50 rounded-lg p-3 mb-2"
+                              className="border border-gray-100 rounded-lg p-3 mb-2"
                             >
                               <View className="flex-row justify-between items-start">
                                 <View className="flex-1">
                                   <Text className="font-medium text-gray-900">
                                     {med.name}
                                   </Text>
-                                  <Text className="text-gray-600 text-sm">
+                                  <Text className="text-gray-400 text-sm">
                                     {med.dosage} • {med.frequencyPerDay}x daily
                                   </Text>
                                 </View>
                                 <View
-                                  className={`px-2 py-1 rounded-full ${
-                                    med.isActive ? "bg-green-200" : "bg-gray-200"
+                                  className={`px-2 py-1 rounded-full border ${
+                                    med.isActive ? "border-green-400" : "border-gray-300"
                                   }`}
                                 >
                                   <Text
                                     className={`text-xs font-medium ${
                                       med.isActive
-                                        ? "text-green-800"
-                                        : "text-gray-600"
+                                        ? "text-green-600"
+                                        : "text-gray-500"
                                     }`}
                                   >
                                     {med.isActive ? "Active" : "Done"}
                                   </Text>
                                 </View>
                               </View>
-                              <Text className="text-gray-500 text-xs mt-1">
+                              <Text className="text-gray-400 text-xs mt-1">
                                 {med.instructions}
                               </Text>
                             </View>
@@ -356,46 +360,42 @@ export default function BookletDetailScreen() {
                         onPress={() => setLabsExpanded(!labsExpanded)}
                         className="flex-row justify-between items-center"
                       >
-                        <Text className="text-xs font-semibold text-gray-500 uppercase">
+                        <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                           Lab Requests ({getLabsByEntry(selectedEntry.id).length})
                         </Text>
-                        <Text className="text-gray-400">
-                          {labsExpanded ? "−" : "+"}
-                        </Text>
+                        {labsExpanded ? (
+                          <ChevronUp size={16} color="#9ca3af" strokeWidth={1.5} />
+                        ) : (
+                          <ChevronDown size={16} color="#9ca3af" strokeWidth={1.5} />
+                        )}
                       </Pressable>
                       <AnimatedCollapsible expanded={labsExpanded}>
                         <View className="pt-2">
                           {getLabsByEntry(selectedEntry.id).map((lab) => (
                             <View
                               key={lab.id}
-                              className={`rounded-lg p-3 mb-2 ${
-                                lab.status === "completed"
-                                  ? "bg-green-50"
-                                  : lab.status === "pending"
-                                  ? "bg-amber-50"
-                                  : "bg-gray-50"
-                              }`}
+                              className="border border-gray-100 rounded-lg p-3 mb-2"
                             >
                               <View className="flex-row justify-between items-start">
                                 <Text className="font-medium text-gray-900 flex-1">
                                   {lab.description}
                                 </Text>
                                 <View
-                                  className={`px-2 py-1 rounded-full ${
+                                  className={`px-2 py-1 rounded-full border ${
                                     lab.status === "completed"
-                                      ? "bg-green-200"
+                                      ? "border-green-400"
                                       : lab.status === "pending"
-                                      ? "bg-amber-200"
-                                      : "bg-gray-200"
+                                      ? "border-amber-400"
+                                      : "border-gray-300"
                                   }`}
                                 >
                                   <Text
                                     className={`text-xs font-medium ${
                                       lab.status === "completed"
-                                        ? "text-green-800"
+                                        ? "text-green-600"
                                         : lab.status === "pending"
-                                        ? "text-amber-800"
-                                        : "text-gray-600"
+                                        ? "text-amber-600"
+                                        : "text-gray-500"
                                     }`}
                                   >
                                     {LAB_STATUS_LABELS[lab.status]}
@@ -403,7 +403,7 @@ export default function BookletDetailScreen() {
                                 </View>
                               </View>
                               {lab.results && (
-                                <Text className="text-green-700 text-sm mt-2">
+                                <Text className="text-green-600 text-sm mt-2">
                                   <Text className="font-medium">Results: </Text>
                                   {lab.results}
                                 </Text>

@@ -5262,6 +5262,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lucide-react-native@npm:^0.562.0":
+  version: 0.562.0
+  resolution: "lucide-react-native@npm:0.562.0"
+  peerDependencies:
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-native: "*"
+    react-native-svg: ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0
+  checksum: 10c0/091690219e47f051b9381aeee48fdf574f05672672faa5e59c32583655f2b2d55c99dba3a2180f56031de743afcc5c9a742f2ad1f63527f352ec6cb50570f572
+  languageName: node
+  linkType: hard
+
 "make-fetch-happen@npm:^15.0.0":
   version: 15.0.3
   resolution: "make-fetch-happen@npm:15.0.3"
@@ -5731,6 +5742,7 @@ __metadata:
     expo-linking: "npm:~8.0.11"
     expo-router: "npm:~6.0.21"
     expo-status-bar: "npm:~3.0.9"
+    lucide-react-native: "npm:^0.562.0"
     nativewind: "npm:^4.2.1"
     prettier-plugin-tailwindcss: "npm:^0.7.2"
     react: "npm:19.1.0"

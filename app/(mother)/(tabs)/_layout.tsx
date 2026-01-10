@@ -1,24 +1,6 @@
 import { Tabs } from "expo-router";
-import { View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// Simple icon components using Text
-function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    home: "🏠",
-    medications: "💊",
-    doctors: "🩺",
-    profile: "👤",
-  };
-
-  return (
-    <View className="items-center justify-center">
-      <Text className={`text-2xl ${focused ? "opacity-100" : "opacity-50"}`}>
-        {icons[name] || "•"}
-      </Text>
-    </View>
-  );
-}
+import { Home, Pill, Stethoscope, User } from "lucide-react-native";
 
 export default function MotherTabsLayout() {
   return (
@@ -46,8 +28,8 @@ export default function MotherTabsLayout() {
           name="index"
           options={{
             title: "Home",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon name="home" focused={focused} />
+            tabBarIcon: ({ color, size }) => (
+              <Home size={size} color={color} strokeWidth={1.5} />
             ),
           }}
         />
@@ -55,8 +37,8 @@ export default function MotherTabsLayout() {
           name="medications"
           options={{
             title: "Medications",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon name="medications" focused={focused} />
+            tabBarIcon: ({ color, size }) => (
+              <Pill size={size} color={color} strokeWidth={1.5} />
             ),
           }}
         />
@@ -64,8 +46,8 @@ export default function MotherTabsLayout() {
           name="doctors"
           options={{
             title: "Doctors",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon name="doctors" focused={focused} />
+            tabBarIcon: ({ color, size }) => (
+              <Stethoscope size={size} color={color} strokeWidth={1.5} />
             ),
           }}
         />
@@ -73,8 +55,8 @@ export default function MotherTabsLayout() {
           name="profile"
           options={{
             title: "Profile",
-            tabBarIcon: ({ focused }) => (
-              <TabIcon name="profile" focused={focused} />
+            tabBarIcon: ({ color, size }) => (
+              <User size={size} color={color} strokeWidth={1.5} />
             ),
           }}
         />
