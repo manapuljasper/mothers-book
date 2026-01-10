@@ -39,13 +39,14 @@ export interface MedicalEntry {
 export interface LabRequest {
   id: string;
   medicalEntryId: string;
-  bookletId: string;
   description: string;
   status: LabStatus;
   requestedDate: Date;
   completedDate?: Date;
   results?: string;
   notes?: string;
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface MedicalEntryWithDoctor extends MedicalEntry {

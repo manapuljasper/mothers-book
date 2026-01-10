@@ -1,13 +1,10 @@
 /**
  * Medications API
  *
- * Mock API endpoints for medication operations.
- * Replace implementations with real API calls when backend is ready.
+ * Supabase API endpoints for medication operations.
  */
 
-import { mockRequest, mockMutation } from './client';
-import { StorageService, StorageKey } from '../services/storage.service';
-import { generateMedicationId, generateIntakeLogId } from '../utils/id.utils';
+import { supabase, handleSupabaseError } from './client';
 import { getStartOfDay, isToday } from '../utils/date.utils';
 import type {
   Medication,
@@ -38,7 +35,7 @@ function calculateAdherence(
   const expectedDoses = daysDiff * medication.frequencyPerDay;
 
   const takenDoses = logs.filter((l) => {
-    const logDate = new Date(l.takenDate);
+    const logDate = new Date(l.scheduledDate);
     return l.status === 'taken' && logDate >= effectiveStartDate && logDate <= today;
   }).length;
 
@@ -51,7 +48,7 @@ function enrichMedicationWithLogs(
   allLogs: MedicationIntakeLog[]
 ): MedicationWithLogs {
   const logs = allLogs.filter((l) => l.medicationId === medication.id);
-  const todayLogs = logs.filter((l) => isToday(new Date(l.takenDate)));
+  const todayLogs = logs.filter((l) => isToday(new Date(l.scheduledDate)));
 
   return {
     ...medication,
@@ -63,29 +60,67 @@ function enrichMedicationWithLogs(
 
 // GET /medications?bookletId=:bookletId
 export async function getMedicationsByBooklet(bookletId: string): Promise<MedicationWithLogs[]> {
-  return mockRequest(() => {
-    const medications = StorageService.get<Medication[]>(StorageKey.MEDICATIONS) || [];
-    const intakeLogs = StorageService.get<MedicationIntakeLog[]>(StorageKey.INTAKE_LOGS) || [];
+  // Get medications through medical_entries join
+  const { data: medications, error } = await supabase
+    .from('medications')
+    .select(`
+      *,
+      medical_entries!inner (
+        booklet_id
+      )
+    `)
+    .eq('medical_entries.booklet_id', bookletId);
 
-    return medications
-      .filter((m) => m.bookletId === bookletId)
-      .map((m) => enrichMedicationWithLogs(m, intakeLogs));
-  });
+  if (error) handleSupabaseError(error);
+
+  if (!medications || medications.length === 0) return [];
+
+  // Get intake logs for these medications
+  const medIds = medications.map((m) => m.id);
+  const { data: logs } = await supabase
+    .from('medication_intake_logs')
+    .select('*')
+    .in('medication_id', medIds);
+
+  const mappedMeds = medications.map(mapMedication);
+  const mappedLogs = (logs || []).map(mapIntakeLog);
+
+  return mappedMeds.map((m) => enrichMedicationWithLogs(m, mappedLogs));
 }
 
 // GET /medications/active?bookletId=:bookletId
 export async function getActiveMedications(bookletId?: string): Promise<MedicationWithLogs[]> {
-  return mockRequest(() => {
-    const medications = StorageService.get<Medication[]>(StorageKey.MEDICATIONS) || [];
-    const intakeLogs = StorageService.get<MedicationIntakeLog[]>(StorageKey.INTAKE_LOGS) || [];
+  let query = supabase
+    .from('medications')
+    .select(`
+      *,
+      medical_entries!inner (
+        booklet_id
+      )
+    `)
+    .eq('is_active', true);
 
-    let active = medications.filter((m) => m.isActive);
-    if (bookletId) {
-      active = active.filter((m) => m.bookletId === bookletId);
-    }
+  if (bookletId) {
+    query = query.eq('medical_entries.booklet_id', bookletId);
+  }
 
-    return active.map((m) => enrichMedicationWithLogs(m, intakeLogs));
-  });
+  const { data: medications, error } = await query;
+
+  if (error) handleSupabaseError(error);
+
+  if (!medications || medications.length === 0) return [];
+
+  // Get intake logs for these medications
+  const medIds = medications.map((m) => m.id);
+  const { data: logs } = await supabase
+    .from('medication_intake_logs')
+    .select('*')
+    .in('medication_id', medIds);
+
+  const mappedMeds = medications.map(mapMedication);
+  const mappedLogs = (logs || []).map(mapIntakeLog);
+
+  return mappedMeds.map((m) => enrichMedicationWithLogs(m, mappedLogs));
 }
 
 // GET /medications/today?bookletId=:bookletId
@@ -95,39 +130,55 @@ export async function getTodayMedications(bookletId?: string): Promise<Medicatio
 
 // GET /medications/:id
 export async function getMedicationById(id: string): Promise<Medication | null> {
-  return mockRequest(() => {
-    const medications = StorageService.get<Medication[]>(StorageKey.MEDICATIONS) || [];
-    return medications.find((m) => m.id === id) || null;
-  });
+  const { data, error } = await supabase
+    .from('medications')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    handleSupabaseError(error);
+  }
+
+  return data ? mapMedication(data) : null;
 }
 
 // GET /medications?entryId=:entryId
 export async function getMedicationsByEntry(entryId: string): Promise<Medication[]> {
-  return mockRequest(() => {
-    const medications = StorageService.get<Medication[]>(StorageKey.MEDICATIONS) || [];
-    return medications.filter((m) => m.medicalEntryId === entryId);
-  });
+  const { data, error } = await supabase
+    .from('medications')
+    .select('*')
+    .eq('medical_entry_id', entryId);
+
+  if (error) handleSupabaseError(error);
+
+  return (data || []).map(mapMedication);
 }
 
 // POST /medications
 export async function createMedication(
-  medData: Omit<Medication, 'id' | 'createdAt'>
+  medData: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Medication> {
-  return mockMutation(
-    (data) => {
-      const medications = StorageService.get<Medication[]>(StorageKey.MEDICATIONS) || [];
+  const { data, error } = await supabase
+    .from('medications')
+    .insert({
+      medical_entry_id: medData.medicalEntryId,
+      name: medData.name,
+      dosage: medData.dosage,
+      instructions: medData.instructions,
+      frequency_per_day: medData.frequencyPerDay,
+      times_of_day: medData.timesOfDay,
+      start_date: medData.startDate.toISOString().split('T')[0],
+      end_date: medData.endDate?.toISOString().split('T')[0],
+      is_active: medData.isActive,
+    })
+    .select()
+    .single();
 
-      const newMed: Medication = {
-        ...data,
-        id: generateMedicationId(),
-        createdAt: new Date(),
-      };
+  if (error) handleSupabaseError(error);
 
-      StorageService.set(StorageKey.MEDICATIONS, [...medications, newMed]);
-      return newMed;
-    },
-    medData
-  );
+  return mapMedication(data);
 }
 
 // PUT /medications/:id
@@ -135,20 +186,27 @@ export async function updateMedication(
   id: string,
   updates: Partial<Medication>
 ): Promise<Medication> {
-  return mockMutation(
-    ({ id, updates }) => {
-      const medications = StorageService.get<Medication[]>(StorageKey.MEDICATIONS) || [];
-      const updatedMeds = medications.map((m) =>
-        m.id === id ? { ...m, ...updates } : m
-      );
-      StorageService.set(StorageKey.MEDICATIONS, updatedMeds);
+  const updateData: Record<string, unknown> = {};
 
-      const updated = updatedMeds.find((m) => m.id === id);
-      if (!updated) throw new Error('Medication not found');
-      return updated;
-    },
-    { id, updates }
-  );
+  if (updates.name !== undefined) updateData.name = updates.name;
+  if (updates.dosage !== undefined) updateData.dosage = updates.dosage;
+  if (updates.instructions !== undefined) updateData.instructions = updates.instructions;
+  if (updates.frequencyPerDay !== undefined) updateData.frequency_per_day = updates.frequencyPerDay;
+  if (updates.timesOfDay !== undefined) updateData.times_of_day = updates.timesOfDay;
+  if (updates.startDate !== undefined) updateData.start_date = updates.startDate.toISOString().split('T')[0];
+  if (updates.endDate !== undefined) updateData.end_date = updates.endDate?.toISOString().split('T')[0];
+  if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+
+  const { data, error } = await supabase
+    .from('medications')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) handleSupabaseError(error);
+
+  return mapMedication(data);
 }
 
 // PUT /medications/:id/deactivate
@@ -164,54 +222,51 @@ export async function logIntake(
   userId: string,
   date: Date = new Date()
 ): Promise<MedicationIntakeLog> {
-  return mockMutation(
-    ({ medicationId, doseIndex, status, userId, date }) => {
-      const medications = StorageService.get<Medication[]>(StorageKey.MEDICATIONS) || [];
-      const intakeLogs = StorageService.get<MedicationIntakeLog[]>(StorageKey.INTAKE_LOGS) || [];
+  const scheduledDate = getStartOfDay(date).toISOString().split('T')[0];
 
-      const medication = medications.find((m) => m.id === medicationId);
-      if (!medication) throw new Error('Medication not found');
+  // Check if log already exists for this dose on this day
+  const { data: existing } = await supabase
+    .from('medication_intake_logs')
+    .select('*')
+    .eq('medication_id', medicationId)
+    .eq('scheduled_date', scheduledDate)
+    .eq('dose_index', doseIndex)
+    .single();
 
-      const takenDate = getStartOfDay(date);
-
-      // Check if log already exists for this dose on this day
-      const existingLogIndex = intakeLogs.findIndex(
-        (l) =>
-          l.medicationId === medicationId &&
-          l.doseIndex === doseIndex &&
-          getStartOfDay(new Date(l.takenDate)).getTime() === takenDate.getTime()
-      );
-
-      if (existingLogIndex !== -1) {
-        // Update existing log
-        const updatedLogs = [...intakeLogs];
-        updatedLogs[existingLogIndex] = {
-          ...updatedLogs[existingLogIndex],
-          status,
-          takenAt: status === 'taken' ? new Date() : undefined,
-        };
-        StorageService.set(StorageKey.INTAKE_LOGS, updatedLogs);
-        return updatedLogs[existingLogIndex];
-      }
-
-      const newLog: MedicationIntakeLog = {
-        id: generateIntakeLogId(),
-        medicationId,
-        medicalEntryId: medication.medicalEntryId,
-        bookletId: medication.bookletId,
-        takenDate,
-        doseIndex,
+  if (existing) {
+    // Update existing log
+    const { data, error } = await supabase
+      .from('medication_intake_logs')
+      .update({
         status,
-        takenAt: status === 'taken' ? new Date() : undefined,
-        recordedByUserId: userId,
-        createdAt: new Date(),
-      };
+        taken_at: status === 'taken' ? new Date().toISOString() : null,
+      })
+      .eq('id', existing.id)
+      .select()
+      .single();
 
-      StorageService.set(StorageKey.INTAKE_LOGS, [...intakeLogs, newLog]);
-      return newLog;
-    },
-    { medicationId, doseIndex, status, userId, date }
-  );
+    if (error) handleSupabaseError(error);
+
+    return mapIntakeLog(data);
+  }
+
+  // Create new log
+  const { data, error } = await supabase
+    .from('medication_intake_logs')
+    .insert({
+      medication_id: medicationId,
+      scheduled_date: scheduledDate,
+      dose_index: doseIndex,
+      status,
+      taken_at: status === 'taken' ? new Date().toISOString() : null,
+      recorded_by_user_id: userId,
+    })
+    .select()
+    .single();
+
+  if (error) handleSupabaseError(error);
+
+  return mapIntakeLog(data);
 }
 
 // GET /medications/:medicationId/adherence?days=:days
@@ -219,14 +274,57 @@ export async function getMedicationAdherence(
   medicationId: string,
   days: number = 7
 ): Promise<number> {
-  return mockRequest(() => {
-    const medications = StorageService.get<Medication[]>(StorageKey.MEDICATIONS) || [];
-    const intakeLogs = StorageService.get<MedicationIntakeLog[]>(StorageKey.INTAKE_LOGS) || [];
+  const { data: medication, error: medError } = await supabase
+    .from('medications')
+    .select('*')
+    .eq('id', medicationId)
+    .single();
 
-    const medication = medications.find((m) => m.id === medicationId);
-    if (!medication) return 0;
+  if (medError) {
+    if (medError.code === 'PGRST116') return 0;
+    handleSupabaseError(medError);
+  }
 
-    const logs = intakeLogs.filter((l) => l.medicationId === medicationId);
-    return calculateAdherence(medication, logs, days);
-  });
+  const { data: logs } = await supabase
+    .from('medication_intake_logs')
+    .select('*')
+    .eq('medication_id', medicationId);
+
+  const mappedMed = mapMedication(medication);
+  const mappedLogs = (logs || []).map(mapIntakeLog);
+
+  return calculateAdherence(mappedMed, mappedLogs, days);
+}
+
+// Helper to map database row to Medication type
+function mapMedication(row: Record<string, unknown>): Medication {
+  return {
+    id: row.id as string,
+    medicalEntryId: row.medical_entry_id as string,
+    name: row.name as string,
+    dosage: row.dosage as string,
+    instructions: row.instructions as string | undefined,
+    startDate: new Date(row.start_date as string),
+    endDate: row.end_date ? new Date(row.end_date as string) : undefined,
+    frequencyPerDay: row.frequency_per_day as Medication['frequencyPerDay'],
+    timesOfDay: row.times_of_day as string[] | undefined,
+    isActive: row.is_active as boolean,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
+  };
+}
+
+// Helper to map database row to MedicationIntakeLog type
+function mapIntakeLog(row: Record<string, unknown>): MedicationIntakeLog {
+  return {
+    id: row.id as string,
+    medicationId: row.medication_id as string,
+    scheduledDate: new Date(row.scheduled_date as string),
+    doseIndex: row.dose_index as number,
+    status: row.status as IntakeStatus,
+    takenAt: row.taken_at ? new Date(row.taken_at as string) : undefined,
+    recordedByUserId: row.recorded_by_user_id as string,
+    notes: row.notes as string | undefined,
+    createdAt: new Date(row.created_at as string),
+  };
 }

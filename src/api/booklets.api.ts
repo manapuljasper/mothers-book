@@ -1,66 +1,117 @@
 /**
  * Booklets API
  *
- * Mock API endpoints for booklet operations.
- * Replace implementations with real API calls when backend is ready.
+ * Supabase API endpoints for booklet operations.
  */
 
-import { mockRequest, mockMutation } from './client';
-import { StorageService, StorageKey } from '../services/storage.service';
-import { generateBookletId, generateAccessId } from '../utils/id.utils';
+import { supabase, handleSupabaseError } from './client';
 import type {
   MotherBooklet,
   BookletAccess,
   BookletWithMother,
   DoctorProfile,
-  MotherProfile,
-  MedicalEntry,
 } from '../types';
 
 // GET /booklets/:id
 export async function getBookletById(id: string): Promise<MotherBooklet | null> {
-  return mockRequest(() => {
-    const booklets = StorageService.get<MotherBooklet[]>(StorageKey.BOOKLETS) || [];
-    return booklets.find((b) => b.id === id) || null;
-  });
+  const { data, error } = await supabase
+    .from('booklets')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    handleSupabaseError(error);
+  }
+
+  return data ? mapBooklet(data) : null;
 }
 
 // GET /booklets?motherId=:motherId
 export async function getBookletsByMother(motherId: string): Promise<MotherBooklet[]> {
-  return mockRequest(() => {
-    const booklets = StorageService.get<MotherBooklet[]>(StorageKey.BOOKLETS) || [];
-    return booklets.filter((b) => b.motherId === motherId);
-  });
+  const { data, error } = await supabase
+    .from('booklets')
+    .select('*')
+    .eq('mother_id', motherId)
+    .order('created_at', { ascending: false });
+
+  if (error) handleSupabaseError(error);
+
+  return (data || []).map(mapBooklet);
 }
 
 // GET /booklets/doctor/:doctorId
 export async function getBookletsByDoctor(doctorId: string): Promise<BookletWithMother[]> {
-  return mockRequest(() => {
-    const booklets = StorageService.get<MotherBooklet[]>(StorageKey.BOOKLETS) || [];
-    const accessRecords = StorageService.get<BookletAccess[]>(StorageKey.BOOKLET_ACCESS) || [];
-    const mothers = StorageService.get<MotherProfile[]>(StorageKey.MOTHER_PROFILES) || [];
-    const medicalEntries = StorageService.get<MedicalEntry[]>(StorageKey.MEDICAL_ENTRIES) || [];
+  // Get booklets with active access for this doctor
+  // Join with mother_profiles to get mother name
+  // Join with medical_entries to get last visit and next appointment
+  const { data, error } = await supabase
+    .from('booklet_access')
+    .select(`
+      booklet_id,
+      booklets!inner (
+        id,
+        mother_id,
+        label,
+        status,
+        created_at,
+        expected_due_date,
+        actual_delivery_date,
+        notes,
+        mother_profiles!inner (
+          full_name
+        )
+      )
+    `)
+    .eq('doctor_id', doctorId)
+    .is('revoked_at', null);
 
-    // Get booklet IDs with active access
-    const accessibleBookletIds = accessRecords
-      .filter((a) => a.doctorId === doctorId && !a.revokedAt)
-      .map((a) => a.bookletId);
+  if (error) handleSupabaseError(error);
 
-    return booklets
-      .filter((b) => accessibleBookletIds.includes(b.id))
-      .map((b) => {
-        const mother = mothers.find((m) => m.id === b.motherId);
-        const bookletEntries = medicalEntries
-          .filter((e) => e.bookletId === b.id)
-          .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime());
+  if (!data || data.length === 0) return [];
 
-        return {
-          ...b,
-          motherName: mother?.fullName || 'Unknown',
-          lastVisitDate: bookletEntries[0]?.visitDate,
-          nextAppointment: bookletEntries[0]?.followUpDate,
-        } as BookletWithMother;
+  // Get the latest medical entry for each booklet to get last visit and next appointment
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bookletIds = data.map((d: any) => d.booklets.id);
+
+  const { data: entriesData } = await supabase
+    .from('medical_entries')
+    .select('booklet_id, visit_date, follow_up_date')
+    .in('booklet_id', bookletIds)
+    .order('visit_date', { ascending: false });
+
+  // Group entries by booklet
+  const entriesByBooklet = new Map<string, { visitDate: string; followUpDate?: string }>();
+  for (const entry of entriesData || []) {
+    if (!entriesByBooklet.has(entry.booklet_id)) {
+      entriesByBooklet.set(entry.booklet_id, {
+        visitDate: entry.visit_date,
+        followUpDate: entry.follow_up_date,
       });
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return data.map((d: any) => {
+    const booklet = d.booklets;
+    const motherProfile = booklet.mother_profiles;
+
+    const latestEntry = entriesByBooklet.get(booklet.id);
+
+    return {
+      id: booklet.id,
+      motherId: booklet.mother_id,
+      label: booklet.label,
+      status: booklet.status as MotherBooklet['status'],
+      createdAt: new Date(booklet.created_at),
+      expectedDueDate: booklet.expected_due_date ? new Date(booklet.expected_due_date) : undefined,
+      actualDeliveryDate: booklet.actual_delivery_date ? new Date(booklet.actual_delivery_date) : undefined,
+      notes: booklet.notes,
+      motherName: motherProfile.full_name,
+      lastVisitDate: latestEntry?.visitDate ? new Date(latestEntry.visitDate) : undefined,
+      nextAppointment: latestEntry?.followUpDate ? new Date(latestEntry.followUpDate) : undefined,
+    };
   });
 }
 
@@ -68,21 +119,22 @@ export async function getBookletsByDoctor(doctorId: string): Promise<BookletWith
 export async function createBooklet(
   bookletData: Omit<MotherBooklet, 'id' | 'createdAt'>
 ): Promise<MotherBooklet> {
-  return mockMutation(
-    (data) => {
-      const booklets = StorageService.get<MotherBooklet[]>(StorageKey.BOOKLETS) || [];
+  const { data, error } = await supabase
+    .from('booklets')
+    .insert({
+      mother_id: bookletData.motherId,
+      label: bookletData.label,
+      status: bookletData.status,
+      expected_due_date: bookletData.expectedDueDate?.toISOString(),
+      actual_delivery_date: bookletData.actualDeliveryDate?.toISOString(),
+      notes: bookletData.notes,
+    })
+    .select()
+    .single();
 
-      const newBooklet: MotherBooklet = {
-        ...data,
-        id: generateBookletId(),
-        createdAt: new Date(),
-      };
+  if (error) handleSupabaseError(error);
 
-      StorageService.set(StorageKey.BOOKLETS, [...booklets, newBooklet]);
-      return newBooklet;
-    },
-    bookletData
-  );
+  return mapBooklet(data);
 }
 
 // PUT /booklets/:id
@@ -90,20 +142,24 @@ export async function updateBooklet(
   id: string,
   updates: Partial<MotherBooklet>
 ): Promise<MotherBooklet> {
-  return mockMutation(
-    ({ id, updates }) => {
-      const booklets = StorageService.get<MotherBooklet[]>(StorageKey.BOOKLETS) || [];
-      const updatedBooklets = booklets.map((b) =>
-        b.id === id ? { ...b, ...updates } : b
-      );
-      StorageService.set(StorageKey.BOOKLETS, updatedBooklets);
+  const updateData: Record<string, unknown> = {};
 
-      const updated = updatedBooklets.find((b) => b.id === id);
-      if (!updated) throw new Error('Booklet not found');
-      return updated;
-    },
-    { id, updates }
-  );
+  if (updates.label !== undefined) updateData.label = updates.label;
+  if (updates.status !== undefined) updateData.status = updates.status;
+  if (updates.expectedDueDate !== undefined) updateData.expected_due_date = updates.expectedDueDate?.toISOString();
+  if (updates.actualDeliveryDate !== undefined) updateData.actual_delivery_date = updates.actualDeliveryDate?.toISOString();
+  if (updates.notes !== undefined) updateData.notes = updates.notes;
+
+  const { data, error } = await supabase
+    .from('booklets')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) handleSupabaseError(error);
+
+  return mapBooklet(data);
 }
 
 // POST /booklets/:bookletId/access
@@ -111,29 +167,31 @@ export async function grantDoctorAccess(
   bookletId: string,
   doctorId: string
 ): Promise<BookletAccess> {
-  return mockMutation(
-    ({ bookletId, doctorId }) => {
-      const accessRecords = StorageService.get<BookletAccess[]>(StorageKey.BOOKLET_ACCESS) || [];
+  // Check if access already exists
+  const { data: existing } = await supabase
+    .from('booklet_access')
+    .select('*')
+    .eq('booklet_id', bookletId)
+    .eq('doctor_id', doctorId)
+    .is('revoked_at', null)
+    .single();
 
-      // Check if access already exists
-      const existing = accessRecords.find(
-        (a) => a.bookletId === bookletId && a.doctorId === doctorId && !a.revokedAt
-      );
-      if (existing) return existing;
+  if (existing) {
+    return mapBookletAccess(existing);
+  }
 
-      const newAccess: BookletAccess = {
-        id: generateAccessId(),
-        bookletId,
-        doctorId,
-        grantedAt: new Date(),
-        revokedAt: null,
-      };
+  const { data, error } = await supabase
+    .from('booklet_access')
+    .insert({
+      booklet_id: bookletId,
+      doctor_id: doctorId,
+    })
+    .select()
+    .single();
 
-      StorageService.set(StorageKey.BOOKLET_ACCESS, [...accessRecords, newAccess]);
-      return newAccess;
-    },
-    { bookletId, doctorId }
-  );
+  if (error) handleSupabaseError(error);
+
+  return mapBookletAccess(data);
 }
 
 // DELETE /booklets/:bookletId/access/:doctorId
@@ -141,30 +199,86 @@ export async function revokeDoctorAccess(
   bookletId: string,
   doctorId: string
 ): Promise<void> {
-  return mockMutation(
-    ({ bookletId, doctorId }) => {
-      const accessRecords = StorageService.get<BookletAccess[]>(StorageKey.BOOKLET_ACCESS) || [];
-      const updatedRecords = accessRecords.map((a) =>
-        a.bookletId === bookletId && a.doctorId === doctorId && !a.revokedAt
-          ? { ...a, revokedAt: new Date() }
-          : a
-      );
-      StorageService.set(StorageKey.BOOKLET_ACCESS, updatedRecords);
-    },
-    { bookletId, doctorId }
-  );
+  const { error } = await supabase
+    .from('booklet_access')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('booklet_id', bookletId)
+    .eq('doctor_id', doctorId)
+    .is('revoked_at', null);
+
+  if (error) handleSupabaseError(error);
 }
 
 // GET /booklets/:bookletId/doctors
 export async function getBookletDoctors(bookletId: string): Promise<DoctorProfile[]> {
-  return mockRequest(() => {
-    const accessRecords = StorageService.get<BookletAccess[]>(StorageKey.BOOKLET_ACCESS) || [];
-    const doctors = StorageService.get<DoctorProfile[]>(StorageKey.DOCTOR_PROFILES) || [];
+  const { data, error } = await supabase
+    .from('booklet_access')
+    .select(`
+      doctor_profiles!inner (
+        id,
+        user_id,
+        prc_number,
+        clinic_name,
+        clinic_address,
+        specialization,
+        clinic_schedule,
+        latitude,
+        longitude,
+        profiles!inner (
+          full_name,
+          contact_number,
+          avatar_url
+        )
+      )
+    `)
+    .eq('booklet_id', bookletId)
+    .is('revoked_at', null);
 
-    const accessibleDoctorIds = accessRecords
-      .filter((a) => a.bookletId === bookletId && !a.revokedAt)
-      .map((a) => a.doctorId);
+  if (error) handleSupabaseError(error);
 
-    return doctors.filter((d) => accessibleDoctorIds.includes(d.id));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data || []).map((d: any) => {
+    const dp = d.doctor_profiles;
+    const profile = dp.profiles;
+
+    return {
+      id: dp.id,
+      userId: dp.user_id,
+      fullName: profile.full_name,
+      prcNumber: dp.prc_number,
+      clinicName: dp.clinic_name,
+      clinicAddress: dp.clinic_address || '',
+      contactNumber: profile.contact_number || '',
+      specialization: dp.specialization,
+      avatarUrl: profile.avatar_url,
+      clinicSchedule: dp.clinic_schedule,
+      latitude: dp.latitude,
+      longitude: dp.longitude,
+    };
   });
+}
+
+// Helper to map database row to MotherBooklet type
+function mapBooklet(row: Record<string, unknown>): MotherBooklet {
+  return {
+    id: row.id as string,
+    motherId: row.mother_id as string,
+    label: row.label as string,
+    status: row.status as MotherBooklet['status'],
+    createdAt: new Date(row.created_at as string),
+    expectedDueDate: row.expected_due_date ? new Date(row.expected_due_date as string) : undefined,
+    actualDeliveryDate: row.actual_delivery_date ? new Date(row.actual_delivery_date as string) : undefined,
+    notes: row.notes as string | undefined,
+  };
+}
+
+// Helper to map database row to BookletAccess type
+function mapBookletAccess(row: Record<string, unknown>): BookletAccess {
+  return {
+    id: row.id as string,
+    bookletId: row.booklet_id as string,
+    doctorId: row.doctor_id as string,
+    grantedAt: new Date(row.granted_at as string),
+    revokedAt: row.revoked_at ? new Date(row.revoked_at as string) : null,
+  };
 }

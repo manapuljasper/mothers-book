@@ -1,68 +1,90 @@
 /**
  * Medical API
  *
- * Mock API endpoints for medical entries and lab requests.
- * Replace implementations with real API calls when backend is ready.
+ * Supabase API endpoints for medical entries and lab requests.
  */
 
-import { mockRequest, mockMutation } from './client';
-import { StorageService, StorageKey } from '../services/storage.service';
-import { generateEntryId, generateLabId } from '../utils/id.utils';
+import { supabase, handleSupabaseError } from './client';
 import type {
   MedicalEntry,
   MedicalEntryWithDoctor,
   LabRequest,
   LabStatus,
-  DoctorProfile,
 } from '../types';
 
 // GET /entries?bookletId=:bookletId
 export async function getEntriesByBooklet(bookletId: string): Promise<MedicalEntryWithDoctor[]> {
-  return mockRequest(() => {
-    const entries = StorageService.get<MedicalEntry[]>(StorageKey.MEDICAL_ENTRIES) || [];
-    const doctors = StorageService.get<DoctorProfile[]>(StorageKey.DOCTOR_PROFILES) || [];
+  const { data, error } = await supabase
+    .from('medical_entries')
+    .select(`
+      *,
+      doctor_profiles!inner (
+        id,
+        specialization,
+        profiles!inner (
+          full_name
+        )
+      )
+    `)
+    .eq('booklet_id', bookletId)
+    .order('visit_date', { ascending: false });
 
-    return entries
-      .filter((e) => e.bookletId === bookletId)
-      .map((e) => {
-        const doctor = doctors.find((d) => d.id === e.doctorId);
-        return {
-          ...e,
-          doctorName: doctor?.fullName || 'Unknown Doctor',
-          doctorSpecialization: doctor?.specialization,
-        } as MedicalEntryWithDoctor;
-      })
-      .sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime());
+  if (error) handleSupabaseError(error);
+
+  return (data || []).map((row) => {
+    const dp = row.doctor_profiles as {
+      id: string;
+      specialization?: string;
+      profiles: { full_name: string };
+    };
+
+    return {
+      ...mapMedicalEntry(row),
+      doctorName: dp.profiles.full_name,
+      doctorSpecialization: dp.specialization,
+    };
   });
 }
 
 // GET /entries/:id
 export async function getEntryById(id: string): Promise<MedicalEntry | null> {
-  return mockRequest(() => {
-    const entries = StorageService.get<MedicalEntry[]>(StorageKey.MEDICAL_ENTRIES) || [];
-    return entries.find((e) => e.id === id) || null;
-  });
+  const { data, error } = await supabase
+    .from('medical_entries')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    handleSupabaseError(error);
+  }
+
+  return data ? mapMedicalEntry(data) : null;
 }
 
 // POST /entries
 export async function createEntry(
   entryData: Omit<MedicalEntry, 'id' | 'createdAt'>
 ): Promise<MedicalEntry> {
-  return mockMutation(
-    (data) => {
-      const entries = StorageService.get<MedicalEntry[]>(StorageKey.MEDICAL_ENTRIES) || [];
+  const { data, error } = await supabase
+    .from('medical_entries')
+    .insert({
+      booklet_id: entryData.bookletId,
+      doctor_id: entryData.doctorId,
+      entry_type: entryData.entryType,
+      visit_date: entryData.visitDate.toISOString(),
+      notes: entryData.notes,
+      vitals: entryData.vitals,
+      diagnosis: entryData.diagnosis,
+      recommendations: entryData.recommendations,
+      follow_up_date: entryData.followUpDate?.toISOString().split('T')[0],
+    })
+    .select()
+    .single();
 
-      const newEntry: MedicalEntry = {
-        ...data,
-        id: generateEntryId(),
-        createdAt: new Date(),
-      };
+  if (error) handleSupabaseError(error);
 
-      StorageService.set(StorageKey.MEDICAL_ENTRIES, [...entries, newEntry]);
-      return newEntry;
-    },
-    entryData
-  );
+  return mapMedicalEntry(data);
 }
 
 // PUT /entries/:id
@@ -70,70 +92,105 @@ export async function updateEntry(
   id: string,
   updates: Partial<MedicalEntry>
 ): Promise<MedicalEntry> {
-  return mockMutation(
-    ({ id, updates }) => {
-      const entries = StorageService.get<MedicalEntry[]>(StorageKey.MEDICAL_ENTRIES) || [];
-      const updatedEntries = entries.map((e) =>
-        e.id === id ? { ...e, ...updates, updatedAt: new Date() } : e
-      );
-      StorageService.set(StorageKey.MEDICAL_ENTRIES, updatedEntries);
+  const updateData: Record<string, unknown> = {};
 
-      const updated = updatedEntries.find((e) => e.id === id);
-      if (!updated) throw new Error('Entry not found');
-      return updated;
-    },
-    { id, updates }
-  );
+  if (updates.entryType !== undefined) updateData.entry_type = updates.entryType;
+  if (updates.visitDate !== undefined) updateData.visit_date = updates.visitDate.toISOString();
+  if (updates.notes !== undefined) updateData.notes = updates.notes;
+  if (updates.vitals !== undefined) updateData.vitals = updates.vitals;
+  if (updates.diagnosis !== undefined) updateData.diagnosis = updates.diagnosis;
+  if (updates.recommendations !== undefined) updateData.recommendations = updates.recommendations;
+  if (updates.followUpDate !== undefined) updateData.follow_up_date = updates.followUpDate?.toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('medical_entries')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) handleSupabaseError(error);
+
+  return mapMedicalEntry(data);
 }
 
 // GET /labs?bookletId=:bookletId
 export async function getLabsByBooklet(bookletId: string): Promise<LabRequest[]> {
-  return mockRequest(() => {
-    const labRequests = StorageService.get<LabRequest[]>(StorageKey.LAB_REQUESTS) || [];
-    return labRequests
-      .filter((l) => l.bookletId === bookletId)
-      .sort((a, b) => new Date(b.requestedDate).getTime() - new Date(a.requestedDate).getTime());
-  });
+  // Join through medical_entries to filter by booklet
+  const { data, error } = await supabase
+    .from('lab_requests')
+    .select(`
+      *,
+      medical_entries!inner (
+        booklet_id
+      )
+    `)
+    .eq('medical_entries.booklet_id', bookletId)
+    .order('requested_date', { ascending: false });
+
+  if (error) handleSupabaseError(error);
+
+  return (data || []).map(mapLabRequest);
 }
 
 // GET /labs?entryId=:entryId
 export async function getLabsByEntry(entryId: string): Promise<LabRequest[]> {
-  return mockRequest(() => {
-    const labRequests = StorageService.get<LabRequest[]>(StorageKey.LAB_REQUESTS) || [];
-    return labRequests.filter((l) => l.medicalEntryId === entryId);
-  });
+  const { data, error } = await supabase
+    .from('lab_requests')
+    .select('*')
+    .eq('medical_entry_id', entryId)
+    .order('requested_date', { ascending: false });
+
+  if (error) handleSupabaseError(error);
+
+  return (data || []).map(mapLabRequest);
 }
 
 // GET /labs/pending?bookletId=:bookletId
 export async function getPendingLabs(bookletId?: string): Promise<LabRequest[]> {
-  return mockRequest(() => {
-    const labRequests = StorageService.get<LabRequest[]>(StorageKey.LAB_REQUESTS) || [];
-    let pending = labRequests.filter((l) => l.status === 'pending');
-    if (bookletId) {
-      pending = pending.filter((l) => l.bookletId === bookletId);
-    }
-    return pending;
-  });
+  let query = supabase
+    .from('lab_requests')
+    .select(`
+      *,
+      medical_entries!inner (
+        booklet_id
+      )
+    `)
+    .eq('status', 'pending')
+    .order('requested_date', { ascending: false });
+
+  if (bookletId) {
+    query = query.eq('medical_entries.booklet_id', bookletId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) handleSupabaseError(error);
+
+  return (data || []).map(mapLabRequest);
 }
 
 // POST /labs
 export async function createLabRequest(
-  labData: Omit<LabRequest, 'id'>
+  labData: Omit<LabRequest, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<LabRequest> {
-  return mockMutation(
-    (data) => {
-      const labRequests = StorageService.get<LabRequest[]>(StorageKey.LAB_REQUESTS) || [];
+  const { data, error } = await supabase
+    .from('lab_requests')
+    .insert({
+      medical_entry_id: labData.medicalEntryId,
+      description: labData.description,
+      status: labData.status,
+      requested_date: labData.requestedDate.toISOString(),
+      completed_date: labData.completedDate?.toISOString(),
+      results: labData.results,
+      notes: labData.notes,
+    })
+    .select()
+    .single();
 
-      const newLab: LabRequest = {
-        ...data,
-        id: generateLabId(),
-      };
+  if (error) handleSupabaseError(error);
 
-      StorageService.set(StorageKey.LAB_REQUESTS, [...labRequests, newLab]);
-      return newLab;
-    },
-    labData
-  );
+  return mapLabRequest(data);
 }
 
 // PUT /labs/:id/status
@@ -142,25 +199,58 @@ export async function updateLabStatus(
   status: LabStatus,
   results?: string
 ): Promise<LabRequest> {
-  return mockMutation(
-    ({ id, status, results }) => {
-      const labRequests = StorageService.get<LabRequest[]>(StorageKey.LAB_REQUESTS) || [];
-      const updatedLabs = labRequests.map((l) =>
-        l.id === id
-          ? {
-              ...l,
-              status,
-              results: results ?? l.results,
-              completedDate: status === 'completed' ? new Date() : l.completedDate,
-            }
-          : l
-      );
-      StorageService.set(StorageKey.LAB_REQUESTS, updatedLabs);
+  const updateData: Record<string, unknown> = { status };
 
-      const updated = updatedLabs.find((l) => l.id === id);
-      if (!updated) throw new Error('Lab request not found');
-      return updated;
-    },
-    { id, status, results }
-  );
+  if (results !== undefined) {
+    updateData.results = results;
+  }
+
+  if (status === 'completed') {
+    updateData.completed_date = new Date().toISOString();
+  }
+
+  const { data, error } = await supabase
+    .from('lab_requests')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) handleSupabaseError(error);
+
+  return mapLabRequest(data);
+}
+
+// Helper to map database row to MedicalEntry type
+function mapMedicalEntry(row: Record<string, unknown>): MedicalEntry {
+  return {
+    id: row.id as string,
+    bookletId: row.booklet_id as string,
+    doctorId: row.doctor_id as string,
+    entryType: row.entry_type as MedicalEntry['entryType'],
+    visitDate: new Date(row.visit_date as string),
+    notes: row.notes as string,
+    vitals: row.vitals as MedicalEntry['vitals'],
+    diagnosis: row.diagnosis as string | undefined,
+    recommendations: row.recommendations as string | undefined,
+    followUpDate: row.follow_up_date ? new Date(row.follow_up_date as string) : undefined,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
+  };
+}
+
+// Helper to map database row to LabRequest type
+function mapLabRequest(row: Record<string, unknown>): LabRequest {
+  return {
+    id: row.id as string,
+    medicalEntryId: row.medical_entry_id as string,
+    description: row.description as string,
+    status: row.status as LabStatus,
+    requestedDate: new Date(row.requested_date as string),
+    completedDate: row.completed_date ? new Date(row.completed_date as string) : undefined,
+    results: row.results as string | undefined,
+    notes: row.notes as string | undefined,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
+  };
 }

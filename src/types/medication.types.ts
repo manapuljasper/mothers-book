@@ -4,25 +4,22 @@ export type IntakeStatus = 'taken' | 'missed' | 'skipped';
 export interface Medication {
   id: string;
   medicalEntryId: string;
-  bookletId: string;
-  createdByDoctorId: string;
   name: string;
   dosage: string;
-  instructions: string;
+  instructions?: string;
   startDate: Date;
   endDate?: Date;
   frequencyPerDay: MedicationFrequency;
   timesOfDay?: string[]; // e.g., ["08:00", "20:00"]
   isActive: boolean;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface MedicationIntakeLog {
   id: string;
   medicationId: string;
-  medicalEntryId: string;
-  bookletId: string;
-  takenDate: Date;
+  scheduledDate: Date;
   doseIndex: number; // 0-indexed (0 = first dose of day)
   status: IntakeStatus;
   takenAt?: Date;

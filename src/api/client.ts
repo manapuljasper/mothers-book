@@ -1,42 +1,12 @@
 /**
- * Mock API Client
+ * API Client
  *
- * This simulates network requests with configurable delay.
- * When transitioning to a real backend, replace these functions
- * with actual fetch/axios calls.
+ * Supabase client and utilities for API operations.
  */
 
-// Simulate network delay (ms)
-const MOCK_DELAY = 300;
+import { supabase } from '../lib/supabase';
 
-export async function mockDelay(ms: number = MOCK_DELAY): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Mock API response wrapper
- * Simulates a network request with delay
- */
-export async function mockRequest<T>(
-  getData: () => T,
-  delay: number = MOCK_DELAY
-): Promise<T> {
-  await mockDelay(delay);
-  return getData();
-}
-
-/**
- * Mock mutation wrapper
- * Simulates a POST/PUT/DELETE request with delay
- */
-export async function mockMutation<T, R>(
-  mutationFn: (data: T) => R,
-  data: T,
-  delay: number = MOCK_DELAY
-): Promise<R> {
-  await mockDelay(delay);
-  return mutationFn(data);
-}
+export { supabase };
 
 // API error class for consistent error handling
 export class ApiError extends Error {
@@ -49,7 +19,45 @@ export class ApiError extends Error {
   }
 }
 
-// Types for API responses (will match backend structure)
+// Helper to convert snake_case to camelCase
+export function toCamelCase<T>(obj: Record<string, unknown>): T {
+  const result: Record<string, unknown> = {};
+  for (const key in obj) {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    const value = obj[key];
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      result[camelKey] = toCamelCase(value as Record<string, unknown>);
+    } else {
+      result[camelKey] = value;
+    }
+  }
+  return result as T;
+}
+
+// Helper to convert camelCase to snake_case
+export function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key in obj) {
+    const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    const value = obj[key];
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      result[snakeKey] = toSnakeCase(value as Record<string, unknown>);
+    } else {
+      result[snakeKey] = value;
+    }
+  }
+  return result;
+}
+
+// Helper to handle Supabase errors
+export function handleSupabaseError(error: unknown): never {
+  if (error && typeof error === 'object' && 'message' in error) {
+    throw new ApiError(String(error.message));
+  }
+  throw new ApiError('An unexpected error occurred');
+}
+
+// Types for API responses
 export interface ApiResponse<T> {
   data: T;
   success: boolean;
