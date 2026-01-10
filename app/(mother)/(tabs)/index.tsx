@@ -51,7 +51,7 @@ export default function MotherHomeScreen() {
           <Text className="text-lg font-semibold text-gray-900 dark:text-white">
             My Booklets
           </Text>
-          <CardPressable>
+          <CardPressable onPress={() => router.push("/booklet/new")}>
             <Text className="text-pink-600 dark:text-pink-400 font-medium">
               + New
             </Text>
