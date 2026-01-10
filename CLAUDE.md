@@ -126,6 +126,36 @@ Quick login available via email or quick-login buttons:
 
 Reset to default sample data: Profile → Reset Sample Data
 
+## UI & Animation Conventions
+
+### Interactive Elements
+All new clickable/tappable elements should use the appropriate animated pressable component from `src/components/ui`:
+- `CardPressable` - For cards and larger tappable areas (scale: 0.98)
+- `ListItemPressable` - For list items (scale: 0.99, subtle)
+- `ButtonPressable` - For buttons (scale: 0.95, more pronounced)
+
+```tsx
+import { CardPressable, ListItemPressable } from "../src/components/ui";
+
+<CardPressable onPress={() => navigate()}>
+  <Text>Tappable card content</Text>
+</CardPressable>
+```
+
+### Collapsible/Expandable Content
+When implementing collapsible sections, use animated height transitions:
+- Use `react-native-reanimated` for smooth expand/collapse
+- Animate from height 0 to auto (or measured height)
+- Use `withTiming` with ~200-300ms duration
+- Include a visual indicator (+/−) showing state
+
+### Animation Guidelines
+- **Keep animations subtle** - avoid bouncy/spring animations
+- **Use `withTiming`** instead of `withSpring` for direct, non-bouncy motion
+- **Duration**: 100ms for press feedback, 200-300ms for layout changes
+- **No staggered list animations** - items should appear immediately
+- **Haptic feedback** only for meaningful actions (toggles, confirmations), not navigation
+
 ## Development Notes
 
 - All dates are stored as Date objects (MMKV serializes/deserializes them)
