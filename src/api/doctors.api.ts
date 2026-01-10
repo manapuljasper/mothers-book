@@ -31,7 +31,7 @@ function mapDoctor(d: Record<string, unknown>): DoctorProfile {
 export async function getAllDoctors(): Promise<DoctorProfile[]> {
   const { data, error } = await supabase
     .from("doctor_profiles")
-    .select("*, profiles!inner(full_name, contact_number, avatar_url)")
+    .select("*, profiles!user_id(full_name, contact_number, avatar_url)")
     .order("user_id", { ascending: true });
 
   if (error) handleSupabaseError(error);
@@ -45,7 +45,7 @@ export async function getAllDoctors(): Promise<DoctorProfile[]> {
 export async function getDoctorById(id: string): Promise<DoctorProfile | null> {
   const { data, error } = await supabase
     .from("doctor_profiles")
-    .select("*, profiles!inner(full_name, contact_number, avatar_url)")
+    .select("*, profiles!user_id(full_name, contact_number, avatar_url)")
     .eq("id", id)
     .single();
 
@@ -65,7 +65,7 @@ export async function searchDoctors(query: string): Promise<DoctorProfile[]> {
 
   const { data, error } = await supabase
     .from("doctor_profiles")
-    .select("*, profiles!inner(full_name, contact_number, avatar_url)")
+    .select("*, profiles!user_id(full_name, contact_number, avatar_url)")
     .or(
       `clinic_name.ilike.${searchTerm},clinic_address.ilike.${searchTerm},specialization.ilike.${searchTerm},profiles.full_name.ilike.${searchTerm}`
     )
