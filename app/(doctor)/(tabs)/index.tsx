@@ -1,20 +1,19 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { QrCode, Calendar, Users } from "lucide-react-native";
-import { useAuthStore, useBookletStore, useMedicalStore } from "../../../src/stores";
+import { useAuthStore } from "../../../src/stores";
+import { useBookletsByDoctor, usePendingLabs } from "../../../src/hooks";
 import { formatRelativeDate } from "../../../src/utils";
 import { CardPressable, EmptyState } from "../../../src/components/ui";
 
 export default function DoctorDashboard() {
   const router = useRouter();
   const { currentUser, doctorProfile } = useAuthStore();
-  const { getBookletsByDoctor } = useBookletStore();
-  const { getPendingLabs } = useMedicalStore();
 
-  console.log("[DoctorDashboard] doctorProfile:", doctorProfile);
+  const { data: patientBooklets = [], isLoading: bookletsLoading } = useBookletsByDoctor(doctorProfile?.id);
+  const { data: pendingLabs = [], isLoading: labsLoading } = usePendingLabs();
 
-  const patientBooklets = doctorProfile ? getBookletsByDoctor(doctorProfile.id) : [];
-  const pendingLabs = getPendingLabs();
+  const isLoading = bookletsLoading || labsLoading;
 
   // Get upcoming appointments
   const upcomingAppointments = patientBooklets
@@ -27,6 +26,14 @@ export default function DoctorDashboard() {
     .slice(0, 5);
 
   const hasNoPatients = patientBooklets.length === 0;
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">

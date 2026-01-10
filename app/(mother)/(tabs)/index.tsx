@@ -1,21 +1,22 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
-import {
-  useAuthStore,
-  useBookletStore,
-  useMedicationStore,
-} from "../../../src/stores";
-import { formatDate } from "../../../src/utils";
-import { CardPressable } from "../../../src/components/ui";
+import { BookOpen, Pill } from "lucide-react-native";
+import { useAuthStore, useMedicationStore } from "@/stores";
+import { useBookletsByMother } from "@/hooks";
+import { formatDate } from "@/utils";
+import { CardPressable, StatCard, BookletCard, EmptyState } from "@/components/ui";
 
 export default function MotherHomeScreen() {
   const router = useRouter();
   const { motherProfile } = useAuthStore();
-  const { getBookletsByMother } = useBookletStore();
+
+  const { data: booklets = [], isLoading } = useBookletsByMother(
+    motherProfile?.id
+  );
   const { getActiveMedications } = useMedicationStore();
 
-  const booklets = motherProfile ? getBookletsByMother(motherProfile.id) : [];
   const activeBooklets = booklets.filter((b) => b.status === "active");
+  const pastBooklets = booklets.filter((b) => b.status !== "active");
   const activeMedications = motherProfile
     ? getActiveMedications().filter((m) =>
         booklets.some((b) => b.id === m.bookletId)
@@ -27,22 +28,24 @@ export default function MotherHomeScreen() {
     return takenToday < m.frequencyPerDay;
   });
 
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#ec4899" />
+      </View>
+    );
+  }
+
   return (
     <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Quick Stats */}
       <View className="flex-row px-4 pt-4">
-        <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 mx-2 border border-gray-100 dark:border-gray-700">
-          <Text className="text-3xl font-bold text-pink-500">
-            {activeBooklets.length}
-          </Text>
-          <Text className="text-gray-400 text-sm">Active Booklets</Text>
-        </View>
-        <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 mx-2 border border-gray-100 dark:border-gray-700">
-          <Text className="text-3xl font-bold text-amber-500">
-            {pendingMeds.length}
-          </Text>
-          <Text className="text-gray-400 text-sm">Meds Today</Text>
-        </View>
+        <StatCard
+          value={activeBooklets.length}
+          label="Active Booklets"
+          color="pink"
+        />
+        <StatCard value={pendingMeds.length} label="Meds Today" color="amber" />
       </View>
 
       {/* Active Booklets */}
@@ -59,85 +62,61 @@ export default function MotherHomeScreen() {
         </View>
 
         {activeBooklets.length === 0 ? (
-          <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-            <Text className="text-gray-500 dark:text-gray-400 text-center">
-              No active booklets
-            </Text>
-            <Text className="text-gray-400 dark:text-gray-500 text-sm text-center mt-2">
-              Create a new booklet to start tracking your pregnancy
-            </Text>
-          </View>
+          <EmptyState
+            icon={BookOpen}
+            title="No active booklets"
+            description="Create a new booklet to start tracking your pregnancy"
+          />
         ) : (
           activeBooklets.map((booklet) => (
-            <CardPressable
+            <BookletCard
               key={booklet.id}
-              className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
+              booklet={booklet}
               onPress={() => router.push(`/booklet/${booklet.id}`)}
-            >
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  <Text className="font-semibold text-gray-900 dark:text-white text-lg">
-                    {booklet.label}
-                  </Text>
-                  {booklet.expectedDueDate && (
-                    <Text className="text-pink-500 text-sm mt-1">
-                      Due: {formatDate(booklet.expectedDueDate)}
-                    </Text>
-                  )}
-                </View>
-                <View className="border border-green-400 px-2 py-1 rounded-full">
-                  <Text className="text-green-600 dark:text-green-400 text-xs font-medium">
-                    {booklet.status}
-                  </Text>
-                </View>
-              </View>
-              {booklet.notes && (
-                <Text
-                  className="text-gray-400 text-sm mt-2"
-                  numberOfLines={2}
-                >
-                  {booklet.notes}
-                </Text>
-              )}
-            </CardPressable>
+              variant="mother"
+            />
           ))
         )}
       </View>
 
       {/* Completed/Archived Booklets */}
-      {booklets.filter((b) => b.status !== "active").length > 0 && (
+      {pastBooklets.length > 0 && (
         <View className="px-6 mt-8">
           <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Past Booklets
           </Text>
-          {booklets
-            .filter((b) => b.status !== "active")
-            .map((booklet) => (
-              <CardPressable
-                key={booklet.id}
-                className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
-                onPress={() => router.push(`/booklet/${booklet.id}`)}
-              >
-                <Text className="font-medium text-gray-700 dark:text-gray-300">
-                  {booklet.label}
+          {pastBooklets.map((booklet) => (
+            <CardPressable
+              key={booklet.id}
+              className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
+              onPress={() => router.push(`/booklet/${booklet.id}`)}
+            >
+              <Text className="font-medium text-gray-700 dark:text-gray-300">
+                {booklet.label}
+              </Text>
+              {booklet.actualDeliveryDate && (
+                <Text className="text-gray-400 text-sm">
+                  Delivered: {formatDate(booklet.actualDeliveryDate)}
                 </Text>
-                {booklet.actualDeliveryDate && (
-                  <Text className="text-gray-400 text-sm">
-                    Delivered: {formatDate(booklet.actualDeliveryDate)}
-                  </Text>
-                )}
-              </CardPressable>
-            ))}
+              )}
+            </CardPressable>
+          ))}
         </View>
       )}
 
       {/* Today's Medications Reminder */}
-      {pendingMeds.length > 0 && (
-        <View className="px-6 mt-8 mb-8">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Today's Medications
-          </Text>
-          {pendingMeds.slice(0, 3).map((med) => (
+      <View className="px-6 mt-8 mb-8">
+        <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Today's Medications
+        </Text>
+        {pendingMeds.length === 0 ? (
+          <EmptyState
+            icon={Pill}
+            title="No medications"
+            description="Prescribed medications will appear here"
+          />
+        ) : (
+          pendingMeds.slice(0, 3).map((med) => (
             <View
               key={med.id}
               className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5 mb-3"
@@ -157,9 +136,9 @@ export default function MotherHomeScreen() {
                 </View>
               </View>
             </View>
-          ))}
-        </View>
-      )}
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }

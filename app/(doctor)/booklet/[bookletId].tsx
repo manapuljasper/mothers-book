@@ -19,15 +19,16 @@ import {
   Trash2,
   Camera,
   ImageIcon,
+  FileText,
 } from "lucide-react-native";
-import { useAuthStore } from "../../../src/stores";
-import { formatDate } from "../../../src/utils";
+import { useAuthStore } from "@/stores";
+import { formatDate } from "@/utils";
 import {
   ENTRY_TYPE_LABELS,
   LAB_STATUS_LABELS,
   EntryType,
-} from "../../../src/types";
-import { CardPressable, AnimatedCollapsible } from "../../../src/components/ui";
+} from "@/types";
+import { CardPressable, AnimatedCollapsible, StatCard } from "@/components/ui";
 import {
   useBookletsByDoctor,
   useEntriesByBooklet,
@@ -38,7 +39,8 @@ import {
   useCreateEntry,
   useCreateMedication,
   useCreateLabRequest,
-} from "../../../src/hooks";
+  useUpdateBooklet,
+} from "@/hooks";
 
 const DOSAGE_UNITS = ["mg", "mcg", "g", "mL", "IU", "tablet", "capsule"] as const;
 type DosageUnit = typeof DOSAGE_UNITS[number];
@@ -78,6 +80,7 @@ export default function DoctorBookletDetailScreen() {
   const createEntryMutation = useCreateEntry();
   const createMedicationMutation = useCreateMedication();
   const createLabRequestMutation = useCreateLabRequest();
+  const updateBookletMutation = useUpdateBooklet();
 
   // Get booklet with mother info
   const booklet = doctorBooklets.find((b) => b.id === bookletId);
@@ -102,6 +105,8 @@ export default function DoctorBookletDetailScreen() {
   const [medsExpanded, setMedsExpanded] = useState(true);
   const [labsExpanded, setLabsExpanded] = useState(true);
   const [showEntryModal, setShowEntryModal] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [editingNotes, setEditingNotes] = useState("");
 
   // Form state for Add Entry (includes pending meds and labs)
   const [entryForm, setEntryForm] = useState({
@@ -318,6 +323,27 @@ export default function DoctorBookletDetailScreen() {
     setPendingLabs(pendingLabs.filter((l) => l.id !== id));
   };
 
+  // Open notes editing modal
+  const handleOpenNotesModal = () => {
+    setEditingNotes(booklet?.notes || "");
+    setShowNotesModal(true);
+  };
+
+  // Save booklet notes
+  const handleSaveNotes = async () => {
+    if (!booklet) return;
+    try {
+      await updateBookletMutation.mutateAsync({
+        id: booklet.id,
+        updates: { notes: editingNotes.trim() || undefined },
+      });
+      setShowNotesModal(false);
+    } catch (error) {
+      Alert.alert("Error", "Failed to save notes. Please try again.");
+      console.error("Save notes error:", error);
+    }
+  };
+
   // Confirm and save entry
   const handleConfirmSave = () => {
     Alert.alert(
@@ -435,24 +461,9 @@ export default function DoctorBookletDetailScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row px-4 -mt-4">
-          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
-            <Text className="text-2xl font-bold text-blue-500">
-              {entries.length}
-            </Text>
-            <Text className="text-gray-400 text-xs">Visits</Text>
-          </View>
-          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
-            <Text className="text-2xl font-bold text-green-500">
-              {activeMeds.length}
-            </Text>
-            <Text className="text-gray-400 text-xs">Active Meds</Text>
-          </View>
-          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
-            <Text className="text-2xl font-bold text-amber-500">
-              {bookletPendingLabs.length}
-            </Text>
-            <Text className="text-gray-400 text-xs">Pending Labs</Text>
-          </View>
+          <StatCard value={entries.length} label="Visits" color="blue" size="sm" />
+          <StatCard value={activeMeds.length} label="Active Meds" color="green" size="sm" />
+          <StatCard value={bookletPendingLabs.length} label="Pending Labs" color="amber" size="sm" />
         </View>
 
         {/* Add Entry Button */}
@@ -464,6 +475,35 @@ export default function DoctorBookletDetailScreen() {
             <Plus size={18} color="white" strokeWidth={1.5} />
             <Text className="text-white font-medium ml-2">Add Entry</Text>
           </Pressable>
+        </View>
+
+        {/* Doctor Notes Section */}
+        <View className="px-6 mt-6">
+          <View className="flex-row justify-between items-center mb-3">
+            <View className="flex-row items-center">
+              <FileText size={18} color="#6b7280" strokeWidth={1.5} />
+              <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
+                Doctor Notes
+              </Text>
+            </View>
+            <Pressable
+              onPress={handleOpenNotesModal}
+              className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800"
+            >
+              <Text className="text-blue-500 text-sm font-medium">Edit</Text>
+            </Pressable>
+          </View>
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+            {booklet.notes ? (
+              <Text className="text-gray-600 dark:text-gray-300 text-sm">
+                {booklet.notes}
+              </Text>
+            ) : (
+              <Text className="text-gray-400 text-sm italic">
+                No notes yet. Tap Edit to add notes about this patient.
+              </Text>
+            )}
+          </View>
         </View>
 
         {/* Visit History */}
@@ -1235,6 +1275,51 @@ export default function DoctorBookletDetailScreen() {
               <Text className="text-white font-semibold">Save Entry</Text>
             </Pressable>
           </KeyboardAwareScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Notes Editing Modal */}
+      <Modal
+        visible={showNotesModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <Pressable onPress={() => setShowNotesModal(false)}>
+              <Text className="text-gray-500 dark:text-gray-400">Cancel</Text>
+            </Pressable>
+            <Text className="text-lg font-bold text-gray-900 dark:text-white">
+              Doctor Notes
+            </Text>
+            <Pressable
+              onPress={handleSaveNotes}
+              disabled={updateBookletMutation.isPending}
+            >
+              <Text className={`font-semibold ${
+                updateBookletMutation.isPending
+                  ? "text-gray-400"
+                  : "text-blue-500"
+              }`}>
+                {updateBookletMutation.isPending ? "Saving..." : "Save"}
+              </Text>
+            </Pressable>
+          </View>
+          <View className="flex-1 px-6 py-4">
+            <Text className="text-gray-500 dark:text-gray-400 text-sm mb-2">
+              Add personal notes about this patient's care
+            </Text>
+            <TextInput
+              className="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-white text-base"
+              placeholder="Enter your notes here..."
+              placeholderTextColor="#9ca3af"
+              multiline
+              textAlignVertical="top"
+              value={editingNotes}
+              onChangeText={setEditingNotes}
+              autoFocus
+            />
+          </View>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

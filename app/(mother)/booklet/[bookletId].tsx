@@ -1,33 +1,29 @@
 import { useState, useMemo } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { ChevronLeft, ChevronDown, ChevronUp } from "lucide-react-native";
-import {
-  useBookletStore,
-  useMedicalStore,
-  useMedicationStore,
-} from "../../../src/stores";
-import { formatDate } from "../../../src/utils";
-import { ENTRY_TYPE_LABELS, LAB_STATUS_LABELS } from "../../../src/types";
-import { CardPressable, AnimatedCollapsible } from "../../../src/components/ui";
+import { useMedicalStore, useMedicationStore } from "@/stores";
+import { useBookletById, useBookletDoctors } from "@/hooks";
+import { formatDate } from "@/utils";
+import { ENTRY_TYPE_LABELS, LAB_STATUS_LABELS } from "@/types";
+import { CardPressable, AnimatedCollapsible, StatCard } from "@/components/ui";
 
 export default function BookletDetailScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { getBookletById, getAccessibleDoctors } = useBookletStore();
+  const { data: booklet, isLoading: bookletLoading } = useBookletById(bookletId);
+  const { data: doctors = [], isLoading: doctorsLoading } = useBookletDoctors(bookletId);
   const { getEntriesByBooklet, getLabsByEntry } = useMedicalStore();
   const { getMedicationsByBooklet } = useMedicationStore();
 
-  const booklet = getBookletById(bookletId);
-  const entries = getEntriesByBooklet(bookletId);
-  const allMedications = getMedicationsByBooklet(bookletId);
-  const doctors = getAccessibleDoctors(bookletId);
+  const entries = getEntriesByBooklet(bookletId || "");
+  const allMedications = getMedicationsByBooklet(bookletId || "");
 
   // Get sorted unique dates from entries (as ISO date strings)
   const visitDates = useMemo(() => {
@@ -61,6 +57,14 @@ export default function BookletDetailScreen() {
       }) || null
     );
   }, [entries, selectedDate]);
+
+  if (bookletLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#ec4899" />
+      </SafeAreaView>
+    );
+  }
 
   if (!booklet) {
     return (
@@ -107,24 +111,9 @@ export default function BookletDetailScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row px-4 -mt-4">
-          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
-            <Text className="text-2xl font-bold text-pink-500">
-              {entries.length}
-            </Text>
-            <Text className="text-gray-400 text-xs">Visits</Text>
-          </View>
-          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
-            <Text className="text-2xl font-bold text-blue-500">
-              {activeMeds.length}
-            </Text>
-            <Text className="text-gray-400 text-xs">Active Meds</Text>
-          </View>
-          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
-            <Text className="text-2xl font-bold text-green-500">
-              {doctors.length}
-            </Text>
-            <Text className="text-gray-400 text-xs">Doctors</Text>
-          </View>
+          <StatCard value={entries.length} label="Visits" color="pink" size="sm" />
+          <StatCard value={activeMeds.length} label="Active Meds" color="blue" size="sm" />
+          <StatCard value={doctors.length} label="Doctors" color="green" size="sm" />
         </View>
 
         {/* Doctors with Access */}

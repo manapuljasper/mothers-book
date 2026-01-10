@@ -9,12 +9,16 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { X, Calendar } from "lucide-react-native";
-import { useThemeStore, useAuthStore, useBookletStore } from "../../../src/stores";
-import { ButtonPressable } from "../../../src/components/ui";
-import { formatDate } from "../../../src/utils";
+import { useThemeStore, useAuthStore } from "@/stores";
+import { useCreateBooklet } from "@/hooks";
+import { ButtonPressable } from "@/components/ui";
+import { formatDate } from "@/utils";
 
 export default function NewBookletScreen() {
   const router = useRouter();
@@ -22,7 +26,7 @@ export default function NewBookletScreen() {
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
   const { motherProfile } = useAuthStore();
-  const { addBooklet } = useBookletStore();
+  const createBookletMutation = useCreateBooklet();
 
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
@@ -53,7 +57,7 @@ export default function NewBookletScreen() {
     setIsSubmitting(true);
 
     try {
-      const bookletId = addBooklet({
+      const newBooklet = await createBookletMutation.mutateAsync({
         motherId: motherProfile.id,
         label: label.trim(),
         status: "active",
@@ -61,8 +65,9 @@ export default function NewBookletScreen() {
         notes: notes.trim() || undefined,
       });
 
-      router.replace(`/booklet/${bookletId}`);
+      router.replace(`/booklet/${newBooklet.id}`);
     } catch (error) {
+      console.log("Error: ", error);
       Alert.alert("Error", "Failed to create booklet");
     } finally {
       setIsSubmitting(false);
@@ -70,7 +75,10 @@ export default function NewBookletScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900" edges={["bottom"]}>
+    <SafeAreaView
+      className="flex-1 bg-white dark:bg-gray-900"
+      edges={["bottom"]}
+    >
       {/* Header */}
       <View
         className="flex-row items-center justify-between px-4 pb-4 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800"
@@ -129,7 +137,9 @@ export default function NewBookletScreen() {
                   : "text-base text-gray-400 dark:text-gray-500"
               }
             >
-              {expectedDueDate ? formatDate(expectedDueDate) : "Select date (optional)"}
+              {expectedDueDate
+                ? formatDate(expectedDueDate)
+                : "Select date (optional)"}
             </Text>
             <Calendar
               size={20}

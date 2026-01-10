@@ -4,24 +4,26 @@
  * Supabase API endpoints for booklet operations.
  */
 
-import { supabase, handleSupabaseError } from './client';
+import { supabase, handleSupabaseError } from "./client";
 import type {
   MotherBooklet,
   BookletAccess,
   BookletWithMother,
   DoctorProfile,
-} from '../types';
+} from "../types";
 
 // GET /booklets/:id
-export async function getBookletById(id: string): Promise<MotherBooklet | null> {
+export async function getBookletById(
+  id: string
+): Promise<MotherBooklet | null> {
   const { data, error } = await supabase
-    .from('booklets')
-    .select('*')
-    .eq('id', id)
+    .from("booklets")
+    .select("*")
+    .eq("id", id)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null; // Not found
+    if (error.code === "PGRST116") return null; // Not found
     handleSupabaseError(error);
   }
 
@@ -29,12 +31,14 @@ export async function getBookletById(id: string): Promise<MotherBooklet | null> 
 }
 
 // GET /booklets?motherId=:motherId
-export async function getBookletsByMother(motherId: string): Promise<MotherBooklet[]> {
+export async function getBookletsByMother(
+  motherId: string
+): Promise<MotherBooklet[]> {
   const { data, error } = await supabase
-    .from('booklets')
-    .select('*')
-    .eq('mother_id', motherId)
-    .order('created_at', { ascending: false });
+    .from("booklets")
+    .select("*")
+    .eq("mother_id", motherId)
+    .order("created_at", { ascending: false });
 
   if (error) handleSupabaseError(error);
 
@@ -42,13 +46,15 @@ export async function getBookletsByMother(motherId: string): Promise<MotherBookl
 }
 
 // GET /booklets/doctor/:doctorId
-export async function getBookletsByDoctor(doctorId: string): Promise<BookletWithMother[]> {
+export async function getBookletsByDoctor(
+  doctorId: string
+): Promise<BookletWithMother[]> {
   // Get booklets with active access for this doctor
-  // Join with mother_profiles to get mother name
-  // Join with medical_entries to get last visit and next appointment
+  // Join path: booklet_access -> booklets -> mother_profiles -> profiles
   const { data, error } = await supabase
-    .from('booklet_access')
-    .select(`
+    .from("booklet_access")
+    .select(
+      `
       booklet_id,
       booklets!inner (
         id,
@@ -59,30 +65,36 @@ export async function getBookletsByDoctor(doctorId: string): Promise<BookletWith
         expected_due_date,
         actual_delivery_date,
         notes,
-        mother_profiles!inner (
-          full_name
+        mother_profiles!mother_id (
+          profiles!user_id (
+            full_name
+          )
         )
       )
-    `)
-    .eq('doctor_id', doctorId)
-    .is('revoked_at', null);
+    `
+    )
+    .eq("doctor_id", doctorId)
+    .is("revoked_at", null);
 
   if (error) handleSupabaseError(error);
 
   if (!data || data.length === 0) return [];
 
-  // Get the latest medical entry for each booklet to get last visit and next appointment
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bookletIds = data.map((d: any) => d.booklets.id);
 
+  // Get the latest medical entry for each booklet
   const { data: entriesData } = await supabase
-    .from('medical_entries')
-    .select('booklet_id, visit_date, follow_up_date')
-    .in('booklet_id', bookletIds)
-    .order('visit_date', { ascending: false });
+    .from("medical_entries")
+    .select("booklet_id, visit_date, follow_up_date")
+    .in("booklet_id", bookletIds)
+    .order("visit_date", { ascending: false });
 
   // Group entries by booklet
-  const entriesByBooklet = new Map<string, { visitDate: string; followUpDate?: string }>();
+  const entriesByBooklet = new Map<
+    string,
+    { visitDate: string; followUpDate?: string }
+  >();
   for (const entry of entriesData || []) {
     if (!entriesByBooklet.has(entry.booklet_id)) {
       entriesByBooklet.set(entry.booklet_id, {
@@ -96,31 +108,39 @@ export async function getBookletsByDoctor(doctorId: string): Promise<BookletWith
   return data.map((d: any) => {
     const booklet = d.booklets;
     const motherProfile = booklet.mother_profiles;
-
+    const profile = motherProfile?.profiles;
     const latestEntry = entriesByBooklet.get(booklet.id);
 
     return {
       id: booklet.id,
       motherId: booklet.mother_id,
       label: booklet.label,
-      status: booklet.status as MotherBooklet['status'],
+      status: booklet.status as MotherBooklet["status"],
       createdAt: new Date(booklet.created_at),
-      expectedDueDate: booklet.expected_due_date ? new Date(booklet.expected_due_date) : undefined,
-      actualDeliveryDate: booklet.actual_delivery_date ? new Date(booklet.actual_delivery_date) : undefined,
+      expectedDueDate: booklet.expected_due_date
+        ? new Date(booklet.expected_due_date)
+        : undefined,
+      actualDeliveryDate: booklet.actual_delivery_date
+        ? new Date(booklet.actual_delivery_date)
+        : undefined,
       notes: booklet.notes,
-      motherName: motherProfile.full_name,
-      lastVisitDate: latestEntry?.visitDate ? new Date(latestEntry.visitDate) : undefined,
-      nextAppointment: latestEntry?.followUpDate ? new Date(latestEntry.followUpDate) : undefined,
+      motherName: profile?.full_name || "Unknown",
+      lastVisitDate: latestEntry?.visitDate
+        ? new Date(latestEntry.visitDate)
+        : undefined,
+      nextAppointment: latestEntry?.followUpDate
+        ? new Date(latestEntry.followUpDate)
+        : undefined,
     };
   });
 }
 
 // POST /booklets
 export async function createBooklet(
-  bookletData: Omit<MotherBooklet, 'id' | 'createdAt'>
+  bookletData: Omit<MotherBooklet, "id" | "createdAt">
 ): Promise<MotherBooklet> {
   const { data, error } = await supabase
-    .from('booklets')
+    .from("booklets")
     .insert({
       mother_id: bookletData.motherId,
       label: bookletData.label,
@@ -146,14 +166,16 @@ export async function updateBooklet(
 
   if (updates.label !== undefined) updateData.label = updates.label;
   if (updates.status !== undefined) updateData.status = updates.status;
-  if (updates.expectedDueDate !== undefined) updateData.expected_due_date = updates.expectedDueDate?.toISOString();
-  if (updates.actualDeliveryDate !== undefined) updateData.actual_delivery_date = updates.actualDeliveryDate?.toISOString();
+  if (updates.expectedDueDate !== undefined)
+    updateData.expected_due_date = updates.expectedDueDate?.toISOString();
+  if (updates.actualDeliveryDate !== undefined)
+    updateData.actual_delivery_date = updates.actualDeliveryDate?.toISOString();
   if (updates.notes !== undefined) updateData.notes = updates.notes;
 
   const { data, error } = await supabase
-    .from('booklets')
+    .from("booklets")
     .update(updateData)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -167,27 +189,12 @@ export async function grantDoctorAccess(
   bookletId: string,
   doctorId: string
 ): Promise<BookletAccess> {
-  // Check if access already exists
-  const { data: existing } = await supabase
-    .from('booklet_access')
-    .select('*')
-    .eq('booklet_id', bookletId)
-    .eq('doctor_id', doctorId)
-    .is('revoked_at', null)
-    .single();
-
-  if (existing) {
-    return mapBookletAccess(existing);
-  }
-
-  const { data, error } = await supabase
-    .from('booklet_access')
-    .insert({
-      booklet_id: bookletId,
-      doctor_id: doctorId,
-    })
-    .select()
-    .single();
+  // Use RPC function to bypass RLS for FK validation
+  // The function handles security checks internally
+  const { data, error } = await supabase.rpc("grant_doctor_booklet_access", {
+    p_booklet_id: bookletId,
+    p_doctor_id: doctorId,
+  });
 
   if (error) handleSupabaseError(error);
 
@@ -200,20 +207,23 @@ export async function revokeDoctorAccess(
   doctorId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from('booklet_access')
+    .from("booklet_access")
     .update({ revoked_at: new Date().toISOString() })
-    .eq('booklet_id', bookletId)
-    .eq('doctor_id', doctorId)
-    .is('revoked_at', null);
+    .eq("booklet_id", bookletId)
+    .eq("doctor_id", doctorId)
+    .is("revoked_at", null);
 
   if (error) handleSupabaseError(error);
 }
 
 // GET /booklets/:bookletId/doctors
-export async function getBookletDoctors(bookletId: string): Promise<DoctorProfile[]> {
+export async function getBookletDoctors(
+  bookletId: string
+): Promise<DoctorProfile[]> {
   const { data, error } = await supabase
-    .from('booklet_access')
-    .select(`
+    .from("booklet_access")
+    .select(
+      `
       doctor_profiles!inner (
         id,
         user_id,
@@ -230,9 +240,10 @@ export async function getBookletDoctors(bookletId: string): Promise<DoctorProfil
           avatar_url
         )
       )
-    `)
-    .eq('booklet_id', bookletId)
-    .is('revoked_at', null);
+    `
+    )
+    .eq("booklet_id", bookletId)
+    .is("revoked_at", null);
 
   if (error) handleSupabaseError(error);
 
@@ -247,8 +258,8 @@ export async function getBookletDoctors(bookletId: string): Promise<DoctorProfil
       fullName: profile.full_name,
       prcNumber: dp.prc_number,
       clinicName: dp.clinic_name,
-      clinicAddress: dp.clinic_address || '',
-      contactNumber: profile.contact_number || '',
+      clinicAddress: dp.clinic_address || "",
+      contactNumber: profile.contact_number || "",
       specialization: dp.specialization,
       avatarUrl: profile.avatar_url,
       clinicSchedule: dp.clinic_schedule,
@@ -264,10 +275,14 @@ function mapBooklet(row: Record<string, unknown>): MotherBooklet {
     id: row.id as string,
     motherId: row.mother_id as string,
     label: row.label as string,
-    status: row.status as MotherBooklet['status'],
+    status: row.status as MotherBooklet["status"],
     createdAt: new Date(row.created_at as string),
-    expectedDueDate: row.expected_due_date ? new Date(row.expected_due_date as string) : undefined,
-    actualDeliveryDate: row.actual_delivery_date ? new Date(row.actual_delivery_date as string) : undefined,
+    expectedDueDate: row.expected_due_date
+      ? new Date(row.expected_due_date as string)
+      : undefined,
+    actualDeliveryDate: row.actual_delivery_date
+      ? new Date(row.actual_delivery_date as string)
+      : undefined,
     notes: row.notes as string | undefined,
   };
 }

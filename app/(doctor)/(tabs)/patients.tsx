@@ -1,20 +1,22 @@
-import { View, Text, ScrollView, TextInput } from "react-native";
+import { View, Text, ScrollView, TextInput, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Search, Users, QrCode } from "lucide-react-native";
-import { useAuthStore, useBookletStore, useThemeStore } from "../../../src/stores";
-import { formatRelativeDate, formatDate } from "../../../src/utils";
-import { CardPressable, EmptyState } from "../../../src/components/ui";
+import { useAuthStore, useThemeStore } from "@/stores";
+import { useBookletsByDoctor } from "@/hooks";
+import { formatRelativeDate, formatDate } from "@/utils";
+import { CardPressable, EmptyState, BookletCard } from "@/components/ui";
 
 export default function PatientsScreen() {
   const router = useRouter();
   const { doctorProfile } = useAuthStore();
-  const { getBookletsByDoctor } = useBookletStore();
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
 
-  const patientBooklets = doctorProfile ? getBookletsByDoctor(doctorProfile.id) : [];
+  const { data: patientBooklets = [], isLoading } = useBookletsByDoctor(
+    doctorProfile?.id
+  );
 
   // Filter by search query
   const filteredBooklets = patientBooklets.filter(
@@ -22,6 +24,14 @@ export default function PatientsScreen() {
       b.motherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
@@ -66,70 +76,12 @@ export default function PatientsScreen() {
           </View>
         ) : (
           filteredBooklets.map((booklet) => (
-            <CardPressable
+            <BookletCard
               key={booklet.id}
-              className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
+              booklet={booklet}
               onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
-            >
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  <Text className="font-semibold text-gray-900 dark:text-white text-lg">
-                    {booklet.motherName}
-                  </Text>
-                  <Text className="text-gray-400">{booklet.label}</Text>
-                </View>
-                <View
-                  className={`px-2 py-1 rounded-full border ${
-                    booklet.status === "active"
-                      ? "border-green-400"
-                      : "border-gray-300 dark:border-gray-600"
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-medium ${
-                      booklet.status === "active"
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    {booklet.status}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                <View className="flex-1">
-                  <Text className="text-gray-300 dark:text-gray-500 text-xs">
-                    Last Visit
-                  </Text>
-                  <Text className="text-gray-600 dark:text-gray-300 text-sm">
-                    {booklet.lastVisitDate
-                      ? formatRelativeDate(booklet.lastVisitDate)
-                      : "—"}
-                  </Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-gray-300 dark:text-gray-500 text-xs">
-                    Next Appointment
-                  </Text>
-                  <Text className="text-gray-600 dark:text-gray-300 text-sm">
-                    {booklet.nextAppointment
-                      ? formatDate(booklet.nextAppointment)
-                      : "—"}
-                  </Text>
-                </View>
-                {booklet.expectedDueDate && (
-                  <View className="flex-1">
-                    <Text className="text-gray-300 dark:text-gray-500 text-xs">
-                      Due Date
-                    </Text>
-                    <Text className="text-gray-600 dark:text-gray-300 text-sm">
-                      {formatDate(booklet.expectedDueDate)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </CardPressable>
+              variant="doctor"
+            />
           ))
         )}
       </ScrollView>

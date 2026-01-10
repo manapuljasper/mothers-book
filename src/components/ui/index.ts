@@ -12,3 +12,7 @@ export { AnimatedCollapsible } from "./AnimatedCollapsible";
 export { DoseButton } from "./DoseButton";
 
 export { EmptyState } from "./EmptyState";
+
+export { StatCard } from "./StatCard";
+
+export { BookletCard } from "./BookletCard";
