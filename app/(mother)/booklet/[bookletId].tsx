@@ -64,8 +64,8 @@ export default function BookletDetailScreen() {
 
   if (!booklet) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
-        <Text className="text-gray-500">Booklet not found</Text>
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <Text className="text-gray-500 dark:text-gray-400">Booklet not found</Text>
       </SafeAreaView>
     );
   }
@@ -79,7 +79,7 @@ export default function BookletDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-pink-500" edges={[]}>
-      <ScrollView className="flex-1 bg-gray-50">
+      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
         {/* Header */}
         <View className="bg-pink-500 px-6 py-6" style={{ paddingTop: insets.top }}>
           <CardPressable onPress={() => router.back()} className="flex-row items-center mb-3">
@@ -107,19 +107,19 @@ export default function BookletDetailScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row px-4 -mt-4">
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
             <Text className="text-2xl font-bold text-pink-500">
               {entries.length}
             </Text>
             <Text className="text-gray-400 text-xs">Visits</Text>
           </View>
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
             <Text className="text-2xl font-bold text-blue-500">
               {activeMeds.length}
             </Text>
             <Text className="text-gray-400 text-xs">Active Meds</Text>
           </View>
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
             <Text className="text-2xl font-bold text-green-500">
               {doctors.length}
             </Text>
@@ -130,16 +130,16 @@ export default function BookletDetailScreen() {
         {/* Doctors with Access */}
         {doctors.length > 0 && (
           <View className="px-6 mt-8">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
+            <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
               My Doctors
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {doctors.map((doctor) => (
                 <View
                   key={doctor.id}
-                  className="bg-white rounded-xl p-4 mr-3 border border-gray-100 min-w-[140px]"
+                  className="bg-white dark:bg-gray-800 rounded-xl p-4 mr-3 border border-gray-100 dark:border-gray-700 min-w-[140px]"
                 >
-                  <Text className="font-medium text-gray-900">
+                  <Text className="font-medium text-gray-900 dark:text-white">
                     {doctor.fullName}
                   </Text>
                   <Text className="text-gray-400 text-xs">
@@ -153,11 +153,11 @@ export default function BookletDetailScreen() {
 
         {/* Date Picker for Visits */}
         <View className="px-6 mt-8">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
             Visit History
           </Text>
           {visitDates.length === 0 ? (
-            <View className="bg-white rounded-xl p-6 border border-gray-100">
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
               <Text className="text-gray-400 text-center">No visits yet</Text>
             </View>
           ) : (
@@ -181,7 +181,9 @@ export default function BookletDetailScreen() {
                       key={date}
                       onPress={() => setSelectedDate(date)}
                       className={`items-center justify-center px-4 py-3 mr-2 rounded-xl border ${
-                        isSelected ? "bg-pink-500 border-pink-500" : "bg-white border-gray-100"
+                        isSelected
+                          ? "bg-pink-500 border-pink-500"
+                          : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700"
                       }`}
                     >
                       <Text
@@ -193,7 +195,7 @@ export default function BookletDetailScreen() {
                       </Text>
                       <Text
                         className={`text-xl font-bold ${
-                          isSelected ? "text-white" : "text-gray-700"
+                          isSelected ? "text-white" : "text-gray-700 dark:text-gray-200"
                         }`}
                       >
                         {day}
@@ -205,18 +207,18 @@ export default function BookletDetailScreen() {
 
               {/* Selected Entry Display */}
               {selectedEntry && (
-                <View className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
+                <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-8 border border-gray-100 dark:border-gray-700">
                   {/* Entry Header */}
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1">
-                      <Text className="font-semibold text-gray-900 text-lg">
+                      <Text className="font-semibold text-gray-900 dark:text-white text-lg">
                         {ENTRY_TYPE_LABELS[selectedEntry.entryType]}
                       </Text>
                       <Text className="text-gray-400 text-sm">
                         {selectedEntry.doctorName}
                       </Text>
                     </View>
-                    <View className="border border-pink-300 px-3 py-1 rounded-full">
+                    <View className="border border-pink-300 dark:border-pink-500 px-3 py-1 rounded-full">
                       <Text className="text-pink-500 text-sm font-medium">
                         {formatDate(selectedEntry.visitDate)}
                       </Text>
@@ -226,11 +228,11 @@ export default function BookletDetailScreen() {
                   {/* Vitals */}
                   {selectedEntry.vitals &&
                     Object.keys(selectedEntry.vitals).length > 0 && (
-                      <View className="flex-row flex-wrap mt-3 pt-3 border-t border-gray-100">
+                      <View className="flex-row flex-wrap mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                         {selectedEntry.vitals.bloodPressure && (
                           <View className="mr-4 mb-2">
                             <Text className="text-gray-400 text-xs">BP</Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.bloodPressure}
                             </Text>
                           </View>
@@ -238,7 +240,7 @@ export default function BookletDetailScreen() {
                         {selectedEntry.vitals.weight && (
                           <View className="mr-4 mb-2">
                             <Text className="text-gray-400 text-xs">Weight</Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.weight} kg
                             </Text>
                           </View>
@@ -246,7 +248,7 @@ export default function BookletDetailScreen() {
                         {selectedEntry.vitals.fetalHeartRate && (
                           <View className="mr-4 mb-2">
                             <Text className="text-gray-400 text-xs">FHR</Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.fetalHeartRate} bpm
                             </Text>
                           </View>
@@ -256,7 +258,7 @@ export default function BookletDetailScreen() {
                             <Text className="text-gray-400 text-xs">
                               Fundal Height
                             </Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.fundalHeight} cm
                             </Text>
                           </View>
@@ -264,7 +266,7 @@ export default function BookletDetailScreen() {
                         {selectedEntry.vitals.aog && (
                           <View className="mr-4 mb-2">
                             <Text className="text-gray-400 text-xs">AOG</Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.aog}
                             </Text>
                           </View>
@@ -274,15 +276,15 @@ export default function BookletDetailScreen() {
 
                   {/* Notes */}
                   {selectedEntry.notes && (
-                    <Text className="text-gray-600 text-sm mt-3">
+                    <Text className="text-gray-600 dark:text-gray-300 text-sm mt-3">
                       {selectedEntry.notes}
                     </Text>
                   )}
 
                   {/* Diagnosis */}
                   {selectedEntry.diagnosis && (
-                    <View className="mt-3 border border-blue-200 rounded-lg p-3">
-                      <Text className="text-blue-600 text-sm">
+                    <View className="mt-3 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+                      <Text className="text-blue-600 dark:text-blue-400 text-sm">
                         <Text className="font-semibold">Diagnosis: </Text>
                         {selectedEntry.diagnosis}
                       </Text>
@@ -291,8 +293,8 @@ export default function BookletDetailScreen() {
 
                   {/* Recommendations */}
                   {selectedEntry.recommendations && (
-                    <View className="mt-2 border border-gray-200 rounded-lg p-3">
-                      <Text className="text-gray-600 text-sm">
+                    <View className="mt-2 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                      <Text className="text-gray-600 dark:text-gray-300 text-sm">
                         <Text className="font-semibold">Recommendations: </Text>
                         {selectedEntry.recommendations}
                       </Text>
@@ -301,7 +303,7 @@ export default function BookletDetailScreen() {
 
                   {/* Medications prescribed in this visit */}
                   {getMedsForEntry(selectedEntry.id).length > 0 && (
-                    <View className="mt-3 pt-3 border-t border-gray-100">
+                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <Pressable
                         onPress={() => setMedsExpanded(!medsExpanded)}
                         className="flex-row justify-between items-center"
@@ -320,11 +322,11 @@ export default function BookletDetailScreen() {
                           {getMedsForEntry(selectedEntry.id).map((med) => (
                             <View
                               key={med.id}
-                              className="border border-gray-100 rounded-lg p-3 mb-2"
+                              className="border border-gray-100 dark:border-gray-700 rounded-lg p-3 mb-2"
                             >
                               <View className="flex-row justify-between items-start">
                                 <View className="flex-1">
-                                  <Text className="font-medium text-gray-900">
+                                  <Text className="font-medium text-gray-900 dark:text-white">
                                     {med.name}
                                   </Text>
                                   <Text className="text-gray-400 text-sm">
@@ -333,14 +335,16 @@ export default function BookletDetailScreen() {
                                 </View>
                                 <View
                                   className={`px-2 py-1 rounded-full border ${
-                                    med.isActive ? "border-green-400" : "border-gray-300"
+                                    med.isActive
+                                      ? "border-green-400"
+                                      : "border-gray-300 dark:border-gray-600"
                                   }`}
                                 >
                                   <Text
                                     className={`text-xs font-medium ${
                                       med.isActive
-                                        ? "text-green-600"
-                                        : "text-gray-500"
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-gray-500 dark:text-gray-400"
                                     }`}
                                   >
                                     {med.isActive ? "Active" : "Done"}
@@ -359,7 +363,7 @@ export default function BookletDetailScreen() {
 
                   {/* Lab requests from this visit */}
                   {getLabsByEntry(selectedEntry.id).length > 0 && (
-                    <View className="mt-3 pt-3 border-t border-gray-100">
+                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <Pressable
                         onPress={() => setLabsExpanded(!labsExpanded)}
                         className="flex-row justify-between items-center"
@@ -378,10 +382,10 @@ export default function BookletDetailScreen() {
                           {getLabsByEntry(selectedEntry.id).map((lab) => (
                             <View
                               key={lab.id}
-                              className="border border-gray-100 rounded-lg p-3 mb-2"
+                              className="border border-gray-100 dark:border-gray-700 rounded-lg p-3 mb-2"
                             >
                               <View className="flex-row justify-between items-start">
-                                <Text className="font-medium text-gray-900 flex-1">
+                                <Text className="font-medium text-gray-900 dark:text-white flex-1">
                                   {lab.description}
                                 </Text>
                                 <View
@@ -390,16 +394,16 @@ export default function BookletDetailScreen() {
                                       ? "border-green-400"
                                       : lab.status === "pending"
                                       ? "border-amber-400"
-                                      : "border-gray-300"
+                                      : "border-gray-300 dark:border-gray-600"
                                   }`}
                                 >
                                   <Text
                                     className={`text-xs font-medium ${
                                       lab.status === "completed"
-                                        ? "text-green-600"
+                                        ? "text-green-600 dark:text-green-400"
                                         : lab.status === "pending"
-                                        ? "text-amber-600"
-                                        : "text-gray-500"
+                                        ? "text-amber-600 dark:text-amber-400"
+                                        : "text-gray-500 dark:text-gray-400"
                                     }`}
                                   >
                                     {LAB_STATUS_LABELS[lab.status]}
@@ -407,7 +411,7 @@ export default function BookletDetailScreen() {
                                 </View>
                               </View>
                               {lab.results && (
-                                <Text className="text-green-600 text-sm mt-2">
+                                <Text className="text-green-600 dark:text-green-400 text-sm mt-2">
                                   <Text className="font-medium">Results: </Text>
                                   {lab.results}
                                 </Text>
@@ -421,7 +425,7 @@ export default function BookletDetailScreen() {
 
                   {/* Follow-up date */}
                   {selectedEntry.followUpDate && (
-                    <View className="mt-3 pt-3 border-t border-gray-100">
+                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <Text className="text-gray-500 text-sm">
                         Follow-up: {formatDate(selectedEntry.followUpDate)}
                       </Text>

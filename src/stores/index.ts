@@ -2,3 +2,4 @@ export { useAuthStore, selectIsDoctor, selectIsMother, selectCurrentDoctorId, se
 export { useBookletStore } from './booklet.store';
 export { useMedicalStore } from './medical.store';
 export { useMedicationStore } from './medication.store';
+export { useThemeStore, selectIsDarkMode } from './theme.store';

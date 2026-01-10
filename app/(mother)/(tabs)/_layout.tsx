@@ -5,6 +5,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Home, Pill, Stethoscope, User } from "lucide-react-native";
+import { useThemeStore } from "../../../src/stores";
 
 const HEADER_BASE_HEIGHT = 60;
 
@@ -20,9 +21,14 @@ function HeaderTitle({ title, subtitle }: { title: string; subtitle: string }) {
 export default function MotherTabsLayout() {
   const insets = useSafeAreaInsets();
   const headerHeight = HEADER_BASE_HEIGHT + insets.top;
+  const { colorScheme } = useThemeStore();
+  const isDark = colorScheme === "dark";
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["bottom"]}>
+    <SafeAreaView
+      className="flex-1 bg-gray-50 dark:bg-gray-900"
+      edges={["bottom"]}
+    >
       <Tabs
         screenOptions={{
           headerStyle: {
@@ -31,10 +37,11 @@ export default function MotherTabsLayout() {
           },
           headerTitleAlign: "left",
           tabBarActiveTintColor: "#ec4899",
-          tabBarInactiveTintColor: "#9ca3af",
+          tabBarInactiveTintColor: isDark ? "#6b7280" : "#9ca3af",
           tabBarStyle: {
+            backgroundColor: isDark ? "#111827" : "#ffffff",
             borderTopWidth: 1,
-            borderTopColor: "#e5e7eb",
+            borderTopColor: isDark ? "#374151" : "#e5e7eb",
             paddingTop: 8,
             paddingBottom: 8,
             paddingHorizontal: 8,

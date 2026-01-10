@@ -189,6 +189,38 @@ Reset to default sample data: Profile → Reset Sample Data
 
 ## UI & Animation Conventions
 
+### Dark Mode Support
+The app supports dark mode via NativeWind's `dark:` variant system. The theme is controlled by a Zustand store (`useThemeStore`) that persists the user's preference.
+
+**Theme Store Usage:**
+```tsx
+import { useThemeStore } from "../src/stores";
+
+const { colorScheme, toggleTheme, setMode } = useThemeStore();
+const isDark = colorScheme === "dark";
+```
+
+**Styling Pattern:**
+- Use `dark:` prefixed classes for dark mode variants
+- Common mappings:
+  - `bg-white` → `bg-white dark:bg-gray-800`
+  - `bg-gray-50` → `bg-gray-50 dark:bg-gray-900`
+  - `text-gray-900` → `text-gray-900 dark:text-white`
+  - `text-gray-500` → `text-gray-500 dark:text-gray-400`
+  - `border-gray-100` → `border-gray-100 dark:border-gray-700`
+
+**For JavaScript style objects (like tab bar styles):**
+```tsx
+const isDark = colorScheme === "dark";
+tabBarStyle: {
+  backgroundColor: isDark ? "#111827" : "#ffffff",
+  borderTopColor: isDark ? "#374151" : "#e5e7eb",
+}
+```
+
+**Toggle in Profile screens:**
+Both doctor and mother profile screens include a Dark Mode toggle switch.
+
 ### Safe Area Handling for Colored Backgrounds
 When a screen has a colored header/background that should extend to the screen edges (behind the status bar), do NOT use `SafeAreaView` with `edges={["top"]}`. This creates a white gap at the top.
 

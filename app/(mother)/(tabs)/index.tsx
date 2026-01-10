@@ -28,133 +28,138 @@ export default function MotherHomeScreen() {
   });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Quick Stats */}
       <View className="flex-row px-4 pt-4">
-          <View className="flex-1 bg-white rounded-xl p-5 mx-2 border border-gray-100">
-            <Text className="text-3xl font-bold text-pink-500">
-              {activeBooklets.length}
+        <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 mx-2 border border-gray-100 dark:border-gray-700">
+          <Text className="text-3xl font-bold text-pink-500">
+            {activeBooklets.length}
+          </Text>
+          <Text className="text-gray-400 text-sm">Active Booklets</Text>
+        </View>
+        <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 mx-2 border border-gray-100 dark:border-gray-700">
+          <Text className="text-3xl font-bold text-amber-500">
+            {pendingMeds.length}
+          </Text>
+          <Text className="text-gray-400 text-sm">Meds Today</Text>
+        </View>
+      </View>
+
+      {/* Active Booklets */}
+      <View className="px-6 mt-6">
+        <View className="flex-row justify-between items-center mb-4">
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white">
+            My Booklets
+          </Text>
+          <CardPressable>
+            <Text className="text-pink-600 dark:text-pink-400 font-medium">
+              + New
             </Text>
-            <Text className="text-gray-400 text-sm">Active Booklets</Text>
-          </View>
-          <View className="flex-1 bg-white rounded-xl p-5 mx-2 border border-gray-100">
-            <Text className="text-3xl font-bold text-amber-500">
-              {pendingMeds.length}
-            </Text>
-            <Text className="text-gray-400 text-sm">Meds Today</Text>
-          </View>
+          </CardPressable>
         </View>
 
-        {/* Active Booklets */}
-        <View className="px-6 mt-6">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-semibold text-gray-900">
-              My Booklets
+        {activeBooklets.length === 0 ? (
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
+            <Text className="text-gray-500 dark:text-gray-400 text-center">
+              No active booklets
             </Text>
-            <CardPressable>
-              <Text className="text-pink-600 font-medium">+ New</Text>
-            </CardPressable>
+            <Text className="text-gray-400 dark:text-gray-500 text-sm text-center mt-2">
+              Create a new booklet to start tracking your pregnancy
+            </Text>
           </View>
+        ) : (
+          activeBooklets.map((booklet) => (
+            <CardPressable
+              key={booklet.id}
+              className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
+              onPress={() => router.push(`/booklet/${booklet.id}`)}
+            >
+              <View className="flex-row justify-between items-start">
+                <View className="flex-1">
+                  <Text className="font-semibold text-gray-900 dark:text-white text-lg">
+                    {booklet.label}
+                  </Text>
+                  {booklet.expectedDueDate && (
+                    <Text className="text-pink-500 text-sm mt-1">
+                      Due: {formatDate(booklet.expectedDueDate)}
+                    </Text>
+                  )}
+                </View>
+                <View className="border border-green-400 px-2 py-1 rounded-full">
+                  <Text className="text-green-600 dark:text-green-400 text-xs font-medium">
+                    {booklet.status}
+                  </Text>
+                </View>
+              </View>
+              {booklet.notes && (
+                <Text
+                  className="text-gray-400 text-sm mt-2"
+                  numberOfLines={2}
+                >
+                  {booklet.notes}
+                </Text>
+              )}
+            </CardPressable>
+          ))
+        )}
+      </View>
 
-          {activeBooklets.length === 0 ? (
-            <View className="bg-white rounded-xl p-6 border border-gray-100">
-              <Text className="text-gray-500 text-center">
-                No active booklets
-              </Text>
-              <Text className="text-gray-400 text-sm text-center mt-2">
-                Create a new booklet to start tracking your pregnancy
-              </Text>
-            </View>
-          ) : (
-            activeBooklets.map((booklet) => (
+      {/* Completed/Archived Booklets */}
+      {booklets.filter((b) => b.status !== "active").length > 0 && (
+        <View className="px-6 mt-8">
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Past Booklets
+          </Text>
+          {booklets
+            .filter((b) => b.status !== "active")
+            .map((booklet) => (
               <CardPressable
                 key={booklet.id}
-                className="bg-white rounded-xl p-5 mb-3 border border-gray-100"
+                className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
                 onPress={() => router.push(`/booklet/${booklet.id}`)}
               >
-                <View className="flex-row justify-between items-start">
-                  <View className="flex-1">
-                    <Text className="font-semibold text-gray-900 text-lg">
-                      {booklet.label}
-                    </Text>
-                    {booklet.expectedDueDate && (
-                      <Text className="text-pink-500 text-sm mt-1">
-                        Due: {formatDate(booklet.expectedDueDate)}
-                      </Text>
-                    )}
-                  </View>
-                  <View className="border border-green-400 px-2 py-1 rounded-full">
-                    <Text className="text-green-600 text-xs font-medium">
-                      {booklet.status}
-                    </Text>
-                  </View>
-                </View>
-                {booklet.notes && (
-                  <Text
-                    className="text-gray-400 text-sm mt-2"
-                    numberOfLines={2}
-                  >
-                    {booklet.notes}
+                <Text className="font-medium text-gray-700 dark:text-gray-300">
+                  {booklet.label}
+                </Text>
+                {booklet.actualDeliveryDate && (
+                  <Text className="text-gray-400 text-sm">
+                    Delivered: {formatDate(booklet.actualDeliveryDate)}
                   </Text>
                 )}
               </CardPressable>
-            ))
-          )}
+            ))}
         </View>
+      )}
 
-        {/* Completed/Archived Booklets */}
-        {booklets.filter((b) => b.status !== "active").length > 0 && (
-          <View className="px-6 mt-8">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
-              Past Booklets
-            </Text>
-            {booklets
-              .filter((b) => b.status !== "active")
-              .map((booklet) => (
-                <CardPressable
-                  key={booklet.id}
-                  className="bg-white rounded-xl p-5 mb-3 border border-gray-100"
-                  onPress={() => router.push(`/booklet/${booklet.id}`)}
-                >
-                  <Text className="font-medium text-gray-700">
-                    {booklet.label}
+      {/* Today's Medications Reminder */}
+      {pendingMeds.length > 0 && (
+        <View className="px-6 mt-8 mb-8">
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Today's Medications
+          </Text>
+          {pendingMeds.slice(0, 3).map((med) => (
+            <View
+              key={med.id}
+              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5 mb-3"
+            >
+              <View className="flex-row justify-between items-center">
+                <View>
+                  <Text className="font-semibold text-gray-900 dark:text-white">
+                    {med.name}
                   </Text>
-                  {booklet.actualDeliveryDate && (
-                    <Text className="text-gray-400 text-sm">
-                      Delivered: {formatDate(booklet.actualDeliveryDate)}
-                    </Text>
-                  )}
-                </CardPressable>
-              ))}
-          </View>
-        )}
-
-        {/* Today's Medications Reminder */}
-        {pendingMeds.length > 0 && (
-          <View className="px-6 mt-8 mb-8">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
-              Today's Medications
-            </Text>
-            {pendingMeds.slice(0, 3).map((med) => (
-              <View key={med.id} className="bg-white border border-gray-100 rounded-xl p-5 mb-3">
-                <View className="flex-row justify-between items-center">
-                  <View>
-                    <Text className="font-semibold text-gray-900">
-                      {med.name}
-                    </Text>
-                    <Text className="text-gray-400 text-sm">{med.dosage}</Text>
-                  </View>
-                  <View className="border border-amber-400 px-3 py-1 rounded-full">
-                    <Text className="text-amber-600 text-sm">
-                      {med.todayLogs.filter((l) => l.status === "taken").length}
-                      /{med.frequencyPerDay} taken
-                    </Text>
-                  </View>
+                  <Text className="text-gray-400 text-sm">{med.dosage}</Text>
+                </View>
+                <View className="border border-amber-400 px-3 py-1 rounded-full">
+                  <Text className="text-amber-600 dark:text-amber-400 text-sm">
+                    {med.todayLogs.filter((l) => l.status === "taken").length}/
+                    {med.frequencyPerDay} taken
+                  </Text>
                 </View>
               </View>
-            ))}
-          </View>
-        )}
+            </View>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }

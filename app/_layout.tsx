@@ -1,11 +1,13 @@
 import "../global.css";
 import { useEffect } from "react";
+import { View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useColorScheme } from "nativewind";
 import { initializeSampleData } from "../src/data";
-import { useBookletStore, useMedicalStore, useMedicationStore } from "../src/stores";
+import { useBookletStore, useMedicalStore, useMedicationStore, useThemeStore } from "../src/stores";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -23,7 +25,20 @@ const queryClient = new QueryClient({
   },
 });
 
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const { colorScheme: themeColorScheme } = useThemeStore();
+  const { setColorScheme } = useColorScheme();
+
+  useEffect(() => {
+    setColorScheme(themeColorScheme);
+  }, [themeColorScheme, setColorScheme]);
+
+  return <>{children}</>;
+}
+
 export default function RootLayout() {
+  const { colorScheme } = useThemeStore();
+
   // Initialize sample data and load stores on app start
   useEffect(() => {
     initializeSampleData();
@@ -37,13 +52,17 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <KeyboardProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(doctor)" />
-          <Stack.Screen name="(mother)" />
-        </Stack>
-        <StatusBar style="auto" />
+        <ThemeProvider>
+          <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(doctor)" />
+              <Stack.Screen name="(mother)" />
+            </Stack>
+          </View>
+          <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+        </ThemeProvider>
       </KeyboardProvider>
     </QueryClientProvider>
   );

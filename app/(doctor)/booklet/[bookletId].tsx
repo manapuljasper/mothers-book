@@ -267,7 +267,7 @@ export default function DoctorBookletDetailScreen() {
   // Loading state
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
         <ActivityIndicator size="large" color="#3b82f6" />
         <Text className="text-gray-400 mt-2">Loading...</Text>
       </SafeAreaView>
@@ -276,7 +276,7 @@ export default function DoctorBookletDetailScreen() {
 
   if (!booklet || !doctorProfile) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
         <Text className="text-gray-400">Booklet not found</Text>
       </SafeAreaView>
     );
@@ -399,7 +399,7 @@ export default function DoctorBookletDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
-      <ScrollView className="flex-1 bg-gray-50">
+      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
         {/* Header */}
         <View className="bg-blue-500 px-6 py-6" style={{ paddingTop: insets.top }}>
           <CardPressable
@@ -435,19 +435,19 @@ export default function DoctorBookletDetailScreen() {
 
         {/* Quick Stats */}
         <View className="flex-row px-4 -mt-4">
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
             <Text className="text-2xl font-bold text-blue-500">
               {entries.length}
             </Text>
             <Text className="text-gray-400 text-xs">Visits</Text>
           </View>
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
             <Text className="text-2xl font-bold text-green-500">
               {activeMeds.length}
             </Text>
             <Text className="text-gray-400 text-xs">Active Meds</Text>
           </View>
-          <View className="flex-1 bg-white rounded-xl p-4 mx-1 border border-gray-100">
+          <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-4 mx-1 border border-gray-100 dark:border-gray-700">
             <Text className="text-2xl font-bold text-amber-500">
               {bookletPendingLabs.length}
             </Text>
@@ -468,13 +468,13 @@ export default function DoctorBookletDetailScreen() {
 
         {/* Visit History */}
         <View className="px-6 mt-8">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
             Visit History
           </Text>
           {visitDates.length === 0 ? (
-            <View className="bg-white rounded-xl p-6 border border-gray-100">
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
               <Text className="text-gray-400 text-center">No visits yet</Text>
-              <Text className="text-gray-300 text-sm text-center mt-1">
+              <Text className="text-gray-300 dark:text-gray-500 text-sm text-center mt-1">
                 Add your first entry above
               </Text>
             </View>
@@ -501,7 +501,7 @@ export default function DoctorBookletDetailScreen() {
                       className={`items-center justify-center px-4 py-3 mr-2 rounded-xl border ${
                         isSelected
                           ? "bg-blue-500 border-blue-500"
-                          : "bg-white border-gray-100"
+                          : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700"
                       }`}
                     >
                       <Text
@@ -513,7 +513,7 @@ export default function DoctorBookletDetailScreen() {
                       </Text>
                       <Text
                         className={`text-xl font-bold ${
-                          isSelected ? "text-white" : "text-gray-700"
+                          isSelected ? "text-white" : "text-gray-700 dark:text-gray-200"
                         }`}
                       >
                         {day}
@@ -525,18 +525,18 @@ export default function DoctorBookletDetailScreen() {
 
               {/* Selected Entry Display */}
               {selectedEntry && (
-                <View className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
+                <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-8 border border-gray-100 dark:border-gray-700">
                   {/* Entry Header */}
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1">
-                      <Text className="font-semibold text-gray-900 text-lg">
+                      <Text className="font-semibold text-gray-900 dark:text-white text-lg">
                         {ENTRY_TYPE_LABELS[selectedEntry.entryType]}
                       </Text>
                       <Text className="text-gray-400 text-sm">
                         {selectedEntry.doctorName}
                       </Text>
                     </View>
-                    <View className="border border-blue-300 px-3 py-1 rounded-full">
+                    <View className="border border-blue-300 dark:border-blue-500 px-3 py-1 rounded-full">
                       <Text className="text-blue-500 text-sm font-medium">
                         {formatDate(selectedEntry.visitDate)}
                       </Text>
@@ -546,11 +546,11 @@ export default function DoctorBookletDetailScreen() {
                   {/* Vitals */}
                   {selectedEntry.vitals &&
                     Object.keys(selectedEntry.vitals).length > 0 && (
-                      <View className="flex-row flex-wrap mt-3 pt-3 border-t border-gray-100">
+                      <View className="flex-row flex-wrap mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                         {selectedEntry.vitals.bloodPressure && (
                           <View className="mr-4 mb-2">
                             <Text className="text-gray-400 text-xs">BP</Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.bloodPressure}
                             </Text>
                           </View>
@@ -558,7 +558,7 @@ export default function DoctorBookletDetailScreen() {
                         {selectedEntry.vitals.weight && (
                           <View className="mr-4 mb-2">
                             <Text className="text-gray-400 text-xs">Weight</Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.weight} kg
                             </Text>
                           </View>
@@ -566,7 +566,7 @@ export default function DoctorBookletDetailScreen() {
                         {selectedEntry.vitals.fetalHeartRate && (
                           <View className="mr-4 mb-2">
                             <Text className="text-gray-400 text-xs">FHR</Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.fetalHeartRate} bpm
                             </Text>
                           </View>
@@ -576,7 +576,7 @@ export default function DoctorBookletDetailScreen() {
                             <Text className="text-gray-400 text-xs">
                               Fundal Height
                             </Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.fundalHeight} cm
                             </Text>
                           </View>
@@ -584,7 +584,7 @@ export default function DoctorBookletDetailScreen() {
                         {selectedEntry.vitals.aog && (
                           <View className="mr-4 mb-2">
                             <Text className="text-gray-400 text-xs">AOG</Text>
-                            <Text className="text-gray-700 font-medium">
+                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
                               {selectedEntry.vitals.aog}
                             </Text>
                           </View>
@@ -594,15 +594,15 @@ export default function DoctorBookletDetailScreen() {
 
                   {/* Notes */}
                   {selectedEntry.notes && (
-                    <Text className="text-gray-600 text-sm mt-3">
+                    <Text className="text-gray-600 dark:text-gray-300 text-sm mt-3">
                       {selectedEntry.notes}
                     </Text>
                   )}
 
                   {/* Diagnosis */}
                   {selectedEntry.diagnosis && (
-                    <View className="mt-3 border border-blue-200 rounded-lg p-3">
-                      <Text className="text-blue-600 text-sm">
+                    <View className="mt-3 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+                      <Text className="text-blue-600 dark:text-blue-400 text-sm">
                         <Text className="font-semibold">Diagnosis: </Text>
                         {selectedEntry.diagnosis}
                       </Text>
@@ -611,8 +611,8 @@ export default function DoctorBookletDetailScreen() {
 
                   {/* Recommendations */}
                   {selectedEntry.recommendations && (
-                    <View className="mt-2 border border-gray-200 rounded-lg p-3">
-                      <Text className="text-gray-600 text-sm">
+                    <View className="mt-2 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                      <Text className="text-gray-600 dark:text-gray-300 text-sm">
                         <Text className="font-semibold">Recommendations: </Text>
                         {selectedEntry.recommendations}
                       </Text>
@@ -621,7 +621,7 @@ export default function DoctorBookletDetailScreen() {
 
                   {/* Medications */}
                   {getMedsForEntry(selectedEntry.id).length > 0 && (
-                    <View className="mt-3 pt-3 border-t border-gray-100">
+                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <Pressable
                         onPress={() => setMedsExpanded(!medsExpanded)}
                         className="flex-row justify-between items-center"
@@ -649,11 +649,11 @@ export default function DoctorBookletDetailScreen() {
                           {getMedsForEntry(selectedEntry.id).map((med) => (
                             <View
                               key={med.id}
-                              className="border border-gray-100 rounded-lg p-3 mb-2"
+                              className="border border-gray-100 dark:border-gray-700 rounded-lg p-3 mb-2"
                             >
                               <View className="flex-row justify-between items-start">
                                 <View className="flex-1">
-                                  <Text className="font-medium text-gray-900">
+                                  <Text className="font-medium text-gray-900 dark:text-white">
                                     {med.name}
                                   </Text>
                                   <Text className="text-gray-400 text-sm">
@@ -664,14 +664,14 @@ export default function DoctorBookletDetailScreen() {
                                   className={`px-2 py-1 rounded-full border ${
                                     med.isActive
                                       ? "border-green-400"
-                                      : "border-gray-300"
+                                      : "border-gray-300 dark:border-gray-600"
                                   }`}
                                 >
                                   <Text
                                     className={`text-xs font-medium ${
                                       med.isActive
-                                        ? "text-green-600"
-                                        : "text-gray-500"
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-gray-500 dark:text-gray-400"
                                     }`}
                                   >
                                     {med.isActive ? "Active" : "Done"}
@@ -692,7 +692,7 @@ export default function DoctorBookletDetailScreen() {
 
                   {/* Labs */}
                   {selectedEntryLabs.length > 0 && (
-                    <View className="mt-3 pt-3 border-t border-gray-100">
+                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <Pressable
                         onPress={() => setLabsExpanded(!labsExpanded)}
                         className="flex-row justify-between items-center"
@@ -720,10 +720,10 @@ export default function DoctorBookletDetailScreen() {
                           {selectedEntryLabs.map((lab) => (
                             <View
                               key={lab.id}
-                              className="border border-gray-100 rounded-lg p-3 mb-2"
+                              className="border border-gray-100 dark:border-gray-700 rounded-lg p-3 mb-2"
                             >
                               <View className="flex-row justify-between items-start">
-                                <Text className="font-medium text-gray-900 flex-1">
+                                <Text className="font-medium text-gray-900 dark:text-white flex-1">
                                   {lab.description}
                                 </Text>
                                 <View
@@ -732,16 +732,16 @@ export default function DoctorBookletDetailScreen() {
                                       ? "border-green-400"
                                       : lab.status === "pending"
                                       ? "border-amber-400"
-                                      : "border-gray-300"
+                                      : "border-gray-300 dark:border-gray-600"
                                   }`}
                                 >
                                   <Text
                                     className={`text-xs font-medium ${
                                       lab.status === "completed"
-                                        ? "text-green-600"
+                                        ? "text-green-600 dark:text-green-400"
                                         : lab.status === "pending"
-                                        ? "text-amber-600"
-                                        : "text-gray-500"
+                                        ? "text-amber-600 dark:text-amber-400"
+                                        : "text-gray-500 dark:text-gray-400"
                                     }`}
                                   >
                                     {LAB_STATUS_LABELS[lab.status]}
@@ -749,7 +749,7 @@ export default function DoctorBookletDetailScreen() {
                                 </View>
                               </View>
                               {lab.results && (
-                                <Text className="text-green-600 text-sm mt-2">
+                                <Text className="text-green-600 dark:text-green-400 text-sm mt-2">
                                   <Text className="font-medium">Results: </Text>
                                   {lab.results}
                                 </Text>
@@ -763,7 +763,7 @@ export default function DoctorBookletDetailScreen() {
 
                   {/* Follow-up */}
                   {selectedEntry.followUpDate && (
-                    <View className="mt-3 pt-3 border-t border-gray-100">
+                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <Text className="text-gray-500 text-sm">
                         Follow-up: {formatDate(selectedEntry.followUpDate)}
                       </Text>
@@ -772,7 +772,7 @@ export default function DoctorBookletDetailScreen() {
 
                   {/* Attachments */}
                   {selectedEntry.attachments && selectedEntry.attachments.length > 0 && (
-                    <View className="mt-3 pt-3 border-t border-gray-100">
+                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                       <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
                         Attachments ({selectedEntry.attachments.length})
                       </Text>
@@ -808,9 +808,9 @@ export default function DoctorBookletDetailScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView className="flex-1 bg-white">
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
-            <Text className="text-xl font-bold text-gray-900">Add Entry</Text>
+        <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <Text className="text-xl font-bold text-gray-900 dark:text-white">Add Entry</Text>
             <Pressable onPress={handleCloseModal}>
               <X size={24} color="#6b7280" strokeWidth={1.5} />
             </Pressable>
@@ -821,7 +821,7 @@ export default function DoctorBookletDetailScreen() {
             bottomOffset={20}
           >
             {/* Entry Type */}
-            <Text className="text-gray-500 text-sm mb-2">Entry Type</Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-sm mb-2">Entry Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
               {(Object.keys(ENTRY_TYPE_LABELS) as EntryType[]).map((type) => (
                 <Pressable
@@ -830,14 +830,14 @@ export default function DoctorBookletDetailScreen() {
                   className={`px-4 py-2 rounded-full mr-2 border ${
                     entryForm.entryType === type
                       ? "bg-blue-500 border-blue-500"
-                      : "bg-white border-gray-200"
+                      : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                   }`}
                 >
                   <Text
                     className={
                       entryForm.entryType === type
                         ? "text-white font-medium"
-                        : "text-gray-600"
+                        : "text-gray-600 dark:text-gray-300"
                     }
                   >
                     {ENTRY_TYPE_LABELS[type]}
@@ -847,14 +847,15 @@ export default function DoctorBookletDetailScreen() {
             </ScrollView>
 
             {/* Vitals */}
-            <Text className="text-gray-500 text-sm mb-2 mt-2">Vitals</Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-sm mb-2 mt-2">Vitals</Text>
             <View className="flex-row flex-wrap">
               <View className="w-1/2 pr-2 mb-3">
                 <Text className="text-gray-400 text-xs mb-1">Blood Pressure</Text>
                 <View className="flex-row items-center">
                   <TextInput
-                    className="border border-gray-200 rounded-lg px-3 py-2 flex-1"
+                    className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 flex-1 text-gray-900 dark:text-white"
                     placeholder="120"
+                    placeholderTextColor="#9ca3af"
                     keyboardType="numeric"
                     maxLength={3}
                     returnKeyType="next"
@@ -866,8 +867,9 @@ export default function DoctorBookletDetailScreen() {
                   <Text className="text-gray-400 text-lg mx-2">/</Text>
                   <TextInput
                     ref={bpDiastolicRef}
-                    className="border border-gray-200 rounded-lg px-3 py-2 flex-1"
+                    className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 flex-1 text-gray-900 dark:text-white"
                     placeholder="80"
+                    placeholderTextColor="#9ca3af"
                     keyboardType="numeric"
                     maxLength={3}
                     value={entryForm.bpDiastolic}
@@ -878,8 +880,9 @@ export default function DoctorBookletDetailScreen() {
               <View className="w-1/2 pl-2 mb-3">
                 <Text className="text-gray-400 text-xs mb-1">Weight (kg)</Text>
                 <TextInput
-                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-gray-900 dark:text-white"
                   placeholder="65"
+                  placeholderTextColor="#9ca3af"
                   keyboardType="numeric"
                   value={entryForm.weight}
                   onChangeText={(v) => setEntryForm({ ...entryForm, weight: v })}
@@ -888,8 +891,9 @@ export default function DoctorBookletDetailScreen() {
               <View className="w-1/2 pr-2 mb-3">
                 <Text className="text-gray-400 text-xs mb-1">FHR (bpm)</Text>
                 <TextInput
-                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-gray-900 dark:text-white"
                   placeholder="140"
+                  placeholderTextColor="#9ca3af"
                   keyboardType="numeric"
                   value={entryForm.fetalHeartRate}
                   onChangeText={(v) => setEntryForm({ ...entryForm, fetalHeartRate: v })}
@@ -898,8 +902,9 @@ export default function DoctorBookletDetailScreen() {
               <View className="w-1/2 pl-2 mb-3">
                 <Text className="text-gray-400 text-xs mb-1">Fundal Height (cm)</Text>
                 <TextInput
-                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-gray-900 dark:text-white"
                   placeholder="28"
+                  placeholderTextColor="#9ca3af"
                   keyboardType="numeric"
                   value={entryForm.fundalHeight}
                   onChangeText={(v) => setEntryForm({ ...entryForm, fundalHeight: v })}
@@ -908,8 +913,9 @@ export default function DoctorBookletDetailScreen() {
               <View className="w-full mb-3">
                 <Text className="text-gray-400 text-xs mb-1">AOG</Text>
                 <TextInput
-                  className="border border-gray-200 rounded-lg px-3 py-2"
+                  className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-gray-900 dark:text-white"
                   placeholder="28 weeks 3 days"
+                  placeholderTextColor="#9ca3af"
                   value={entryForm.aog}
                   onChangeText={(v) => setEntryForm({ ...entryForm, aog: v })}
                 />
@@ -917,10 +923,11 @@ export default function DoctorBookletDetailScreen() {
             </View>
 
             {/* Notes */}
-            <Text className="text-gray-500 text-sm mb-2 mt-2">Notes</Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-sm mb-2 mt-2">Notes</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg px-3 py-2 mb-4"
+              className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 mb-4 text-gray-900 dark:text-white"
               placeholder="Clinical notes..."
+              placeholderTextColor="#9ca3af"
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -929,19 +936,21 @@ export default function DoctorBookletDetailScreen() {
             />
 
             {/* Diagnosis */}
-            <Text className="text-gray-500 text-sm mb-2">Diagnosis</Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-sm mb-2">Diagnosis</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg px-3 py-2 mb-4"
+              className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 mb-4 text-gray-900 dark:text-white"
               placeholder="Diagnosis..."
+              placeholderTextColor="#9ca3af"
               value={entryForm.diagnosis}
               onChangeText={(v) => setEntryForm({ ...entryForm, diagnosis: v })}
             />
 
             {/* Recommendations */}
-            <Text className="text-gray-500 text-sm mb-2">Recommendations</Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-sm mb-2">Recommendations</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg px-3 py-2 mb-4"
+              className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 mb-4 text-gray-900 dark:text-white"
               placeholder="Recommendations..."
+              placeholderTextColor="#9ca3af"
               multiline
               numberOfLines={2}
               textAlignVertical="top"
@@ -950,10 +959,10 @@ export default function DoctorBookletDetailScreen() {
             />
 
             {/* Medications Section */}
-            <View className="border-t border-gray-100 pt-4 mt-2">
+            <View className="border-t border-gray-100 dark:border-gray-700 pt-4 mt-2">
               <View className="flex-row items-center mb-3">
                 <Pill size={18} color="#22c55e" strokeWidth={1.5} />
-                <Text className="text-gray-700 font-semibold ml-2">Prescriptions</Text>
+                <Text className="text-gray-700 dark:text-gray-200 font-semibold ml-2">Prescriptions</Text>
               </View>
 
               {/* Pending medications list */}
@@ -962,11 +971,11 @@ export default function DoctorBookletDetailScreen() {
                   {pendingMeds.map((med) => (
                     <View
                       key={med.id}
-                      className="flex-row items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3 mb-2"
+                      className="flex-row items-center justify-between bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-2"
                     >
                       <View className="flex-1">
-                        <Text className="font-medium text-gray-900">{med.name}</Text>
-                        <Text className="text-gray-500 text-sm">
+                        <Text className="font-medium text-gray-900 dark:text-white">{med.name}</Text>
+                        <Text className="text-gray-500 dark:text-gray-400 text-sm">
                           {med.dosageAmount} {med.dosageUnit} • {med.frequencyPerDay}x daily
                         </Text>
                       </View>
@@ -979,13 +988,14 @@ export default function DoctorBookletDetailScreen() {
               )}
 
               {/* Add medication form */}
-              <View className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <View className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4">
                 {/* Medication name */}
                 <View className="mb-3">
                   <Text className="text-gray-400 text-xs mb-1">Medication</Text>
                   <TextInput
-                    className="border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                    className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="e.g., Folic Acid"
+                    placeholderTextColor="#9ca3af"
                     value={currentMed.name}
                     onChangeText={(v) => setCurrentMed({ ...currentMed, name: v })}
                   />
@@ -996,8 +1006,9 @@ export default function DoctorBookletDetailScreen() {
                   <Text className="text-gray-400 text-xs mb-1">Dosage</Text>
                   <View className="flex-row">
                     <TextInput
-                      className="border border-gray-200 rounded-lg px-3 py-2 bg-white w-20 mr-2"
+                      className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 w-20 mr-2 text-gray-900 dark:text-white"
                       placeholder="400"
+                      placeholderTextColor="#9ca3af"
                       keyboardType="numeric"
                       value={currentMed.dosageAmount}
                       onChangeText={(v) => setCurrentMed({ ...currentMed, dosageAmount: v })}
@@ -1010,14 +1021,14 @@ export default function DoctorBookletDetailScreen() {
                           className={`px-3 py-2 mr-1 rounded-lg border ${
                             currentMed.dosageUnit === unit
                               ? "bg-green-500 border-green-500"
-                              : "bg-white border-gray-200"
+                              : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
                           }`}
                         >
                           <Text
                             className={
                               currentMed.dosageUnit === unit
                                 ? "text-white text-sm"
-                                : "text-gray-600 text-sm"
+                                : "text-gray-600 dark:text-gray-300 text-sm"
                             }
                           >
                             {unit}
@@ -1040,14 +1051,14 @@ export default function DoctorBookletDetailScreen() {
                           className={`px-3 py-2 mr-1 rounded-lg border ${
                             currentMed.frequencyPerDay === freq
                               ? "bg-green-500 border-green-500"
-                              : "bg-white border-gray-200"
+                              : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
                           }`}
                         >
                           <Text
                             className={
                               currentMed.frequencyPerDay === freq
                                 ? "text-white text-sm"
-                                : "text-gray-600 text-sm"
+                                : "text-gray-600 dark:text-gray-300 text-sm"
                             }
                           >
                             {freq}x
@@ -1059,8 +1070,9 @@ export default function DoctorBookletDetailScreen() {
                   <View className="flex-1 pl-2">
                     <Text className="text-gray-400 text-xs mb-1">Instructions</Text>
                     <TextInput
-                      className="border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                      className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="e.g., With food"
+                      placeholderTextColor="#9ca3af"
                       value={currentMed.instructions}
                       onChangeText={(v) => setCurrentMed({ ...currentMed, instructions: v })}
                     />
@@ -1095,10 +1107,10 @@ export default function DoctorBookletDetailScreen() {
             </View>
 
             {/* Lab Requests Section */}
-            <View className="border-t border-gray-100 pt-4 mt-4">
+            <View className="border-t border-gray-100 dark:border-gray-700 pt-4 mt-4">
               <View className="flex-row items-center mb-3">
                 <FlaskConical size={18} color="#f59e0b" strokeWidth={1.5} />
-                <Text className="text-gray-700 font-semibold ml-2">Lab Requests</Text>
+                <Text className="text-gray-700 dark:text-gray-200 font-semibold ml-2">Lab Requests</Text>
               </View>
 
               {/* Pending labs list */}
@@ -1107,12 +1119,12 @@ export default function DoctorBookletDetailScreen() {
                   {pendingLabs.map((lab) => (
                     <View
                       key={lab.id}
-                      className="flex-row items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2"
+                      className="flex-row items-center justify-between bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3 mb-2"
                     >
                       <View className="flex-1">
-                        <Text className="font-medium text-gray-900">{lab.description}</Text>
+                        <Text className="font-medium text-gray-900 dark:text-white">{lab.description}</Text>
                         {lab.notes && (
-                          <Text className="text-gray-500 text-sm">{lab.notes}</Text>
+                          <Text className="text-gray-500 dark:text-gray-400 text-sm">{lab.notes}</Text>
                         )}
                       </View>
                       <Pressable onPress={() => handleRemovePendingLab(lab.id)}>
@@ -1124,18 +1136,20 @@ export default function DoctorBookletDetailScreen() {
               )}
 
               {/* Add lab form */}
-              <View className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+              <View className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4">
                 <Text className="text-gray-400 text-xs mb-1">Lab Test</Text>
                 <TextInput
-                  className="border border-gray-200 rounded-lg px-3 py-2 bg-white mb-3"
+                  className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 mb-3 text-gray-900 dark:text-white"
                   placeholder="e.g., Complete Blood Count (CBC)"
+                  placeholderTextColor="#9ca3af"
                   value={currentLab.description}
                   onChangeText={(v) => setCurrentLab({ ...currentLab, description: v })}
                 />
                 <Text className="text-gray-400 text-xs mb-1">Notes (optional)</Text>
                 <TextInput
-                  className="border border-gray-200 rounded-lg px-3 py-2 bg-white mb-3"
+                  className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 mb-3 text-gray-900 dark:text-white"
                   placeholder="Additional instructions..."
+                  placeholderTextColor="#9ca3af"
                   value={currentLab.notes}
                   onChangeText={(v) => setCurrentLab({ ...currentLab, notes: v })}
                 />
@@ -1163,10 +1177,10 @@ export default function DoctorBookletDetailScreen() {
             </View>
 
             {/* Attachments Section */}
-            <View className="border-t border-gray-100 pt-4 mt-4">
+            <View className="border-t border-gray-100 dark:border-gray-700 pt-4 mt-4">
               <View className="flex-row items-center mb-3">
                 <ImageIcon size={18} color="#6366f1" strokeWidth={1.5} />
-                <Text className="text-gray-700 font-semibold ml-2">Attachments</Text>
+                <Text className="text-gray-700 dark:text-gray-200 font-semibold ml-2">Attachments</Text>
               </View>
 
               {/* Display selected photos */}
@@ -1198,17 +1212,17 @@ export default function DoctorBookletDetailScreen() {
               <View className="flex-row">
                 <Pressable
                   onPress={handleTakePhoto}
-                  className="flex-1 flex-row items-center justify-center border border-indigo-400 bg-white px-3 py-3 rounded-xl mr-2"
+                  className="flex-1 flex-row items-center justify-center border border-indigo-400 dark:border-indigo-500 bg-white dark:bg-gray-800 px-3 py-3 rounded-xl mr-2"
                 >
                   <Camera size={18} color="#6366f1" strokeWidth={1.5} />
-                  <Text className="text-indigo-600 font-medium ml-2">Take Photo</Text>
+                  <Text className="text-indigo-600 dark:text-indigo-400 font-medium ml-2">Take Photo</Text>
                 </Pressable>
                 <Pressable
                   onPress={handlePickImage}
-                  className="flex-1 flex-row items-center justify-center border border-indigo-400 bg-white px-3 py-3 rounded-xl"
+                  className="flex-1 flex-row items-center justify-center border border-indigo-400 dark:border-indigo-500 bg-white dark:bg-gray-800 px-3 py-3 rounded-xl"
                 >
                   <ImageIcon size={18} color="#6366f1" strokeWidth={1.5} />
-                  <Text className="text-indigo-600 font-medium ml-2">Gallery</Text>
+                  <Text className="text-indigo-600 dark:text-indigo-400 font-medium ml-2">Gallery</Text>
                 </Pressable>
               </View>
             </View>
