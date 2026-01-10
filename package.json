@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.16",
     "date-fns": "^4.1.0",
     "expo": "~54.0.31",
     "expo-build-properties": "~1.0.10",

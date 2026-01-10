@@ -17,7 +17,8 @@ yarn web            # Start in web browser
 - **Expo Router** for file-based navigation
 - **TypeScript** with strict mode
 - **NativeWind v4** for styling (Tailwind CSS for React Native)
-- **Zustand** for state management
+- **TanStack React Query** for data fetching (queries & mutations)
+- **Zustand** for auth state management
 - **MMKV** for local storage (fast key-value store)
 
 ## Architecture
@@ -99,15 +100,75 @@ if (currentRole === "doctor") return <Redirect href="/(doctor)/(tabs)" />;
 
 ### State Management (Zustand)
 
+Zustand is used primarily for **auth state** (current user, role, login/logout):
+
 ```tsx
-import { useAuthStore, useBookletStore } from "../src/stores";
+import { useAuthStore } from "../src/stores";
 
-// Auth
-const { currentUser, login, logout } = useAuthStore();
-
-// Booklets
-const { getBookletsByMother, grantAccess } = useBookletStore();
+const { currentUser, login, logout, doctorProfile, motherProfile } = useAuthStore();
 ```
+
+### Data Fetching (React Query)
+
+All data fetching should use **TanStack React Query** hooks from `src/hooks`:
+
+```tsx
+import {
+  useBookletsByDoctor,
+  useEntriesByBooklet,
+  useMedicationsByBooklet,
+  usePendingLabs,
+  useCreateEntry,
+  useCreateMedication,
+} from "../src/hooks";
+
+// Queries - automatically cache and refetch
+const { data: booklets = [], isLoading } = useBookletsByDoctor(doctorId);
+const { data: entries = [] } = useEntriesByBooklet(bookletId);
+
+// Mutations - for creating/updating data
+const createEntryMutation = useCreateEntry();
+
+// Using mutations with async/await
+const handleSave = async () => {
+  try {
+    const newEntry = await createEntryMutation.mutateAsync({
+      bookletId,
+      doctorId,
+      entryType: "prenatal_checkup",
+      visitDate: new Date(),
+      notes: "...",
+    });
+    // React Query automatically invalidates related queries
+  } catch (error) {
+    Alert.alert("Error", "Failed to save");
+  }
+};
+```
+
+### API Layer Structure
+
+Mock APIs in `src/api/` simulate backend calls with delay:
+
+```
+src/api/
+├── client.ts           # Mock delay utilities
+├── booklets.api.ts     # Booklet CRUD operations
+├── medical.api.ts      # Entries & lab requests
+├── medications.api.ts  # Medication management
+└── index.ts            # Re-exports
+
+src/hooks/
+├── booklet/            # Booklet query & mutation hooks
+│   └── index.ts
+├── medical/            # Medical entries & lab request hooks
+│   └── index.ts
+├── medication/         # Medication query & mutation hooks
+│   └── index.ts
+└── index.ts            # Re-exports all hooks
+```
+
+When transitioning to a real backend, only the API implementations need to change - the hooks and components remain the same.
 
 ### NativeWind Setup
 

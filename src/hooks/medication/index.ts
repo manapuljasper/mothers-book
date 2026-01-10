@@ -1,0 +1,164 @@
+/**
+ * Medication React Query Hooks
+ *
+ * Query and mutation hooks for medication operations.
+ */
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as api from '../../api';
+import type { Medication, IntakeStatus } from '../../types';
+
+// Query keys for cache management
+export const medicationKeys = {
+  all: ['medications'] as const,
+  lists: () => [...medicationKeys.all, 'list'] as const,
+  listByBooklet: (bookletId: string) => [...medicationKeys.lists(), 'booklet', bookletId] as const,
+  listByEntry: (entryId: string) => [...medicationKeys.lists(), 'entry', entryId] as const,
+  active: (bookletId?: string) => [...medicationKeys.all, 'active', bookletId] as const,
+  today: (bookletId?: string) => [...medicationKeys.all, 'today', bookletId] as const,
+  details: () => [...medicationKeys.all, 'detail'] as const,
+  detail: (id: string) => [...medicationKeys.details(), id] as const,
+  adherence: (id: string, days?: number) => [...medicationKeys.all, 'adherence', id, days] as const,
+};
+
+// Query hooks
+
+export function useMedicationsByBooklet(bookletId: string | undefined) {
+  return useQuery({
+    queryKey: medicationKeys.listByBooklet(bookletId || ''),
+    queryFn: () => api.getMedicationsByBooklet(bookletId!),
+    enabled: !!bookletId,
+  });
+}
+
+export function useMedicationsByEntry(entryId: string | undefined) {
+  return useQuery({
+    queryKey: medicationKeys.listByEntry(entryId || ''),
+    queryFn: () => api.getMedicationsByEntry(entryId!),
+    enabled: !!entryId,
+  });
+}
+
+export function useActiveMedications(bookletId?: string) {
+  return useQuery({
+    queryKey: medicationKeys.active(bookletId),
+    queryFn: () => api.getActiveMedications(bookletId),
+  });
+}
+
+export function useTodayMedications(bookletId?: string) {
+  return useQuery({
+    queryKey: medicationKeys.today(bookletId),
+    queryFn: () => api.getTodayMedications(bookletId),
+  });
+}
+
+export function useMedicationById(id: string | undefined) {
+  return useQuery({
+    queryKey: medicationKeys.detail(id || ''),
+    queryFn: () => api.getMedicationById(id!),
+    enabled: !!id,
+  });
+}
+
+export function useMedicationAdherence(medicationId: string | undefined, days: number = 7) {
+  return useQuery({
+    queryKey: medicationKeys.adherence(medicationId || '', days),
+    queryFn: () => api.getMedicationAdherence(medicationId!, days),
+    enabled: !!medicationId,
+  });
+}
+
+// Mutation hooks
+
+export function useCreateMedication() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Omit<Medication, 'id' | 'createdAt'>) => api.createMedication(data),
+    onSuccess: (newMed) => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.listByBooklet(newMed.bookletId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.listByEntry(newMed.medicalEntryId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.active(newMed.bookletId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.today(newMed.bookletId),
+      });
+      // Set new medication in cache
+      queryClient.setQueryData(medicationKeys.detail(newMed.id), newMed);
+    },
+  });
+}
+
+export function useUpdateMedication() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Medication> }) =>
+      api.updateMedication(id, updates),
+    onSuccess: (updatedMed) => {
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.listByBooklet(updatedMed.bookletId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.listByEntry(updatedMed.medicalEntryId),
+      });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
+      queryClient.setQueryData(medicationKeys.detail(updatedMed.id), updatedMed);
+    },
+  });
+}
+
+export function useDeactivateMedication() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.deactivateMedication(id),
+    onSuccess: (deactivatedMed) => {
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.listByBooklet(deactivatedMed.bookletId),
+      });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
+      queryClient.setQueryData(medicationKeys.detail(deactivatedMed.id), deactivatedMed);
+    },
+  });
+}
+
+export function useLogIntake() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      medicationId,
+      doseIndex,
+      status,
+      userId,
+      date,
+    }: {
+      medicationId: string;
+      doseIndex: number;
+      status: IntakeStatus;
+      userId: string;
+      date?: Date;
+    }) => api.logIntake(medicationId, doseIndex, status, userId, date),
+    onSuccess: (log) => {
+      // Invalidate medication queries to refresh intake logs
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.listByBooklet(log.bookletId),
+      });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.adherence(log.medicationId),
+      });
+    },
+  });
+}

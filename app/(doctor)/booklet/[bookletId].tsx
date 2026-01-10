@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import type { TextInput as RNTextInput } from "react-native";
-import { View, Text, ScrollView, Pressable, TextInput, Modal, Alert, Image } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, Modal, Alert, Image, ActivityIndicator } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,12 +17,7 @@ import {
   Camera,
   ImageIcon,
 } from "lucide-react-native";
-import {
-  useAuthStore,
-  useBookletStore,
-  useMedicalStore,
-  useMedicationStore,
-} from "../../../src/stores";
+import { useAuthStore } from "../../../src/stores";
 import { formatDate } from "../../../src/utils";
 import {
   ENTRY_TYPE_LABELS,
@@ -30,6 +25,17 @@ import {
   EntryType,
 } from "../../../src/types";
 import { CardPressable, AnimatedCollapsible } from "../../../src/components/ui";
+import {
+  useBookletsByDoctor,
+  useEntriesByBooklet,
+  useLabsByEntry,
+  useLabsByBooklet,
+  usePendingLabs,
+  useMedicationsByBooklet,
+  useCreateEntry,
+  useCreateMedication,
+  useCreateLabRequest,
+} from "../../../src/hooks";
 
 const DOSAGE_UNITS = ["mg", "mcg", "g", "mL", "IU", "tablet", "capsule"] as const;
 type DosageUnit = typeof DOSAGE_UNITS[number];
@@ -46,7 +52,7 @@ interface PendingMedication {
 interface PendingLab {
   id: string;
   description: string;
-  notes: string;
+  notes?: string;
 }
 
 export default function DoctorBookletDetailScreen() {
@@ -54,19 +60,25 @@ export default function DoctorBookletDetailScreen() {
   const router = useRouter();
 
   const { doctorProfile } = useAuthStore();
-  const { getBookletsByDoctor } = useBookletStore();
-  const { getEntriesByBooklet, getLabsByEntry, addEntry, addLabRequest } =
-    useMedicalStore();
-  const { getMedicationsByBooklet, addMedication } = useMedicationStore();
+
+  // React Query hooks for data fetching
+  const { data: doctorBooklets = [], isLoading: isLoadingBooklets } =
+    useBookletsByDoctor(doctorProfile?.id);
+  const { data: entries = [], isLoading: isLoadingEntries } =
+    useEntriesByBooklet(bookletId);
+  const { data: allMedications = [], isLoading: isLoadingMedications } =
+    useMedicationsByBooklet(bookletId);
+  const { data: bookletPendingLabs = [] } = usePendingLabs(bookletId);
+
+  // Mutation hooks
+  const createEntryMutation = useCreateEntry();
+  const createMedicationMutation = useCreateMedication();
+  const createLabRequestMutation = useCreateLabRequest();
 
   // Get booklet with mother info
-  const doctorBooklets = doctorProfile
-    ? getBookletsByDoctor(doctorProfile.id)
-    : [];
   const booklet = doctorBooklets.find((b) => b.id === bookletId);
 
-  const entries = getEntriesByBooklet(bookletId);
-  const allMedications = getMedicationsByBooklet(bookletId);
+  const isLoading = isLoadingBooklets || isLoadingEntries || isLoadingMedications;
 
   // Get sorted unique dates from entries
   const visitDates = useMemo(() => {
@@ -245,6 +257,19 @@ export default function DoctorBookletDetailScreen() {
     );
   }, [entries, selectedDate]);
 
+  // Fetch labs for the selected entry
+  const { data: selectedEntryLabs = [] } = useLabsByEntry(selectedEntry?.id);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text className="text-gray-400 mt-2">Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
   if (!booklet || !doctorProfile) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
@@ -254,9 +279,6 @@ export default function DoctorBookletDetailScreen() {
   }
 
   const activeMeds = allMedications.filter((m) => m.isActive);
-  const bookletPendingLabs = getLabsByEntry("").filter(
-    (l) => l.bookletId === bookletId && l.status === "pending"
-  );
 
   const getMedsForEntry = (entryId: string) => {
     return allMedications.filter((m) => m.medicalEntryId === entryId);
@@ -304,8 +326,8 @@ export default function DoctorBookletDetailScreen() {
     );
   };
 
-  // Actually save the entry
-  const saveEntry = () => {
+  // Actually save the entry using mutations
+  const saveEntry = async () => {
     const vitals: Record<string, string | number | undefined> = {};
     if (entryForm.bpSystolic && entryForm.bpDiastolic) {
       vitals.bloodPressure = `${entryForm.bpSystolic}/${entryForm.bpDiastolic}`;
@@ -317,49 +339,58 @@ export default function DoctorBookletDetailScreen() {
       vitals.fundalHeight = parseFloat(entryForm.fundalHeight);
     if (entryForm.aog) vitals.aog = entryForm.aog;
 
-    // Create the entry and get its ID
-    const entryId = addEntry({
-      bookletId,
-      doctorId: doctorProfile.id,
-      entryType: entryForm.entryType,
-      visitDate: new Date(),
-      notes: entryForm.notes,
-      diagnosis: entryForm.diagnosis || undefined,
-      recommendations: entryForm.recommendations || undefined,
-      vitals: Object.keys(vitals).length > 0 ? vitals : undefined,
-      attachments: attachments.length > 0 ? attachments : undefined,
-    });
-
-    // Create all pending medications linked to this entry
-    pendingMeds.forEach((med) => {
-      addMedication({
-        medicalEntryId: entryId,
+    try {
+      // Create the entry using mutation and get the result
+      const newEntry = await createEntryMutation.mutateAsync({
         bookletId,
-        createdByDoctorId: doctorProfile.id,
-        name: med.name,
-        dosage: `${med.dosageAmount} ${med.dosageUnit}`,
-        instructions: med.instructions,
-        startDate: new Date(),
-        frequencyPerDay: parseInt(med.frequencyPerDay) as 1 | 2 | 3 | 4,
-        isActive: true,
+        doctorId: doctorProfile.id,
+        entryType: entryForm.entryType,
+        visitDate: new Date(),
+        notes: entryForm.notes,
+        diagnosis: entryForm.diagnosis || undefined,
+        recommendations: entryForm.recommendations || undefined,
+        vitals: Object.keys(vitals).length > 0 ? vitals : undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
-    });
 
-    // Create all pending lab requests linked to this entry
-    pendingLabs.forEach((lab) => {
-      addLabRequest({
-        medicalEntryId: entryId,
-        bookletId,
-        description: lab.description,
-        status: "pending",
-        requestedDate: new Date(),
-        notes: lab.notes || undefined,
-      });
-    });
+      // Create all pending medications linked to this entry
+      await Promise.all(
+        pendingMeds.map((med) =>
+          createMedicationMutation.mutateAsync({
+            medicalEntryId: newEntry.id,
+            bookletId,
+            createdByDoctorId: doctorProfile.id,
+            name: med.name,
+            dosage: `${med.dosageAmount} ${med.dosageUnit}`,
+            instructions: med.instructions,
+            startDate: new Date(),
+            frequencyPerDay: parseInt(med.frequencyPerDay) as 1 | 2 | 3 | 4,
+            isActive: true,
+          })
+        )
+      );
 
-    // Reset form and close modal
-    resetForm();
-    setShowEntryModal(false);
+      // Create all pending lab requests linked to this entry
+      await Promise.all(
+        pendingLabs.map((lab) =>
+          createLabRequestMutation.mutateAsync({
+            medicalEntryId: newEntry.id,
+            bookletId,
+            description: lab.description,
+            status: "pending",
+            requestedDate: new Date(),
+            notes: lab.notes || undefined,
+          })
+        )
+      );
+
+      // Reset form and close modal
+      resetForm();
+      setShowEntryModal(false);
+    } catch (error) {
+      Alert.alert("Error", "Failed to save entry. Please try again.");
+      console.error("Save entry error:", error);
+    }
   };
 
   return (
@@ -656,7 +687,7 @@ export default function DoctorBookletDetailScreen() {
                   )}
 
                   {/* Labs */}
-                  {getLabsByEntry(selectedEntry.id).length > 0 && (
+                  {selectedEntryLabs.length > 0 && (
                     <View className="mt-3 pt-3 border-t border-gray-100">
                       <Pressable
                         onPress={() => setLabsExpanded(!labsExpanded)}
@@ -664,7 +695,7 @@ export default function DoctorBookletDetailScreen() {
                       >
                         <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                           Lab Requests (
-                          {getLabsByEntry(selectedEntry.id).length})
+                          {selectedEntryLabs.length})
                         </Text>
                         {labsExpanded ? (
                           <ChevronUp
@@ -682,7 +713,7 @@ export default function DoctorBookletDetailScreen() {
                       </Pressable>
                       <AnimatedCollapsible expanded={labsExpanded}>
                         <View className="pt-2">
-                          {getLabsByEntry(selectedEntry.id).map((lab) => (
+                          {selectedEntryLabs.map((lab) => (
                             <View
                               key={lab.id}
                               className="border border-gray-100 rounded-lg p-3 mb-2"
