@@ -7,6 +7,15 @@
 import { supabase } from "../lib/supabase";
 import type { User, UserRole, DoctorProfile, MotherProfile } from "../types";
 
+/**
+ * Retry configuration for profile fetching
+ */
+const PROFILE_FETCH_CONFIG = {
+  maxAttempts: 10,
+  initialDelayMs: 100,
+  maxDelayMs: 2000,
+};
+
 export interface AuthResult {
   success: boolean;
   error?: string;
@@ -24,6 +33,44 @@ export interface UserProfileData {
   role: UserRole | null;
   doctorProfile: DoctorProfile | null;
   motherProfile: MotherProfile | null;
+}
+
+/**
+ * Wait for profile to be created by database trigger with exponential backoff
+ * Returns the profile data once it exists, or null if max attempts exceeded
+ */
+async function waitForProfile(
+  userId: string,
+  email: string
+): Promise<UserProfileData> {
+  const { maxAttempts, initialDelayMs, maxDelayMs } = PROFILE_FETCH_CONFIG;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const profileData = await fetchUserProfile(userId, email);
+
+    if (profileData.user) {
+      console.log(
+        `[Auth] Profile found on attempt ${attempt} for userId:`,
+        userId
+      );
+      return profileData;
+    }
+
+    if (attempt < maxAttempts) {
+      // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms, 2000ms (capped)
+      const delay = Math.min(initialDelayMs * Math.pow(2, attempt - 1), maxDelayMs);
+      console.log(
+        `[Auth] Profile not found, retrying in ${delay}ms (attempt ${attempt}/${maxAttempts})`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  console.warn(
+    `[Auth] Profile not found after ${maxAttempts} attempts for userId:`,
+    userId
+  );
+  return { user: null, role: null, doctorProfile: null, motherProfile: null };
 }
 
 /**
@@ -229,6 +276,8 @@ export async function signUp(
   extraData: Record<string, unknown> = {}
 ): Promise<SignInResult> {
   try {
+    console.log("[Auth] Signing up user:", email);
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -242,6 +291,7 @@ export async function signUp(
     });
 
     if (error) {
+      console.error("[Auth] Sign up error:", error.message);
       return { success: false, error: error.message };
     }
 
@@ -249,28 +299,24 @@ export async function signUp(
       return { success: false, error: "No user returned from sign up" };
     }
 
-    // Wait for database trigger to create profile
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    console.log("[Auth] User created, waiting for profile:", data.user.id);
 
-    const profileData = await fetchUserProfile(
+    // Wait for the database trigger to create the profile with retry logic
+    const profileData = await waitForProfile(
       data.user.id,
       data.user.email || email
     );
 
     if (!profileData.user) {
-      // Profile might not exist yet if trigger failed
-      // Return partial success - user is created but profile needs to be set up
+      // Profile creation failed after all retries
+      // Return error so user knows to try again
+      console.error(
+        "[Auth] Profile not created after retries for user:",
+        data.user.id
+      );
       return {
-        success: true,
-        user: {
-          id: data.user.id,
-          email: data.user.email || email,
-          role: role,
-          createdAt: new Date(),
-        },
-        role: role,
-        doctorProfile: null,
-        motherProfile: null,
+        success: false,
+        error: "Account created but profile setup failed. Please try signing in.",
       };
     }
 
@@ -282,7 +328,7 @@ export async function signUp(
       motherProfile: profileData.motherProfile,
     };
   } catch (error) {
-    console.error("Sign up error:", error);
+    console.error("[Auth] Sign up unexpected error:", error);
     return { success: false, error: "An unexpected error occurred" };
   }
 }
