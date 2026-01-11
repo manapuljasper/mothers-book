@@ -5,7 +5,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { ChevronLeft, ChevronDown, ChevronUp, FlaskConical, Paperclip, Pill, History } from "lucide-react-native";
+import { ChevronLeft, ChevronDown, ChevronUp, FlaskConical, Paperclip, Pill } from "lucide-react-native";
 import {
   useBookletById,
   useBookletDoctors,
@@ -24,7 +24,7 @@ export default function BookletDetailScreen() {
   const insets = useSafeAreaInsets();
 
   const { data: booklet, isLoading: bookletLoading } = useBookletById(bookletId);
-  const { data: doctors = [], isLoading: doctorsLoading } = useBookletDoctors(bookletId);
+  const { data: doctors = [] } = useBookletDoctors(bookletId);
   const { data: entries = [], isLoading: entriesLoading } = useEntriesByBooklet(bookletId);
   const { data: allMedications = [], isLoading: medsLoading } = useMedicationsByBooklet(bookletId);
   const { data: allLabs = [] } = useLabsByBooklet(bookletId);
@@ -51,12 +51,11 @@ export default function BookletDetailScreen() {
     }
   }, [visitDates, selectedDate]);
 
-  // Collapsible sections state
+  // Collapsible sections state - default to collapsed
   const [medsExpanded, setMedsExpanded] = useState(true);
   const [labsExpanded, setLabsExpanded] = useState(true);
-  const [pendingLabsExpanded, setPendingLabsExpanded] = useState(true);
-  const [medHistoryExpanded, setMedHistoryExpanded] = useState(true);
-  const [labListExpanded, setLabListExpanded] = useState(true);
+  const [pendingLabsExpanded, setPendingLabsExpanded] = useState(false);
+  const [activeMedsExpanded, setActiveMedsExpanded] = useState(false);
 
   // Get entry for selected date
   const selectedEntry = useMemo(() => {
@@ -138,11 +137,23 @@ export default function BookletDetailScreen() {
           </View>
         </View>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - tappable to navigate to history */}
         <View className="flex-row px-4 -mt-4">
           <StatCard value={entries.length} label="Visits" color="pink" size="sm" />
-          <StatCard value={activeMeds.length} label="Active Meds" color="blue" size="sm" />
-          <StatCard value={doctors.length} label="Doctors" color="green" size="sm" />
+          <StatCard
+            value={allMedications.length}
+            label="Medications"
+            color="blue"
+            size="sm"
+            onPress={() => router.push(`/(mother)/booklet/${bookletId}/history`)}
+          />
+          <StatCard
+            value={allLabs.length}
+            label="Labs"
+            color="purple"
+            size="sm"
+            onPress={() => router.push(`/(mother)/booklet/${bookletId}/labs`)}
+          />
         </View>
 
         {/* Doctors with Access */}
@@ -169,28 +180,32 @@ export default function BookletDetailScreen() {
           </View>
         )}
 
-        {/* Pending Labs Section */}
-        {pendingLabs.length > 0 && (
-          <View className="px-6 mt-8">
-            <Pressable
-              onPress={() => setPendingLabsExpanded(!pendingLabsExpanded)}
-              className="flex-row justify-between items-center mb-3"
-            >
-              <View className="flex-row items-center">
-                <FlaskConical size={18} color="#f59e0b" strokeWidth={1.5} />
-                <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
-                  Pending Labs ({pendingLabs.length})
-                </Text>
-              </View>
-              {pendingLabsExpanded ? (
-                <ChevronUp size={20} color="#9ca3af" strokeWidth={1.5} />
+        {/* Pending Labs Section - collapsed by default */}
+        <View className="px-6 mt-6">
+          <Pressable
+            onPress={() => setPendingLabsExpanded(!pendingLabsExpanded)}
+            className="flex-row justify-between items-center mb-3"
+          >
+            <View className="flex-row items-center">
+              <FlaskConical size={18} color="#f59e0b" strokeWidth={1.5} />
+              <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
+                Pending Labs ({pendingLabs.length})
+              </Text>
+            </View>
+            {pendingLabsExpanded ? (
+              <ChevronUp size={20} color="#9ca3af" strokeWidth={1.5} />
+            ) : (
+              <ChevronDown size={20} color="#9ca3af" strokeWidth={1.5} />
+            )}
+          </Pressable>
+          <AnimatedCollapsible expanded={pendingLabsExpanded}>
+            <View>
+              {pendingLabs.length === 0 ? (
+                <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                  <Text className="text-gray-400 text-center text-sm">No pending labs</Text>
+                </View>
               ) : (
-                <ChevronDown size={20} color="#9ca3af" strokeWidth={1.5} />
-              )}
-            </Pressable>
-            <AnimatedCollapsible expanded={pendingLabsExpanded}>
-              <View>
-                {pendingLabs.map((lab) => (
+                pendingLabs.map((lab) => (
                   <View
                     key={lab.id}
                     className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
@@ -228,182 +243,76 @@ export default function BookletDetailScreen() {
                       </Text>
                     </Pressable>
                   </View>
-                ))}
-              </View>
-            </AnimatedCollapsible>
-          </View>
-        )}
+                ))
+              )}
+            </View>
+          </AnimatedCollapsible>
+        </View>
 
-        {/* Medication History Section */}
-        <View className="px-6 mt-8">
+        {/* Active Medications Section - collapsed by default */}
+        <View className="px-6 mt-4">
           <Pressable
-            onPress={() => setMedHistoryExpanded(!medHistoryExpanded)}
+            onPress={() => setActiveMedsExpanded(!activeMedsExpanded)}
             className="flex-row justify-between items-center mb-3"
           >
             <View className="flex-row items-center">
               <Pill size={18} color="#3b82f6" strokeWidth={1.5} />
               <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
-                Medication History ({allMedications.length})
+                Active Medications ({activeMeds.length})
               </Text>
             </View>
-            {medHistoryExpanded ? (
+            {activeMedsExpanded ? (
               <ChevronUp size={20} color="#9ca3af" strokeWidth={1.5} />
             ) : (
               <ChevronDown size={20} color="#9ca3af" strokeWidth={1.5} />
             )}
           </Pressable>
-          <AnimatedCollapsible expanded={medHistoryExpanded}>
-            {allMedications.length === 0 ? (
-              <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                <Text className="text-gray-400 text-center">No medications yet</Text>
-              </View>
-            ) : (
-              <View>
-                {allMedications.map((med) => {
-                  const isActive = med.isActive && (!med.endDate || new Date(med.endDate) >= new Date());
-                  return (
-                    <View
-                      key={med.id}
-                      className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                    >
-                      <View className="flex-row justify-between items-start">
-                        <View className="flex-1">
-                          <Text className="font-medium text-gray-900 dark:text-white">
-                            {med.name}
-                          </Text>
-                          <Text className="text-gray-400 text-sm">
-                            {med.dosage} • {med.frequencyPerDay}x daily
-                          </Text>
-                        </View>
-                        <View
-                          className={`px-2 py-1 rounded-full border ${
-                            isActive
-                              ? "border-green-400"
-                              : "border-gray-300 dark:border-gray-600"
-                          }`}
-                        >
-                          <Text
-                            className={`text-xs font-medium ${
-                              isActive
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-gray-500 dark:text-gray-400"
-                            }`}
-                          >
-                            {isActive ? "Active" : "Ended"}
-                          </Text>
-                        </View>
-                      </View>
-                      <View className="flex-row mt-2 flex-wrap">
-                        <Text className="text-gray-400 text-xs mr-3">
-                          Prescribed: {formatDate(med.startDate)}
-                        </Text>
-                        {med.endDate && (
-                          <Text className="text-gray-400 text-xs">
-                            Until: {formatDate(med.endDate)}
-                          </Text>
-                        )}
-                      </View>
-                      {med.instructions && (
-                        <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                          {med.instructions}
-                        </Text>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-          </AnimatedCollapsible>
-        </View>
-
-        {/* Lab List Section */}
-        <View className="px-6 mt-8">
-          <Pressable
-            onPress={() => setLabListExpanded(!labListExpanded)}
-            className="flex-row justify-between items-center mb-3"
-          >
-            <View className="flex-row items-center">
-              <History size={18} color="#8b5cf6" strokeWidth={1.5} />
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
-                Lab List ({allLabs.length})
-              </Text>
-            </View>
-            {labListExpanded ? (
-              <ChevronUp size={20} color="#9ca3af" strokeWidth={1.5} />
-            ) : (
-              <ChevronDown size={20} color="#9ca3af" strokeWidth={1.5} />
-            )}
-          </Pressable>
-          <AnimatedCollapsible expanded={labListExpanded}>
-            {allLabs.length === 0 ? (
-              <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                <Text className="text-gray-400 text-center">No lab requests yet</Text>
-              </View>
-            ) : (
-              <View>
-                {allLabs.map((lab) => (
+          <AnimatedCollapsible expanded={activeMedsExpanded}>
+            <View>
+              {activeMeds.length === 0 ? (
+                <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                  <Text className="text-gray-400 text-center text-sm">No active medications</Text>
+                </View>
+              ) : (
+                activeMeds.map((med) => (
                   <View
-                    key={lab.id}
+                    key={med.id}
                     className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
                   >
                     <View className="flex-row justify-between items-start">
                       <View className="flex-1">
                         <Text className="font-medium text-gray-900 dark:text-white">
-                          {lab.description}
+                          {med.name}
                         </Text>
-                        <Text className="text-gray-400 text-xs mt-1">
-                          Requested: {formatDate(lab.requestedDate)}
+                        <Text className="text-gray-400 text-sm">
+                          {med.dosage} • {med.frequencyPerDay}x daily
                         </Text>
                       </View>
-                      <View
-                        className={`px-2 py-1 rounded-full border ${
-                          lab.status === "completed"
-                            ? "border-green-400"
-                            : lab.status === "pending"
-                            ? "border-amber-400"
-                            : "border-gray-300 dark:border-gray-600"
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-medium ${
-                            lab.status === "completed"
-                              ? "text-green-600 dark:text-green-400"
-                              : lab.status === "pending"
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-gray-500 dark:text-gray-400"
-                          }`}
-                        >
-                          {LAB_STATUS_LABELS[lab.status]}
+                      <View className="px-2 py-1 rounded-full border border-green-400">
+                        <Text className="text-xs font-medium text-green-600 dark:text-green-400">
+                          Active
                         </Text>
                       </View>
                     </View>
-                    {lab.notes && (
+                    <View className="flex-row mt-2 flex-wrap">
+                      <Text className="text-gray-400 text-xs mr-3">
+                        Started: {formatDate(med.startDate)}
+                      </Text>
+                      {med.endDate && (
+                        <Text className="text-gray-400 text-xs">
+                          Until: {formatDate(med.endDate)}
+                        </Text>
+                      )}
+                    </View>
+                    {med.instructions && (
                       <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                        {lab.notes}
+                        {med.instructions}
                       </Text>
                     )}
-                    {lab.results && (
-                      <Text className="text-green-600 dark:text-green-400 text-sm mt-2">
-                        <Text className="font-medium">Results: </Text>
-                        {lab.results}
-                      </Text>
-                    )}
-                    {/* Add Attachment Button (UI only) */}
-                    <Pressable
-                      onPress={() => {
-                        // Attachment functionality not implemented yet
-                      }}
-                      className="flex-row items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700"
-                    >
-                      <Paperclip size={14} color="#ec4899" strokeWidth={1.5} />
-                      <Text className="text-pink-500 text-sm font-medium ml-2">
-                        Add Attachment
-                      </Text>
-                    </Pressable>
                   </View>
-                ))}
-              </View>
-            )}
+                ))
+              )}
+            </View>
           </AnimatedCollapsible>
         </View>
 

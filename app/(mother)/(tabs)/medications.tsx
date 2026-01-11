@@ -1,25 +1,32 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, Alert } from "react-native";
+import { useAuthStore } from "@/stores";
 import {
-  useAuthStore,
-  useBookletStore,
-  useMedicationStore,
-} from "../../../src/stores";
-import { FREQUENCY_LABELS } from "../../../src/types";
-import { AnimatedView, DoseButton } from "../../../src/components/ui";
+  useBookletsByMother,
+  useActiveMedications,
+  useLogIntake,
+} from "@/hooks";
+import { FREQUENCY_LABELS } from "@/types";
+import { AnimatedView, DoseButton } from "@/components/ui";
 
 export default function MedicationsScreen() {
   const { motherProfile, currentUser } = useAuthStore();
-  const { getBookletsByMother } = useBookletStore();
-  const { getActiveMedications, logIntake } = useMedicationStore();
 
-  const booklets = motherProfile ? getBookletsByMother(motherProfile.id) : [];
+  const { data: booklets = [], isLoading: bookletLoading } =
+    useBookletsByMother(motherProfile?.id);
+  const { data: allActiveMedications = [], isLoading: medsLoading } =
+    useActiveMedications();
+  const logIntakeMutation = useLogIntake();
+
+  const isLoading = bookletLoading || medsLoading;
+
   const bookletIds = booklets.map((b) => b.id);
 
-  const activeMedications = getActiveMedications().filter((m) =>
+  // Filter medications to only those belonging to this mother's booklets
+  const activeMedications = allActiveMedications.filter((m) =>
     bookletIds.includes(m.bookletId)
   );
 
-  const handleToggleDose = (
+  const handleToggleDose = async (
     medicationId: string,
     doseIndex: number,
     currentStatus: string
@@ -27,8 +34,26 @@ export default function MedicationsScreen() {
     if (!currentUser) return;
 
     const newStatus = currentStatus === "taken" ? "missed" : "taken";
-    logIntake(medicationId, doseIndex, newStatus, currentUser.id);
+    try {
+      await logIntakeMutation.mutateAsync({
+        medicationId,
+        doseIndex,
+        status: newStatus,
+        userId: currentUser.id,
+      });
+    } catch (error) {
+      // UI already rolled back via optimistic update onError
+      Alert.alert("Error", "Failed to update medication status");
+    }
   };
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#ec4899" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900 px-6 py-4">
@@ -47,11 +72,10 @@ export default function MedicationsScreen() {
           </Text>
         </AnimatedView>
       ) : (
-        activeMedications.map((med, medIndex) => {
+        activeMedications.map((med) => {
           const booklet = booklets.find((b) => b.id === med.bookletId);
-          const takenCount = med.todayLogs.filter(
-            (l) => l.status === "taken"
-          ).length;
+          const takenCount =
+            med.todayLogs?.filter((l) => l.status === "taken").length || 0;
           const isComplete = takenCount === med.frequencyPerDay;
 
           return (
@@ -94,14 +118,16 @@ export default function MedicationsScreen() {
               </View>
 
               {/* Instructions */}
-              <Text className="text-gray-500 dark:text-gray-400 text-sm mb-4">
-                {med.instructions}
-              </Text>
+              {med.instructions && (
+                <Text className="text-gray-500 dark:text-gray-400 text-sm mb-4">
+                  {med.instructions}
+                </Text>
+              )}
 
               {/* Dose Tracker with animated buttons */}
               <View className="flex-row border-t border-gray-100 dark:border-gray-700 pt-3">
                 {Array.from({ length: med.frequencyPerDay }).map((_, index) => {
-                  const log = med.todayLogs.find((l) => l.doseIndex === index);
+                  const log = med.todayLogs?.find((l) => l.doseIndex === index);
                   const isTaken = log?.status === "taken";
                   const time = med.timesOfDay?.[index] || `Dose ${index + 1}`;
 
@@ -125,7 +151,7 @@ export default function MedicationsScreen() {
                     {FREQUENCY_LABELS[med.frequencyPerDay]}
                   </Text>
                   <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                    {med.adherenceRate}% adherence (7 days)
+                    {med.adherenceRate || 0}% adherence (7 days)
                   </Text>
                 </View>
               </View>

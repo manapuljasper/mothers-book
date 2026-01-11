@@ -2,7 +2,7 @@ import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { QrCode, Calendar, Users } from "lucide-react-native";
 import { useAuthStore } from "../../../src/stores";
-import { useBookletsByDoctor, usePendingLabs } from "../../../src/hooks";
+import { useBookletsByDoctor } from "../../../src/hooks";
 import { formatRelativeDate } from "../../../src/utils";
 import { CardPressable, EmptyState } from "../../../src/components/ui";
 
@@ -10,10 +10,7 @@ export default function DoctorDashboard() {
   const router = useRouter();
   const { currentUser, doctorProfile } = useAuthStore();
 
-  const { data: patientBooklets = [], isLoading: bookletsLoading } = useBookletsByDoctor(doctorProfile?.id);
-  const { data: pendingLabs = [], isLoading: labsLoading } = usePendingLabs();
-
-  const isLoading = bookletsLoading || labsLoading;
+  const { data: patientBooklets = [], isLoading } = useBookletsByDoctor(doctorProfile?.id);
 
   // Get upcoming appointments
   const upcomingAppointments = patientBooklets
@@ -44,12 +41,6 @@ export default function DoctorDashboard() {
             {patientBooklets.length}
           </Text>
           <Text className="text-gray-400 text-sm">Active Patients</Text>
-        </View>
-        <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 mx-2 border border-gray-100 dark:border-gray-700">
-          <Text className="text-3xl font-bold text-amber-500">
-            {pendingLabs.length}
-          </Text>
-          <Text className="text-gray-400 text-sm">Pending Labs</Text>
         </View>
       </View>
 

@@ -30,7 +30,7 @@ import {
   useBookletsByDoctor,
   useEntriesByBooklet,
   useLabsByEntry,
-  usePendingLabs,
+  useLabsByBooklet,
   useMedicationsByBooklet,
   useCreateEntry,
   useCreateMedication,
@@ -53,7 +53,7 @@ export default function DoctorBookletDetailScreen() {
     useEntriesByBooklet(bookletId);
   const { data: allMedications = [], isLoading: isLoadingMedications } =
     useMedicationsByBooklet(bookletId);
-  const { data: bookletPendingLabs = [] } = usePendingLabs(bookletId);
+  const { data: allLabs = [] } = useLabsByBooklet(bookletId);
 
   // Mutation hooks
   const createEntryMutation = useCreateEntry();
@@ -303,7 +303,7 @@ export default function DoctorBookletDetailScreen() {
           </View>
         </View>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - tappable to navigate to history */}
         <View className="flex-row px-4 -mt-4">
           <StatCard
             value={entries.length}
@@ -312,16 +312,18 @@ export default function DoctorBookletDetailScreen() {
             size="sm"
           />
           <StatCard
-            value={activeMeds.length}
-            label="Active Meds"
+            value={allMedications.length}
+            label="Medications"
             color="green"
             size="sm"
+            onPress={() => router.push(`/(doctor)/booklet/${bookletId}/history`)}
           />
           <StatCard
-            value={bookletPendingLabs.length}
-            label="Pending Labs"
-            color="amber"
+            value={allLabs.length}
+            label="Labs"
+            color="purple"
             size="sm"
+            onPress={() => router.push(`/(doctor)/booklet/${bookletId}/labs`)}
           />
         </View>
 

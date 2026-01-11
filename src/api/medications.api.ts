@@ -4,14 +4,15 @@
  * Supabase API endpoints for medication operations.
  */
 
-import { supabase, handleSupabaseError } from './client';
-import { getStartOfDay, isToday } from '../utils/date.utils';
+import { supabase, handleSupabaseError } from "./client";
+import { getStartOfDay, isToday } from "../utils/date.utils";
 import type {
   Medication,
   MedicationIntakeLog,
   MedicationWithLogs,
   IntakeStatus,
-} from '../types';
+} from "../types";
+import dayjs from "dayjs";
 
 // Helper function to calculate adherence rate
 function calculateAdherence(
@@ -24,7 +25,8 @@ function calculateAdherence(
   startDate.setDate(startDate.getDate() - days);
 
   const medStartDate = new Date(medication.startDate);
-  const effectiveStartDate = medStartDate > startDate ? medStartDate : startDate;
+  const effectiveStartDate =
+    medStartDate > startDate ? medStartDate : startDate;
 
   const daysDiff = Math.ceil(
     (today.getTime() - effectiveStartDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -36,7 +38,9 @@ function calculateAdherence(
 
   const takenDoses = logs.filter((l) => {
     const logDate = new Date(l.scheduledDate);
-    return l.status === 'taken' && logDate >= effectiveStartDate && logDate <= today;
+    return (
+      l.status === "taken" && logDate >= effectiveStartDate && logDate <= today
+    );
   }).length;
 
   return Math.round((takenDoses / expectedDoses) * 100);
@@ -48,6 +52,9 @@ function enrichMedicationWithLogs(
   allLogs: MedicationIntakeLog[]
 ): MedicationWithLogs {
   const logs = allLogs.filter((l) => l.medicationId === medication.id);
+
+  console.log("Logs!: ", isToday(logs?.[0]?.scheduledDate));
+
   const todayLogs = logs.filter((l) => isToday(new Date(l.scheduledDate)));
 
   return {
@@ -59,13 +66,15 @@ function enrichMedicationWithLogs(
 }
 
 // GET /medications?bookletId=:bookletId
-export async function getMedicationsByBooklet(bookletId: string): Promise<MedicationWithLogs[]> {
+export async function getMedicationsByBooklet(
+  bookletId: string
+): Promise<MedicationWithLogs[]> {
   // Direct query on booklet_id
   const { data: medications, error } = await supabase
-    .from('medications')
-    .select('*')
-    .eq('booklet_id', bookletId)
-    .order('created_at', { ascending: false });
+    .from("medications")
+    .select("*")
+    .eq("booklet_id", bookletId)
+    .order("created_at", { ascending: false });
 
   if (error) handleSupabaseError(error);
 
@@ -74,9 +83,9 @@ export async function getMedicationsByBooklet(bookletId: string): Promise<Medica
   // Get intake logs for these medications
   const medIds = medications.map((m) => m.id);
   const { data: logs } = await supabase
-    .from('medication_intake_logs')
-    .select('*')
-    .in('medication_id', medIds);
+    .from("medication_intake_logs")
+    .select("*")
+    .in("medication_id", medIds);
 
   const mappedMeds = medications.map(mapMedication);
   const mappedLogs = (logs || []).map(mapIntakeLog);
@@ -85,15 +94,17 @@ export async function getMedicationsByBooklet(bookletId: string): Promise<Medica
 }
 
 // GET /medications/active?bookletId=:bookletId
-export async function getActiveMedications(bookletId?: string): Promise<MedicationWithLogs[]> {
+export async function getActiveMedications(
+  bookletId?: string
+): Promise<MedicationWithLogs[]> {
   let query = supabase
-    .from('medications')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
+    .from("medications")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
 
   if (bookletId) {
-    query = query.eq('booklet_id', bookletId);
+    query = query.eq("booklet_id", bookletId);
   }
 
   const { data: medications, error } = await query;
@@ -105,31 +116,37 @@ export async function getActiveMedications(bookletId?: string): Promise<Medicati
   // Get intake logs for these medications
   const medIds = medications.map((m) => m.id);
   const { data: logs } = await supabase
-    .from('medication_intake_logs')
-    .select('*')
-    .in('medication_id', medIds);
+    .from("medication_intake_logs")
+    .select("*")
+    .in("medication_id", medIds);
 
   const mappedMeds = medications.map(mapMedication);
   const mappedLogs = (logs || []).map(mapIntakeLog);
+
+  console.log("activeMedications: ", mappedLogs);
 
   return mappedMeds.map((m) => enrichMedicationWithLogs(m, mappedLogs));
 }
 
 // GET /medications/today?bookletId=:bookletId
-export async function getTodayMedications(bookletId?: string): Promise<MedicationWithLogs[]> {
+export async function getTodayMedications(
+  bookletId?: string
+): Promise<MedicationWithLogs[]> {
   return getActiveMedications(bookletId);
 }
 
 // GET /medications/:id
-export async function getMedicationById(id: string): Promise<Medication | null> {
+export async function getMedicationById(
+  id: string
+): Promise<Medication | null> {
   const { data, error } = await supabase
-    .from('medications')
-    .select('*')
-    .eq('id', id)
+    .from("medications")
+    .select("*")
+    .eq("id", id)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     handleSupabaseError(error);
   }
 
@@ -137,11 +154,13 @@ export async function getMedicationById(id: string): Promise<Medication | null> 
 }
 
 // GET /medications?entryId=:entryId
-export async function getMedicationsByEntry(entryId: string): Promise<Medication[]> {
+export async function getMedicationsByEntry(
+  entryId: string
+): Promise<Medication[]> {
   const { data, error } = await supabase
-    .from('medications')
-    .select('*')
-    .eq('medical_entry_id', entryId);
+    .from("medications")
+    .select("*")
+    .eq("medical_entry_id", entryId);
 
   if (error) handleSupabaseError(error);
 
@@ -150,10 +169,10 @@ export async function getMedicationsByEntry(entryId: string): Promise<Medication
 
 // POST /medications
 export async function createMedication(
-  medData: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'>
+  medData: Omit<Medication, "id" | "createdAt" | "updatedAt">
 ): Promise<Medication> {
   const { data, error } = await supabase
-    .from('medications')
+    .from("medications")
     .insert({
       booklet_id: medData.bookletId,
       medical_entry_id: medData.medicalEntryId || null,
@@ -162,8 +181,8 @@ export async function createMedication(
       instructions: medData.instructions,
       frequency_per_day: medData.frequencyPerDay,
       times_of_day: medData.timesOfDay,
-      start_date: medData.startDate.toISOString().split('T')[0],
-      end_date: medData.endDate?.toISOString().split('T')[0],
+      start_date: medData.startDate.toISOString().split("T")[0],
+      end_date: medData.endDate?.toISOString().split("T")[0],
       is_active: medData.isActive,
     })
     .select()
@@ -183,17 +202,22 @@ export async function updateMedication(
 
   if (updates.name !== undefined) updateData.name = updates.name;
   if (updates.dosage !== undefined) updateData.dosage = updates.dosage;
-  if (updates.instructions !== undefined) updateData.instructions = updates.instructions;
-  if (updates.frequencyPerDay !== undefined) updateData.frequency_per_day = updates.frequencyPerDay;
-  if (updates.timesOfDay !== undefined) updateData.times_of_day = updates.timesOfDay;
-  if (updates.startDate !== undefined) updateData.start_date = updates.startDate.toISOString().split('T')[0];
-  if (updates.endDate !== undefined) updateData.end_date = updates.endDate?.toISOString().split('T')[0];
+  if (updates.instructions !== undefined)
+    updateData.instructions = updates.instructions;
+  if (updates.frequencyPerDay !== undefined)
+    updateData.frequency_per_day = updates.frequencyPerDay;
+  if (updates.timesOfDay !== undefined)
+    updateData.times_of_day = updates.timesOfDay;
+  if (updates.startDate !== undefined)
+    updateData.start_date = updates.startDate.toISOString().split("T")[0];
+  if (updates.endDate !== undefined)
+    updateData.end_date = updates.endDate?.toISOString().split("T")[0];
   if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
 
   const { data, error } = await supabase
-    .from('medications')
+    .from("medications")
     .update(updateData)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -215,43 +239,47 @@ export async function logIntake(
   userId: string,
   date: Date = new Date()
 ): Promise<MedicationIntakeLog> {
-  const scheduledDate = getStartOfDay(date).toISOString().split('T')[0];
+  const scheduledDate = dayjs(date).format("YYYY-MM-DD");
 
   // Check if log already exists for this dose on this day
   const { data: existing } = await supabase
-    .from('medication_intake_logs')
-    .select('*')
-    .eq('medication_id', medicationId)
-    .eq('scheduled_date', scheduledDate)
-    .eq('dose_index', doseIndex)
+    .from("medication_intake_logs")
+    .select("*")
+    .eq("medication_id", medicationId)
+    .eq("scheduled_date", scheduledDate)
+    .eq("dose_index", doseIndex)
     .single();
 
   if (existing) {
+    console.log("Here", status, existing);
     // Update existing log
     const { data, error } = await supabase
-      .from('medication_intake_logs')
+      .from("medication_intake_logs")
       .update({
         status,
-        taken_at: status === 'taken' ? new Date().toISOString() : null,
+        taken_at: status === "taken" ? new Date().toISOString() : null,
       })
-      .eq('id', existing.id)
+      .eq("id", existing.id)
       .select()
       .single();
 
-    if (error) handleSupabaseError(error);
+    if (error) {
+      console.log("Error");
+      handleSupabaseError(error);
+    }
 
     return mapIntakeLog(data);
   }
 
   // Create new log
   const { data, error } = await supabase
-    .from('medication_intake_logs')
+    .from("medication_intake_logs")
     .insert({
       medication_id: medicationId,
       scheduled_date: scheduledDate,
       dose_index: doseIndex,
       status,
-      taken_at: status === 'taken' ? new Date().toISOString() : null,
+      taken_at: status === "taken" ? new Date().toISOString() : null,
       recorded_by_user_id: userId,
     })
     .select()
@@ -268,20 +296,20 @@ export async function getMedicationAdherence(
   days: number = 7
 ): Promise<number> {
   const { data: medication, error: medError } = await supabase
-    .from('medications')
-    .select('*')
-    .eq('id', medicationId)
+    .from("medications")
+    .select("*")
+    .eq("id", medicationId)
     .single();
 
   if (medError) {
-    if (medError.code === 'PGRST116') return 0;
+    if (medError.code === "PGRST116") return 0;
     handleSupabaseError(medError);
   }
 
   const { data: logs } = await supabase
-    .from('medication_intake_logs')
-    .select('*')
-    .eq('medication_id', medicationId);
+    .from("medication_intake_logs")
+    .select("*")
+    .eq("medication_id", medicationId);
 
   const mappedMed = mapMedication(medication);
   const mappedLogs = (logs || []).map(mapIntakeLog);
@@ -300,7 +328,7 @@ function mapMedication(row: Record<string, unknown>): Medication {
     instructions: row.instructions as string | undefined,
     startDate: new Date(row.start_date as string),
     endDate: row.end_date ? new Date(row.end_date as string) : undefined,
-    frequencyPerDay: row.frequency_per_day as Medication['frequencyPerDay'],
+    frequencyPerDay: row.frequency_per_day as Medication["frequencyPerDay"],
     timesOfDay: row.times_of_day as string[] | undefined,
     isActive: row.is_active as boolean,
     createdAt: new Date(row.created_at as string),
