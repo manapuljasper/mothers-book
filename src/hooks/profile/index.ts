@@ -1,87 +1,178 @@
 /**
- * Profile React Query Hooks
+ * Profile Convex Hooks
  *
- * Mutation hooks for updating user profiles.
+ * Mutation hooks for updating user profiles using Convex.
  */
 
-import { useMutation } from "@tanstack/react-query";
-import { updateDoctorProfile, updateMotherProfile } from "../../api/profile.api";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { useAuthStore } from "../../stores";
-import type { DoctorProfile, MotherProfile } from "../../types";
-
-// Query keys for cache management
-export const profileKeys = {
-  all: ["profile"] as const,
-  doctor: (id: string) => [...profileKeys.all, "doctor", id] as const,
-  mother: (id: string) => [...profileKeys.all, "mother", id] as const,
-};
-
-interface UpdateDoctorProfileInput {
-  fullName?: string;
-  contactNumber?: string;
-  prcNumber?: string;
-  clinicName?: string;
-  clinicAddress?: string;
-  specialization?: string;
-  clinicSchedule?: string;
-}
-
-interface UpdateMotherProfileInput {
-  fullName?: string;
-  contactNumber?: string;
-  birthdate?: Date;
-  address?: string;
-  emergencyContactName?: string;
-  emergencyContact?: string;
-  babyName?: string;
-}
 
 /**
  * Hook to update doctor profile
  */
 export function useUpdateDoctorProfile() {
-  const { doctorProfile, updateDoctorProfile: updateStoreProfile, updateUserFullName } =
+  const { updateDoctorProfile: updateStoreProfile, updateUserFullName } =
     useAuthStore();
+  const mutation = useMutation(api.users.updateDoctorProfile);
 
-  return useMutation({
-    mutationFn: async (data: UpdateDoctorProfileInput): Promise<DoctorProfile> => {
-      if (!doctorProfile) {
-        throw new Error("No doctor profile found");
-      }
-      return updateDoctorProfile(doctorProfile.id, doctorProfile.userId, data);
-    },
-    onSuccess: (updatedProfile, variables) => {
+  return {
+    mutate: async (args: {
+      doctorId: Id<"doctorProfiles">;
+      fullName?: string;
+      prcNumber?: string;
+      clinicName?: string;
+      clinicAddress?: string;
+      contactNumber?: string;
+      specialization?: string;
+      avatarUrl?: string;
+      clinicSchedule?: string;
+      latitude?: number;
+      longitude?: number;
+    }) => {
+      const result = await mutation(args);
+
       // Update the auth store with new profile data
-      updateStoreProfile(updatedProfile);
-      // Update user full name if it was changed
-      if (variables.fullName) {
-        updateUserFullName(variables.fullName);
+      if (result) {
+        updateStoreProfile({
+          id: result._id as unknown as string,
+          userId: result.userId as unknown as string,
+          prcNumber: result.prcNumber,
+          clinicName: result.clinicName,
+          clinicAddress: result.clinicAddress,
+          contactNumber: result.contactNumber,
+          specialization: result.specialization,
+          avatarUrl: result.avatarUrl,
+          clinicSchedule: result.clinicSchedule,
+          latitude: result.latitude,
+          longitude: result.longitude,
+        });
+
+        // Update user full name if it was changed
+        if (args.fullName) {
+          updateUserFullName(args.fullName);
+        }
       }
+
+      return result;
     },
-  });
+    mutateAsync: async (args: {
+      doctorId: Id<"doctorProfiles">;
+      fullName?: string;
+      prcNumber?: string;
+      clinicName?: string;
+      clinicAddress?: string;
+      contactNumber?: string;
+      specialization?: string;
+      avatarUrl?: string;
+      clinicSchedule?: string;
+      latitude?: number;
+      longitude?: number;
+    }) => {
+      const result = await mutation(args);
+
+      // Update the auth store with new profile data
+      if (result) {
+        updateStoreProfile({
+          id: result._id as unknown as string,
+          userId: result.userId as unknown as string,
+          prcNumber: result.prcNumber,
+          clinicName: result.clinicName,
+          clinicAddress: result.clinicAddress,
+          contactNumber: result.contactNumber,
+          specialization: result.specialization,
+          avatarUrl: result.avatarUrl,
+          clinicSchedule: result.clinicSchedule,
+          latitude: result.latitude,
+          longitude: result.longitude,
+        });
+
+        if (args.fullName) {
+          updateUserFullName(args.fullName);
+        }
+      }
+
+      return result;
+    },
+  };
 }
 
 /**
  * Hook to update mother profile
  */
 export function useUpdateMotherProfile() {
-  const { motherProfile, updateMotherProfile: updateStoreProfile, updateUserFullName } =
+  const { updateMotherProfile: updateStoreProfile, updateUserFullName } =
     useAuthStore();
+  const mutation = useMutation(api.users.updateMotherProfile);
 
-  return useMutation({
-    mutationFn: async (data: UpdateMotherProfileInput): Promise<MotherProfile> => {
-      if (!motherProfile) {
-        throw new Error("No mother profile found");
-      }
-      return updateMotherProfile(motherProfile.id, motherProfile.userId, data);
-    },
-    onSuccess: (updatedProfile, variables) => {
+  return {
+    mutate: async (args: {
+      motherId: Id<"motherProfiles">;
+      fullName?: string;
+      birthdate?: number;
+      contactNumber?: string;
+      address?: string;
+      emergencyContact?: string;
+      emergencyContactName?: string;
+      avatarUrl?: string;
+      babyName?: string;
+    }) => {
+      const result = await mutation(args);
+
       // Update the auth store with new profile data
-      updateStoreProfile(updatedProfile);
-      // Update user full name if it was changed
-      if (variables.fullName) {
-        updateUserFullName(variables.fullName);
+      if (result) {
+        updateStoreProfile({
+          id: result._id as unknown as string,
+          userId: result.userId as unknown as string,
+          birthdate: new Date(result.birthdate),
+          contactNumber: result.contactNumber,
+          address: result.address,
+          emergencyContact: result.emergencyContact,
+          emergencyContactName: result.emergencyContactName,
+          avatarUrl: result.avatarUrl,
+          babyName: result.babyName,
+        });
+
+        if (args.fullName) {
+          updateUserFullName(args.fullName);
+        }
       }
+
+      return result;
     },
-  });
+    mutateAsync: async (args: {
+      motherId: Id<"motherProfiles">;
+      fullName?: string;
+      birthdate?: number;
+      contactNumber?: string;
+      address?: string;
+      emergencyContact?: string;
+      emergencyContactName?: string;
+      avatarUrl?: string;
+      babyName?: string;
+    }) => {
+      const result = await mutation(args);
+
+      if (result) {
+        updateStoreProfile({
+          id: result._id as unknown as string,
+          userId: result.userId as unknown as string,
+          birthdate: new Date(result.birthdate),
+          contactNumber: result.contactNumber,
+          address: result.address,
+          emergencyContact: result.emergencyContact,
+          emergencyContactName: result.emergencyContactName,
+          avatarUrl: result.avatarUrl,
+          babyName: result.babyName,
+        });
+
+        if (args.fullName) {
+          updateUserFullName(args.fullName);
+        }
+      }
+
+      return result;
+    },
+  };
 }

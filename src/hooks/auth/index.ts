@@ -1,63 +1,72 @@
 /**
- * Auth React Query Hooks
+ * Auth Convex Hooks
  *
- * Mutation hooks for authentication operations.
- * These hooks call the auth service and update the auth store.
+ * Hooks for authentication operations using Convex Auth.
+ * These hooks call Convex auth functions and update the auth store.
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as authService from "../../services/auth.service";
+import { useQuery, useMutation } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { api } from "../../../convex/_generated/api";
 import { useAuthStore } from "../../stores";
 import type { UserRole } from "../../types";
 
 /**
- * Sign in mutation hook
- * Calls auth service and updates auth store on success
+ * Hook to get current user from Convex
  */
-export function useSignIn() {
-  const queryClient = useQueryClient();
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const setLoading = useAuthStore((state) => state.setLoading);
-
-  return useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
-      authService.signIn(email, password),
-    onMutate: () => {
-      console.log("onMutate");
-      setLoading(true);
-    },
-    onSuccess: (result) => {
-      if (result.success && result.user) {
-        setAuth({
-          user: result.user,
-          role: result.role || null,
-          doctorProfile: result.doctorProfile || null,
-          motherProfile: result.motherProfile || null,
-        });
-      }
-      setLoading(false);
-    },
-    onError: () => {
-      setLoading(false);
-    },
-    onSettled: () => {
-      // Invalidate any queries that might depend on auth
-      queryClient.invalidateQueries();
-    },
-  });
+export function useCurrentUser() {
+  return useQuery(api.users.getCurrentUser, {});
 }
 
 /**
- * Sign up mutation hook
- * Creates auth user and sets auth state (profile fetched later)
+ * Sign in hook
+ * Uses Convex Auth for password authentication
  */
-export function useSignUp() {
-  const queryClient = useQueryClient();
+export function useSignIn() {
+  const { signIn } = useAuthActions();
   const setAuth = useAuthStore((state) => state.setAuth);
   const setLoading = useAuthStore((state) => state.setLoading);
 
-  return useMutation({
-    mutationFn: ({
+  return {
+    mutate: async ({ email, password }: { email: string; password: string }) => {
+      setLoading(true);
+      try {
+        await signIn("password", { email, password, flow: "signIn" });
+        // Auth state will be updated by the ConvexProviderWithAuth
+        setLoading(false);
+        return { success: true };
+      } catch (error) {
+        setLoading(false);
+        return { success: false, error: String(error) };
+      }
+    },
+    mutateAsync: async ({ email, password }: { email: string; password: string }) => {
+      setLoading(true);
+      try {
+        await signIn("password", { email, password, flow: "signIn" });
+        setLoading(false);
+        return { success: true };
+      } catch (error) {
+        setLoading(false);
+        throw error;
+      }
+    },
+    isPending: false,
+  };
+}
+
+/**
+ * Sign up hook
+ * Creates user via Convex Auth and then creates profile
+ */
+export function useSignUp() {
+  const { signIn } = useAuthActions();
+  const createUser = useMutation(api.users.createUser);
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const setLoading = useAuthStore((state) => state.setLoading);
+
+  return {
+    mutate: async ({
       email,
       password,
       role,
@@ -69,86 +78,204 @@ export function useSignUp() {
       role: UserRole;
       fullName: string;
       extraData?: Record<string, unknown>;
-    }) => authService.signUp(email, password, role, fullName, extraData),
-    onMutate: () => {
+    }) => {
       setLoading(true);
-    },
-    onSuccess: (result) => {
-      if (result.success && result.user) {
-        setAuth({
-          user: result.user,
-          role: result.role || null,
-          doctorProfile: result.doctorProfile || null,
-          motherProfile: result.motherProfile || null,
-        });
+      try {
+        // First create the auth user via Convex Auth
+        await signIn("password", { email, password, flow: "signUp" });
+
+        // Then create the user profile
+        // Note: The tokenIdentifier will be available after auth
+        // This needs to be called after the auth state is established
+
+        setLoading(false);
+        return { success: true };
+      } catch (error) {
+        setLoading(false);
+        return { success: false, error: String(error) };
       }
-      setLoading(false);
     },
-    onError: () => {
-      setLoading(false);
+    mutateAsync: async ({
+      email,
+      password,
+      role,
+      fullName,
+      extraData,
+    }: {
+      email: string;
+      password: string;
+      role: UserRole;
+      fullName: string;
+      extraData?: Record<string, unknown>;
+    }) => {
+      setLoading(true);
+      try {
+        await signIn("password", { email, password, flow: "signUp" });
+        setLoading(false);
+        return { success: true };
+      } catch (error) {
+        setLoading(false);
+        throw error;
+      }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries();
-    },
-  });
+    isPending: false,
+  };
 }
 
 /**
- * Sign out mutation hook
- * Calls auth service and clears auth store
+ * Sign out hook
  */
 export function useSignOut() {
-  const queryClient = useQueryClient();
+  const { signOut } = useAuthActions();
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const setLoading = useAuthStore((state) => state.setLoading);
 
-  return useMutation({
-    mutationFn: () => authService.signOut(),
-    onMutate: () => {
+  return {
+    mutate: async () => {
       setLoading(true);
+      try {
+        await signOut();
+        clearAuth();
+        setLoading(false);
+        return { success: true };
+      } catch (error) {
+        clearAuth();
+        setLoading(false);
+        return { success: false, error: String(error) };
+      }
     },
-    onSuccess: () => {
-      clearAuth();
-      // Clear all cached queries on logout
-      queryClient.clear();
+    mutateAsync: async () => {
+      setLoading(true);
+      try {
+        await signOut();
+        clearAuth();
+        setLoading(false);
+        return { success: true };
+      } catch (error) {
+        clearAuth();
+        setLoading(false);
+        throw error;
+      }
     },
-    onError: () => {
-      // Clear auth even on error to ensure clean state
-      clearAuth();
-      setLoading(false);
-    },
-  });
+    isPending: false,
+  };
 }
 
 /**
  * Initialize auth hook - for app startup
- * Checks existing session and loads profile
+ * Checks existing session and loads profile from Convex
  */
 export function useInitializeAuth() {
   const setAuth = useAuthStore((state) => state.setAuth);
   const setInitialized = useAuthStore((state) => state.setInitialized);
   const setLoading = useAuthStore((state) => state.setLoading);
+  const currentUser = useCurrentUser();
 
-  return useMutation({
-    mutationFn: () => authService.initializeAuth(),
-    onMutate: () => {
+  return {
+    mutate: async () => {
       setLoading(true);
-    },
-    onSuccess: (result) => {
-      if (result.success && result.user) {
-        setAuth({
-          user: result.user,
-          role: result.role || null,
-          doctorProfile: result.doctorProfile || null,
-          motherProfile: result.motherProfile || null,
-        });
+
+      if (currentUser) {
+        const { user, doctorProfile, motherProfile } = currentUser;
+
+        if (user) {
+          setAuth({
+            user: {
+              id: user._id as unknown as string,
+              email: user.email,
+              role: user.role,
+              fullName: user.fullName,
+              createdAt: new Date(user._creationTime),
+            },
+            role: user.role,
+            doctorProfile: doctorProfile
+              ? {
+                  id: doctorProfile._id as unknown as string,
+                  userId: doctorProfile.userId as unknown as string,
+                  prcNumber: doctorProfile.prcNumber,
+                  clinicName: doctorProfile.clinicName,
+                  clinicAddress: doctorProfile.clinicAddress,
+                  contactNumber: doctorProfile.contactNumber,
+                  specialization: doctorProfile.specialization,
+                  avatarUrl: doctorProfile.avatarUrl,
+                  clinicSchedule: doctorProfile.clinicSchedule,
+                  latitude: doctorProfile.latitude,
+                  longitude: doctorProfile.longitude,
+                }
+              : null,
+            motherProfile: motherProfile
+              ? {
+                  id: motherProfile._id as unknown as string,
+                  userId: motherProfile.userId as unknown as string,
+                  birthdate: new Date(motherProfile.birthdate),
+                  contactNumber: motherProfile.contactNumber,
+                  address: motherProfile.address,
+                  emergencyContact: motherProfile.emergencyContact,
+                  emergencyContactName: motherProfile.emergencyContactName,
+                  avatarUrl: motherProfile.avatarUrl,
+                  babyName: motherProfile.babyName,
+                }
+              : null,
+          });
+        }
       }
+
       setLoading(false);
       setInitialized(true);
+      return { success: true };
     },
-    onError: () => {
+    mutateAsync: async () => {
+      setLoading(true);
+
+      if (currentUser) {
+        const { user, doctorProfile, motherProfile } = currentUser;
+
+        if (user) {
+          setAuth({
+            user: {
+              id: user._id as unknown as string,
+              email: user.email,
+              role: user.role,
+              fullName: user.fullName,
+              createdAt: new Date(user._creationTime),
+            },
+            role: user.role,
+            doctorProfile: doctorProfile
+              ? {
+                  id: doctorProfile._id as unknown as string,
+                  userId: doctorProfile.userId as unknown as string,
+                  prcNumber: doctorProfile.prcNumber,
+                  clinicName: doctorProfile.clinicName,
+                  clinicAddress: doctorProfile.clinicAddress,
+                  contactNumber: doctorProfile.contactNumber,
+                  specialization: doctorProfile.specialization,
+                  avatarUrl: doctorProfile.avatarUrl,
+                  clinicSchedule: doctorProfile.clinicSchedule,
+                  latitude: doctorProfile.latitude,
+                  longitude: doctorProfile.longitude,
+                }
+              : null,
+            motherProfile: motherProfile
+              ? {
+                  id: motherProfile._id as unknown as string,
+                  userId: motherProfile.userId as unknown as string,
+                  birthdate: new Date(motherProfile.birthdate),
+                  contactNumber: motherProfile.contactNumber,
+                  address: motherProfile.address,
+                  emergencyContact: motherProfile.emergencyContact,
+                  emergencyContactName: motherProfile.emergencyContactName,
+                  avatarUrl: motherProfile.avatarUrl,
+                  babyName: motherProfile.babyName,
+                }
+              : null,
+          });
+        }
+      }
+
       setLoading(false);
       setInitialized(true);
+      return { success: true };
     },
-  });
+    isPending: false,
+  };
 }

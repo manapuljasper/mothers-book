@@ -1,109 +1,54 @@
 /**
- * Booklet React Query Hooks
+ * Booklet Convex Hooks
  *
- * Query and mutation hooks for booklet operations.
+ * Query and mutation hooks for booklet operations using Convex.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as api from '../../api';
-import type { MotherBooklet, BookletWithMother, BookletAccess, DoctorProfile } from '../../types';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 
-// Query keys for cache management
-export const bookletKeys = {
-  all: ['booklets'] as const,
-  lists: () => [...bookletKeys.all, 'list'] as const,
-  listByMother: (motherId: string) => [...bookletKeys.lists(), 'mother', motherId] as const,
-  listByDoctor: (doctorId: string) => [...bookletKeys.lists(), 'doctor', doctorId] as const,
-  details: () => [...bookletKeys.all, 'detail'] as const,
-  detail: (id: string) => [...bookletKeys.details(), id] as const,
-  doctors: (bookletId: string) => [...bookletKeys.all, 'doctors', bookletId] as const,
-};
+// Query hooks
 
-// GET hooks
-
-export function useBookletById(id: string | undefined) {
-  return useQuery({
-    queryKey: bookletKeys.detail(id || ''),
-    queryFn: () => api.getBookletById(id!),
-    enabled: !!id,
-  });
+export function useBookletById(id: Id<"booklets"> | undefined) {
+  return useQuery(api.booklets.getById, id ? { id } : "skip");
 }
 
-export function useBookletsByMother(motherId: string | undefined) {
-  return useQuery({
-    queryKey: bookletKeys.listByMother(motherId || ''),
-    queryFn: () => api.getBookletsByMother(motherId!),
-    enabled: !!motherId,
-  });
+export function useBookletsByMother(motherId: Id<"motherProfiles"> | undefined) {
+  return useQuery(
+    api.booklets.listByMother,
+    motherId ? { motherId } : "skip"
+  );
 }
 
-export function useBookletsByDoctor(doctorId: string | undefined) {
-  return useQuery({
-    queryKey: bookletKeys.listByDoctor(doctorId || ''),
-    queryFn: () => api.getBookletsByDoctor(doctorId!),
-    enabled: !!doctorId,
-  });
+export function useBookletsByDoctor(doctorId: Id<"doctorProfiles"> | undefined) {
+  return useQuery(
+    api.booklets.listByDoctor,
+    doctorId ? { doctorId } : "skip"
+  );
 }
 
-export function useBookletDoctors(bookletId: string | undefined) {
-  return useQuery({
-    queryKey: bookletKeys.doctors(bookletId || ''),
-    queryFn: () => api.getBookletDoctors(bookletId!),
-    enabled: !!bookletId,
-  });
+export function useBookletDoctors(bookletId: Id<"booklets"> | undefined) {
+  return useQuery(
+    api.booklets.getDoctors,
+    bookletId ? { bookletId } : "skip"
+  );
 }
 
 // Mutation hooks
 
 export function useCreateBooklet() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: Omit<MotherBooklet, 'id' | 'createdAt'>) => api.createBooklet(data),
-    onSuccess: (newBooklet) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: bookletKeys.lists() });
-      // Optionally set the new booklet in cache
-      queryClient.setQueryData(bookletKeys.detail(newBooklet.id), newBooklet);
-    },
-  });
+  return useMutation(api.booklets.create);
 }
 
 export function useUpdateBooklet() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<MotherBooklet> }) =>
-      api.updateBooklet(id, updates),
-    onSuccess: (updatedBooklet) => {
-      queryClient.invalidateQueries({ queryKey: bookletKeys.lists() });
-      queryClient.setQueryData(bookletKeys.detail(updatedBooklet.id), updatedBooklet);
-    },
-  });
+  return useMutation(api.booklets.update);
 }
 
 export function useGrantDoctorAccess() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ bookletId, doctorId }: { bookletId: string; doctorId: string }) =>
-      api.grantDoctorAccess(bookletId, doctorId),
-    onSuccess: (_, { bookletId }) => {
-      queryClient.invalidateQueries({ queryKey: bookletKeys.doctors(bookletId) });
-      queryClient.invalidateQueries({ queryKey: bookletKeys.lists() });
-    },
-  });
+  return useMutation(api.booklets.grantAccess);
 }
 
 export function useRevokeDoctorAccess() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ bookletId, doctorId }: { bookletId: string; doctorId: string }) =>
-      api.revokeDoctorAccess(bookletId, doctorId),
-    onSuccess: (_, { bookletId }) => {
-      queryClient.invalidateQueries({ queryKey: bookletKeys.doctors(bookletId) });
-      queryClient.invalidateQueries({ queryKey: bookletKeys.lists() });
-    },
-  });
+  return useMutation(api.booklets.revokeAccess);
 }

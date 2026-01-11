@@ -1,15 +1,20 @@
 /**
- * React Query Hooks Exports
+ * Convex Hooks Exports
  *
- * Central export point for all React Query hooks organized by feature.
+ * Central export point for all Convex hooks organized by feature.
  */
 
 // Auth hooks
-export { useSignIn, useSignUp, useSignOut, useInitializeAuth } from './auth';
+export {
+  useCurrentUser,
+  useSignIn,
+  useSignUp,
+  useSignOut,
+  useInitializeAuth,
+} from "./auth";
 
 // Booklet hooks
 export {
-  bookletKeys,
   useBookletById,
   useBookletsByMother,
   useBookletsByDoctor,
@@ -18,11 +23,10 @@ export {
   useUpdateBooklet,
   useGrantDoctorAccess,
   useRevokeDoctorAccess,
-} from './booklet';
+} from "./booklet";
 
 // Medical hooks
 export {
-  medicalKeys,
   useEntriesByBooklet,
   useEntryById,
   useCreateEntry,
@@ -33,11 +37,10 @@ export {
   useCreateLabRequest,
   useUpdateLabStatus,
   useDeleteLabRequest,
-} from './medical';
+} from "./medical";
 
 // Medication hooks
 export {
-  medicationKeys,
   useMedicationsByBooklet,
   useMedicationsByEntry,
   useActiveMedications,
@@ -49,19 +52,10 @@ export {
   useDeactivateMedication,
   useDeleteMedication,
   useLogIntake,
-} from './medication';
+} from "./medication";
 
 // Doctor hooks
-export {
-  doctorKeys,
-  useAllDoctors,
-  useDoctorById,
-  useSearchDoctors,
-} from './doctors';
+export { useAllDoctors, useDoctorById, useSearchDoctors } from "./doctors";
 
 // Profile hooks
-export {
-  profileKeys,
-  useUpdateDoctorProfile,
-  useUpdateMotherProfile,
-} from './profile';
+export { useUpdateDoctorProfile, useUpdateMotherProfile } from "./profile";

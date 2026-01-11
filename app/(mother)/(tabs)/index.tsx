@@ -5,16 +5,24 @@ import { BookOpen, Pill } from "lucide-react-native";
 import { useAuthStore } from "@/stores";
 import { useBookletsByMother, useActiveMedications } from "@/hooks";
 import { formatDate } from "@/utils";
-import { CardPressable, StatCard, BookletCard, EmptyState, MotherHomeSkeleton } from "@/components/ui";
+import {
+  CardPressable,
+  StatCard,
+  BookletCard,
+  EmptyState,
+  MotherHomeSkeleton,
+} from "@/components/ui";
 
 export default function MotherHomeScreen() {
   const router = useRouter();
   const { motherProfile } = useAuthStore();
 
-  const { data: booklets = [], isLoading: bookletLoading, refetch: refetchBooklets } = useBookletsByMother(
-    motherProfile?.id
-  );
-  const { data: allActiveMedications = [], isLoading: medsLoading, refetch: refetchMedications } = useActiveMedications();
+  const booklets = useBookletsByMother(motherProfile?.id);
+  const {
+    data: allActiveMedications = [],
+    isLoading: medsLoading,
+    refetch: refetchMedications,
+  } = useActiveMedications();
 
   const isLoading = bookletLoading || medsLoading;
 
@@ -56,7 +64,11 @@ export default function MotherHomeScreen() {
           label="Active Booklets"
           color="pink"
         />
-        <StatCard value={activeMedications.length} label="Meds Today" color="amber" />
+        <StatCard
+          value={activeMedications.length}
+          label="Meds Today"
+          color="amber"
+        />
       </View>
 
       {/* Active Booklets */}
@@ -128,7 +140,8 @@ export default function MotherHomeScreen() {
           />
         ) : (
           activeMedications.slice(0, 5).map((med) => {
-            const takenCount = med.todayLogs?.filter((l) => l.status === "taken").length || 0;
+            const takenCount =
+              med.todayLogs?.filter((l) => l.status === "taken").length || 0;
             const isComplete = takenCount >= med.frequencyPerDay;
 
             return (
@@ -143,16 +156,18 @@ export default function MotherHomeScreen() {
                     </Text>
                     <Text className="text-gray-400 text-sm">{med.dosage}</Text>
                   </View>
-                  <View className={`border px-3 py-1 rounded-full ${
-                    isComplete
-                      ? "border-green-400"
-                      : "border-amber-400"
-                  }`}>
-                    <Text className={`text-sm ${
-                      isComplete
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-amber-600 dark:text-amber-400"
-                    }`}>
+                  <View
+                    className={`border px-3 py-1 rounded-full ${
+                      isComplete ? "border-green-400" : "border-amber-400"
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm ${
+                        isComplete
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-amber-600 dark:text-amber-400"
+                      }`}
+                    >
                       {takenCount}/{med.frequencyPerDay} taken
                     </Text>
                   </View>

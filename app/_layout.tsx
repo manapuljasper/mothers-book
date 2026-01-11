@@ -4,26 +4,16 @@ import { View, ActivityIndicator } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { useColorScheme } from "nativewind";
 import { useAuthStore, useThemeStore } from "../src/stores";
 import { useInitializeAuth } from "../src/hooks";
 
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Data is considered fresh for 30 seconds
-      staleTime: 30 * 1000,
-      // Keep unused data in cache for 5 minutes
-      gcTime: 5 * 60 * 1000,
-      // Retry failed requests once
-      retry: 1,
-      // Refetch on window focus (useful for mobile when app comes to foreground)
-      refetchOnWindowFocus: true,
-    },
-  },
-});
+// Create Convex client
+const convex = new ConvexReactClient(
+  process.env.EXPO_PUBLIC_CONVEX_URL as string
+);
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { colorScheme: themeColorScheme } = useThemeStore();
@@ -64,7 +54,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <ConvexAuthProvider client={convex}>
       <KeyboardProvider>
         <ThemeProvider>
           <AuthInitializer>
@@ -80,6 +70,6 @@ export default function RootLayout() {
           </AuthInitializer>
         </ThemeProvider>
       </KeyboardProvider>
-    </QueryClientProvider>
+    </ConvexAuthProvider>
   );
 }

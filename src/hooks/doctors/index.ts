@@ -1,50 +1,33 @@
 /**
- * Doctors React Query Hooks
+ * Doctors Convex Hooks
  *
- * Query hooks for doctor profile operations.
+ * Query hooks for doctor profile operations using Convex.
  */
 
-import { useQuery } from '@tanstack/react-query';
-import * as api from '../../api';
-import type { DoctorProfile } from '../../types';
-
-// Query keys for cache management
-export const doctorKeys = {
-  all: ['doctors'] as const,
-  lists: () => [...doctorKeys.all, 'list'] as const,
-  search: (query: string) => [...doctorKeys.lists(), 'search', query] as const,
-  details: () => [...doctorKeys.all, 'detail'] as const,
-  detail: (id: string) => [...doctorKeys.details(), id] as const,
-};
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 
 /**
  * Get all doctors
  */
 export function useAllDoctors() {
-  return useQuery({
-    queryKey: doctorKeys.lists(),
-    queryFn: () => api.getAllDoctors(),
-  });
+  return useQuery(api.doctors.listAll, {});
 }
 
 /**
  * Get a doctor by ID
  */
-export function useDoctorById(id: string | undefined) {
-  return useQuery({
-    queryKey: doctorKeys.detail(id || ''),
-    queryFn: () => api.getDoctorById(id!),
-    enabled: !!id,
-  });
+export function useDoctorById(id: Id<"doctorProfiles"> | undefined) {
+  return useQuery(api.doctors.getById, id ? { id } : "skip");
 }
 
 /**
  * Search doctors by query
  */
 export function useSearchDoctors(query: string) {
-  return useQuery({
-    queryKey: doctorKeys.search(query),
-    queryFn: () => api.searchDoctors(query),
-    enabled: query.length > 0,
-  });
+  return useQuery(
+    api.doctors.search,
+    query.length > 0 ? { query } : "skip"
+  );
 }

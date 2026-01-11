@@ -1,168 +1,62 @@
 /**
- * Medical React Query Hooks
+ * Medical Convex Hooks
  *
- * Query and mutation hooks for medical entries and lab requests.
+ * Query and mutation hooks for medical entries and lab requests using Convex.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import * as api from '../../api';
-import type { MedicalEntry, LabRequest, LabStatus } from '../../types';
-
-// Query keys for cache management
-export const medicalKeys = {
-  all: ['medical'] as const,
-
-  // Entries
-  entries: () => [...medicalKeys.all, 'entries'] as const,
-  entriesByBooklet: (bookletId: string) => [...medicalKeys.entries(), 'booklet', bookletId] as const,
-  entry: (id: string) => [...medicalKeys.entries(), id] as const,
-
-  // Labs
-  labs: () => [...medicalKeys.all, 'labs'] as const,
-  labsByBooklet: (bookletId: string) => [...medicalKeys.labs(), 'booklet', bookletId] as const,
-  labsByEntry: (entryId: string) => [...medicalKeys.labs(), 'entry', entryId] as const,
-  pendingLabs: (bookletId?: string) => [...medicalKeys.labs(), 'pending', bookletId] as const,
-};
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 
 // Entry hooks
 
-export function useEntriesByBooklet(bookletId: string | undefined) {
-  return useQuery({
-    queryKey: medicalKeys.entriesByBooklet(bookletId || ''),
-    queryFn: () => api.getEntriesByBooklet(bookletId!),
-    enabled: !!bookletId,
-  });
+export function useEntriesByBooklet(bookletId: Id<"booklets"> | undefined) {
+  return useQuery(
+    api.medical.listEntriesByBooklet,
+    bookletId ? { bookletId } : "skip"
+  );
 }
 
-export function useEntryById(id: string | undefined) {
-  return useQuery({
-    queryKey: medicalKeys.entry(id || ''),
-    queryFn: () => api.getEntryById(id!),
-    enabled: !!id,
-  });
+export function useEntryById(id: Id<"medicalEntries"> | undefined) {
+  return useQuery(api.medical.getEntryById, id ? { id } : "skip");
 }
 
 export function useCreateEntry() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: Omit<MedicalEntry, 'id' | 'createdAt'>) => api.createEntry(data),
-    onSuccess: (newEntry) => {
-      // Invalidate entries list for the booklet
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.entriesByBooklet(newEntry.bookletId),
-      });
-      // Set new entry in cache
-      queryClient.setQueryData(medicalKeys.entry(newEntry.id), newEntry);
-    },
-  });
+  return useMutation(api.medical.createEntry);
 }
 
 export function useUpdateEntry() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<MedicalEntry> }) =>
-      api.updateEntry(id, updates),
-    onSuccess: (updatedEntry) => {
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.entriesByBooklet(updatedEntry.bookletId),
-      });
-      queryClient.setQueryData(medicalKeys.entry(updatedEntry.id), updatedEntry);
-    },
-  });
+  return useMutation(api.medical.updateEntry);
 }
 
 // Lab hooks
 
-export function useLabsByBooklet(bookletId: string | undefined) {
-  return useQuery({
-    queryKey: medicalKeys.labsByBooklet(bookletId || ''),
-    queryFn: () => api.getLabsByBooklet(bookletId!),
-    enabled: !!bookletId,
-  });
+export function useLabsByBooklet(bookletId: Id<"booklets"> | undefined) {
+  return useQuery(
+    api.medical.listLabsByBooklet,
+    bookletId ? { bookletId } : "skip"
+  );
 }
 
-export function useLabsByEntry(entryId: string | undefined) {
-  return useQuery({
-    queryKey: medicalKeys.labsByEntry(entryId || ''),
-    queryFn: () => api.getLabsByEntry(entryId!),
-    enabled: !!entryId,
-  });
+export function useLabsByEntry(entryId: Id<"medicalEntries"> | undefined) {
+  return useQuery(
+    api.medical.listLabsByEntry,
+    entryId ? { entryId } : "skip"
+  );
 }
 
-export function usePendingLabs(bookletId?: string) {
-  return useQuery({
-    queryKey: medicalKeys.pendingLabs(bookletId),
-    queryFn: () => api.getPendingLabs(bookletId),
-  });
+export function usePendingLabs(bookletId?: Id<"booklets">) {
+  return useQuery(api.medical.listPendingLabs, { bookletId });
 }
 
 export function useCreateLabRequest() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: Omit<LabRequest, 'id' | 'createdAt' | 'updatedAt'>) =>
-      api.createLabRequest(data),
-    onSuccess: (newLab) => {
-      // Invalidate specific booklet cache
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.labsByBooklet(newLab.bookletId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.pendingLabs(newLab.bookletId),
-      });
-      // Also invalidate entry-specific cache if medicalEntryId exists
-      if (newLab.medicalEntryId) {
-        queryClient.invalidateQueries({
-          queryKey: medicalKeys.labsByEntry(newLab.medicalEntryId),
-        });
-      }
-    },
-  });
+  return useMutation(api.medical.createLab);
 }
 
 export function useUpdateLabStatus() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      id,
-      status,
-      results,
-    }: {
-      id: string;
-      status: LabStatus;
-      results?: string;
-    }) => api.updateLabStatus(id, status, results),
-    onSuccess: (updatedLab) => {
-      // Invalidate specific booklet cache
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.labsByBooklet(updatedLab.bookletId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.pendingLabs(updatedLab.bookletId),
-      });
-      // Also invalidate entry-specific cache if medicalEntryId exists
-      if (updatedLab.medicalEntryId) {
-        queryClient.invalidateQueries({
-          queryKey: medicalKeys.labsByEntry(updatedLab.medicalEntryId),
-        });
-      }
-    },
-  });
+  return useMutation(api.medical.updateLabStatus);
 }
 
 export function useDeleteLabRequest() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: string) => api.deleteLabRequest(id),
-    onSuccess: () => {
-      // Invalidate all lab-related caches
-      queryClient.invalidateQueries({
-        queryKey: medicalKeys.all,
-      });
-    },
-  });
+  return useMutation(api.medical.deleteLab);
 }

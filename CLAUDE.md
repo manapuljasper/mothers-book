@@ -26,16 +26,17 @@ This app uses `react-native-mmkv` which requires native modules. It **cannot run
 - **Expo Router** for file-based navigation
 - **TypeScript** with strict mode
 - **NativeWind v4** for styling (Tailwind CSS for React Native)
-- **TanStack React Query** for data fetching (queries & mutations)
+- **Convex** for backend (database, real-time sync, serverless functions)
+- **Convex Auth** for authentication (email/password)
 - **Zustand** for auth state management
-- **MMKV** for local storage (fast key-value store)
+- **MMKV** for local storage (theme preferences, etc.)
 
 ## Architecture
 
 This is a **Digital Mother's Book** app - a healthcare application for maternal health records in the Philippines.
 
-### Phase 1 Status
-Currently using **sample data only** (no server connections). Data persists locally via MMKV.
+### Backend Status
+Using **Convex** for all data operations. Real-time sync enabled - all data updates propagate automatically to connected clients.
 
 ### Route Structure
 
@@ -117,9 +118,9 @@ import { useAuthStore } from "../src/stores";
 const { currentUser, login, logout, doctorProfile, motherProfile } = useAuthStore();
 ```
 
-### Data Fetching (React Query)
+### Data Fetching (Convex)
 
-All data fetching should use **TanStack React Query** hooks from `src/hooks`:
+All data fetching uses **Convex hooks** from `src/hooks`. Convex provides real-time subscriptions - data updates automatically when it changes on the server.
 
 ```tsx
 import {
@@ -131,53 +132,51 @@ import {
   useCreateMedication,
 } from "../src/hooks";
 
-// Queries - automatically cache and refetch
-const { data: booklets = [], isLoading } = useBookletsByDoctor(doctorId);
-const { data: entries = [] } = useEntriesByBooklet(bookletId);
+// Queries - real-time subscriptions (undefined while loading)
+const booklets = useBookletsByDoctor(doctorId);
+const entries = useEntriesByBooklet(bookletId);
+const isLoading = booklets === undefined;
 
-// Mutations - for creating/updating data
-const createEntryMutation = useCreateEntry();
+// Mutations - returns a function to call
+const createEntry = useCreateEntry();
 
 // Using mutations with async/await
 const handleSave = async () => {
   try {
-    const newEntry = await createEntryMutation.mutateAsync({
+    const newEntry = await createEntry({
       bookletId,
       doctorId,
       entryType: "prenatal_checkup",
-      visitDate: new Date(),
+      visitDate: Date.now(), // Convex uses timestamps
       notes: "...",
     });
-    // React Query automatically invalidates related queries
+    // Convex automatically syncs all queries - no cache invalidation needed!
   } catch (error) {
     Alert.alert("Error", "Failed to save");
   }
 };
 ```
 
-### API Layer Structure
+### Hooks Structure
 
-Mock APIs in `src/api/` simulate backend calls with delay:
+All hooks wrap Convex queries and mutations:
 
 ```
-src/api/
-├── client.ts           # Mock delay utilities
-├── booklets.api.ts     # Booklet CRUD operations
-├── medical.api.ts      # Entries & lab requests
-├── medications.api.ts  # Medication management
-└── index.ts            # Re-exports
-
 src/hooks/
+├── auth/               # Authentication hooks
+│   └── index.ts        # useSignIn, useSignUp, useSignOut, useCurrentUser
 ├── booklet/            # Booklet query & mutation hooks
-│   └── index.ts
+│   └── index.ts        # useBookletsByMother, useCreateBooklet, etc.
 ├── medical/            # Medical entries & lab request hooks
-│   └── index.ts
+│   └── index.ts        # useEntriesByBooklet, useCreateEntry, etc.
 ├── medication/         # Medication query & mutation hooks
-│   └── index.ts
+│   └── index.ts        # useMedicationsByBooklet, useLogIntake, etc.
+├── doctors/            # Doctor directory hooks
+│   └── index.ts        # useAllDoctors, useSearchDoctors
+├── profile/            # Profile update hooks
+│   └── index.ts        # useUpdateDoctorProfile, useUpdateMotherProfile
 └── index.ts            # Re-exports all hooks
 ```
-
-When transitioning to a real backend, only the API implementations need to change - the hooks and components remain the same.
 
 ### NativeWind Setup
 
@@ -503,8 +502,123 @@ src/components/
 
 ## Development Notes
 
-- All dates are stored as Date objects (MMKV serializes/deserializes them)
+- **Dates in Convex**: Stored as Unix timestamps (milliseconds). Use `Date.now()` when creating, convert with `new Date(timestamp)` when displaying
 - Use **dayjs** for all date manipulation (not date-fns). Plugins are configured in `src/utils/date.utils.ts`
 - Booklet access is QR-based: Mother generates QR → Doctor scans → Access granted
 - Medications track daily intake with adherence percentage
 - Filipino context: PRC numbers, Philippine addresses, local medical terminology
+
+## Convex Backend
+
+**Documentation**: https://docs.convex.dev/home
+
+Convex is used as the backend for this application, providing:
+- **Database**: Document-based with automatic TypeScript types
+- **Real-time sync**: Automatic updates when data changes
+- **Serverless functions**: Queries, mutations, and actions
+- **Authentication**: Convex Auth with email/password
+
+### Key Concepts
+
+- **Queries**: Read-only functions that automatically re-run when data changes
+- **Mutations**: Write operations that modify the database
+- **Actions**: For external API calls and side effects
+- **Schema**: Define tables and types in `convex/schema.ts`
+
+### Convex Directory Structure
+
+```
+convex/
+├── _generated/        # Auto-generated types and API (run `npx convex dev`)
+├── schema.ts          # Database schema with tables and indexes
+├── auth.ts            # Convex Auth configuration (Password provider)
+├── lib/
+│   └── validators.ts  # Shared validators (vitals, entry types, etc.)
+├── users.ts           # User/profile queries and mutations
+├── booklets.ts        # Booklet CRUD and access management
+├── medical.ts         # Medical entries and lab requests
+├── medications.ts     # Medication management with adherence tracking
+├── doctors.ts         # Doctor directory queries
+└── qrTokens.ts        # QR token generation and validation
+```
+
+### TypeScript Best Practices
+
+**Use Doc and Id types from generated dataModel:**
+```tsx
+import { Doc, Id } from "../convex/_generated/dataModel";
+
+// Components receive typed documents
+function BookletCard({ booklet }: { booklet: Doc<"booklets"> }) {
+  // Full type safety - booklet._id, booklet.motherId, etc.
+}
+
+// Use Id type for references
+function useBooklet(id: Id<"booklets">) {
+  return useQuery(api.booklets.getById, { id });
+}
+```
+
+**Shared validators with type inference:**
+```tsx
+// In convex/lib/validators.ts
+import { v, Infer } from "convex/values";
+
+export const vitalsValidator = v.object({
+  bloodPressure: v.optional(v.string()),
+  weight: v.optional(v.number()),
+  heartRate: v.optional(v.number()),
+});
+
+export type Vitals = Infer<typeof vitalsValidator>;
+```
+
+**Context types for helper functions:**
+```tsx
+import { QueryCtx, MutationCtx } from "./_generated/server";
+
+async function getBookletWithAuth(ctx: QueryCtx, bookletId: Id<"booklets">) {
+  return await ctx.db.get(bookletId);
+}
+```
+
+### Usage in React Native
+
+```tsx
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
+import { Id } from "../convex/_generated/dataModel";
+
+// Queries - real-time subscriptions (returns undefined while loading)
+const booklets = useQuery(api.booklets.listByMother, { motherId });
+const isLoading = booklets === undefined;
+
+// Skip queries conditionally
+const booklet = useQuery(
+  api.booklets.getById,
+  bookletId ? { id: bookletId } : "skip"
+);
+
+// Mutations - write operations
+const createBooklet = useMutation(api.booklets.create);
+await createBooklet({ label: "Baby #1", motherId });
+```
+
+### Initialization
+
+To set up Convex for the first time:
+```bash
+npx convex dev    # Starts dev server, generates types, syncs schema
+```
+
+Environment variable required:
+```
+EXPO_PUBLIC_CONVEX_URL=<your-convex-deployment-url>
+```
+
+Refer to the official Convex documentation for detailed guides on:
+- Setting up Convex with React Native/Expo
+- Defining schemas and validators
+- Authentication patterns
+- File storage
+- Scheduled functions
