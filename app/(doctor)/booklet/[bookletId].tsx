@@ -37,6 +37,9 @@ import {
   useCreateLabRequest,
   useUpdateBooklet,
   useUpdateMedication,
+  useUpdateEntry,
+  useDeleteMedication,
+  useDeleteLabRequest,
 } from "@/hooks";
 
 export default function DoctorBookletDetailScreen() {
@@ -61,6 +64,9 @@ export default function DoctorBookletDetailScreen() {
   const createLabRequestMutation = useCreateLabRequest();
   const updateBookletMutation = useUpdateBooklet();
   const updateMedicationMutation = useUpdateMedication();
+  const updateEntryMutation = useUpdateEntry();
+  const deleteMedicationMutation = useDeleteMedication();
+  const deleteLabRequestMutation = useDeleteLabRequest();
 
   // Get booklet with mother info
   const booklet = doctorBooklets.find((b) => b.id === bookletId);
@@ -109,6 +115,25 @@ export default function DoctorBookletDetailScreen() {
 
   // Fetch labs for the selected entry
   const { data: selectedEntryLabs = [] } = useLabsByEntry(selectedEntry?.id);
+
+  // Get today's entry (if exists) for edit mode
+  const todayEntry = useMemo(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    return entries.find((e) => {
+      const d = e.visitDate;
+      const dateStr = typeof d === "string" ? d : new Date(d).toISOString().split("T")[0];
+      return dateStr === todayStr;
+    }) || null;
+  }, [entries]);
+
+  // Get medications for today's entry
+  const todayMeds = useMemo(() => {
+    if (!todayEntry) return [];
+    return allMedications.filter((m) => m.medicalEntryId === todayEntry.id);
+  }, [todayEntry, allMedications]);
+
+  // Fetch labs for today's entry (for edit mode)
+  const { data: todayEntryLabs = [] } = useLabsByEntry(todayEntry?.id);
 
   // Loading state
   if (isLoading) {
@@ -203,62 +228,111 @@ export default function DoctorBookletDetailScreen() {
   const handleSaveEntry = async (
     entryData: EntryFormData,
     medications: MedicationData[],
-    labs: LabData[]
+    labs: LabData[],
+    isEdit: boolean,
+    deletedMedicationIds: string[],
+    deletedLabIds: string[]
   ) => {
     try {
-      // Create the entry using mutation and get the result
-      const newEntry = await createEntryMutation.mutateAsync({
-        bookletId,
-        doctorId: doctorProfile.id,
-        entryType: entryData.entryType,
-        visitDate: new Date(),
-        notes: entryData.notes,
-        diagnosis: entryData.diagnosis || undefined,
-        recommendations: entryData.recommendations || undefined,
-        vitals:
-          Object.keys(entryData.vitals).length > 0
-            ? entryData.vitals
-            : undefined,
-        attachments:
-          entryData.attachments.length > 0 ? entryData.attachments : undefined,
-        followUpDate: entryData.followUpDate,
-      });
+      let entryId: string;
 
-      // Create all medications linked to this booklet
-      await Promise.all(
-        medications.map((med) =>
-          createMedicationMutation.mutateAsync({
-            bookletId,
-            medicalEntryId: newEntry.id,
-            name: med.name,
-            dosage: med.dosage,
-            instructions: med.instructions,
-            startDate: new Date(),
-            frequencyPerDay: med.frequencyPerDay,
-            isActive: true,
-            // Use medication's endDate or default to follow-up date
-            endDate: med.endDate || entryData.followUpDate,
-          })
-        )
-      );
+      if (isEdit && todayEntry) {
+        // UPDATE existing entry
+        await updateEntryMutation.mutateAsync({
+          id: todayEntry.id,
+          updates: {
+            entryType: entryData.entryType,
+            notes: entryData.notes,
+            diagnosis: entryData.diagnosis || undefined,
+            recommendations: entryData.recommendations || undefined,
+            vitals:
+              Object.keys(entryData.vitals).length > 0
+                ? entryData.vitals
+                : undefined,
+            attachments:
+              entryData.attachments.length > 0 ? entryData.attachments : undefined,
+            followUpDate: entryData.followUpDate,
+          },
+        });
+        entryId = todayEntry.id;
 
-      // Create all lab requests linked to this booklet
-      await Promise.all(
-        labs.map((lab) =>
-          createLabRequestMutation.mutateAsync({
-            bookletId,
-            medicalEntryId: newEntry.id,
-            description: lab.description,
-            status: "pending",
-            requestedDate: new Date(),
-            notes: lab.notes || undefined,
-          })
-        )
-      );
+        // Delete removed medications
+        if (deletedMedicationIds.length > 0) {
+          await Promise.all(
+            deletedMedicationIds.map((id) =>
+              deleteMedicationMutation.mutateAsync(id)
+            )
+          );
+        }
+
+        // Delete removed labs
+        if (deletedLabIds.length > 0) {
+          await Promise.all(
+            deletedLabIds.map((id) =>
+              deleteLabRequestMutation.mutateAsync(id)
+            )
+          );
+        }
+      } else {
+        // CREATE new entry
+        const newEntry = await createEntryMutation.mutateAsync({
+          bookletId,
+          doctorId: doctorProfile.id,
+          entryType: entryData.entryType,
+          visitDate: new Date(),
+          notes: entryData.notes,
+          diagnosis: entryData.diagnosis || undefined,
+          recommendations: entryData.recommendations || undefined,
+          vitals:
+            Object.keys(entryData.vitals).length > 0
+              ? entryData.vitals
+              : undefined,
+          attachments:
+            entryData.attachments.length > 0 ? entryData.attachments : undefined,
+          followUpDate: entryData.followUpDate,
+        });
+        entryId = newEntry.id;
+      }
+
+      // Create all NEW medications linked to this entry
+      if (medications.length > 0) {
+        await Promise.all(
+          medications.map((med) =>
+            createMedicationMutation.mutateAsync({
+              bookletId,
+              medicalEntryId: entryId,
+              name: med.name,
+              dosage: med.dosage,
+              instructions: med.instructions,
+              startDate: new Date(),
+              frequencyPerDay: med.frequencyPerDay,
+              isActive: true,
+              // Use medication's endDate or default to follow-up date
+              endDate: med.endDate || entryData.followUpDate,
+            })
+          )
+        );
+      }
+
+      // Create all NEW lab requests linked to this entry
+      if (labs.length > 0) {
+        await Promise.all(
+          labs.map((lab) =>
+            createLabRequestMutation.mutateAsync({
+              bookletId,
+              medicalEntryId: entryId,
+              description: lab.description,
+              status: "pending",
+              requestedDate: new Date(),
+              notes: lab.notes || undefined,
+            })
+          )
+        );
+      }
 
       setShowEntryModal(false);
     } catch (error) {
-      Alert.alert("Error", "Failed to save entry. Please try again.");
+      Alert.alert("Error", isEdit ? "Failed to update entry. Please try again." : "Failed to save entry. Please try again.");
       console.error("Save entry error:", error);
       throw error; // Re-throw so the modal knows it failed
     }
@@ -517,7 +591,10 @@ export default function DoctorBookletDetailScreen() {
         visible={showEntryModal}
         onClose={() => setShowEntryModal(false)}
         onSave={handleSaveEntry}
-        isSaving={createEntryMutation.isPending}
+        isSaving={createEntryMutation.isPending || updateEntryMutation.isPending}
+        existingEntry={todayEntry}
+        existingMedications={todayMeds}
+        existingLabs={todayEntryLabs}
       />
 
       {/* Notes Editing Modal */}

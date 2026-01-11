@@ -32,6 +32,7 @@ export {
   usePendingLabs,
   useCreateLabRequest,
   useUpdateLabStatus,
+  useDeleteLabRequest,
 } from './medical';
 
 // Medication hooks
@@ -46,6 +47,7 @@ export {
   useCreateMedication,
   useUpdateMedication,
   useDeactivateMedication,
+  useDeleteMedication,
   useLogIntake,
 } from './medication';
 

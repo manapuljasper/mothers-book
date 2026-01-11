@@ -33,6 +33,7 @@ export {
   getPendingLabs,
   createLabRequest,
   updateLabStatus,
+  deleteLabRequest,
 } from './medical.api';
 
 // Medication APIs
@@ -45,6 +46,7 @@ export {
   createMedication,
   updateMedication,
   deactivateMedication,
+  deleteMedication,
   logIntake,
   getMedicationAdherence,
 } from './medications.api';

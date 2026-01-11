@@ -152,3 +152,17 @@ export function useUpdateLabStatus() {
     },
   });
 }
+
+export function useDeleteLabRequest() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.deleteLabRequest(id),
+    onSuccess: () => {
+      // Invalidate all lab-related caches
+      queryClient.invalidateQueries({
+        queryKey: medicalKeys.all,
+      });
+    },
+  });
+}

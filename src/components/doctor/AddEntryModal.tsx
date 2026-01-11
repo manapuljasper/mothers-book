@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { TextInput as RNTextInput } from "react-native";
 import {
   View,
@@ -25,7 +25,7 @@ import {
   ImageIcon,
   Calendar,
 } from "lucide-react-native";
-import { ENTRY_TYPE_LABELS, type EntryType } from "@/types";
+import { ENTRY_TYPE_LABELS, type EntryType, type MedicalEntry, type Medication, type LabRequest } from "@/types";
 import { formatDate } from "@/utils";
 
 const DOSAGE_UNITS = ["mg", "mcg", "g", "mL", "IU", "tablet", "capsule"] as const;
@@ -39,12 +39,14 @@ interface PendingMedication {
   instructions: string;
   frequencyPerDay: string;
   endDate?: Date;
+  isExisting?: boolean;
 }
 
 interface PendingLab {
   id: string;
   description: string;
   notes?: string;
+  isExisting?: boolean;
 }
 
 export interface EntryFormData {
@@ -82,9 +84,15 @@ interface AddEntryModalProps {
   onSave: (
     entry: EntryFormData,
     medications: MedicationData[],
-    labs: LabData[]
+    labs: LabData[],
+    isEdit: boolean,
+    deletedMedicationIds: string[],
+    deletedLabIds: string[]
   ) => Promise<void>;
   isSaving: boolean;
+  existingEntry?: MedicalEntry | null;
+  existingMedications?: Medication[];
+  existingLabs?: LabRequest[];
 }
 
 export function AddEntryModal({
@@ -92,7 +100,11 @@ export function AddEntryModal({
   onClose,
   onSave,
   isSaving,
+  existingEntry,
+  existingMedications,
+  existingLabs,
 }: AddEntryModalProps) {
+  const isEdit = !!existingEntry;
   // Form state
   const [entryForm, setEntryForm] = useState({
     entryType: "prenatal_checkup" as EntryType,
@@ -121,6 +133,10 @@ export function AddEntryModal({
   const [pendingMeds, setPendingMeds] = useState<PendingMedication[]>([]);
   const [pendingLabs, setPendingLabs] = useState<PendingLab[]>([]);
 
+  // Track deleted existing medications and labs (for edit mode)
+  const [deletedMedIds, setDeletedMedIds] = useState<string[]>([]);
+  const [deletedLabIds, setDeletedLabIds] = useState<string[]>([]);
+
   // Current medication being added
   const [currentMed, setCurrentMed] = useState({
     name: "",
@@ -139,6 +155,63 @@ export function AddEntryModal({
 
   // Attachments
   const [attachments, setAttachments] = useState<string[]>([]);
+
+  // Initialize form with existing entry data when editing
+  useEffect(() => {
+    if (existingEntry && visible) {
+      // Parse blood pressure
+      const [bpSys, bpDia] = existingEntry.vitals?.bloodPressure?.split('/') || ['', ''];
+
+      setEntryForm({
+        entryType: existingEntry.entryType,
+        notes: existingEntry.notes || '',
+        diagnosis: existingEntry.diagnosis || '',
+        recommendations: existingEntry.recommendations || '',
+        bpSystolic: bpSys,
+        bpDiastolic: bpDia,
+        weight: existingEntry.vitals?.weight?.toString() || '',
+        fetalHeartRate: existingEntry.vitals?.fetalHeartRate?.toString() || '',
+        fundalHeight: existingEntry.vitals?.fundalHeight?.toString() || '',
+        aog: existingEntry.vitals?.aog || '',
+      });
+
+      setNextAppointmentDate(existingEntry.followUpDate ? new Date(existingEntry.followUpDate) : null);
+      setAttachments(existingEntry.attachments || []);
+    }
+  }, [existingEntry, visible]);
+
+  // Initialize pending medications from existing
+  useEffect(() => {
+    if (existingMedications?.length && visible) {
+      const converted = existingMedications.map((med) => {
+        // Parse "400 mg" into amount and unit
+        const match = med.dosage.match(/^(\d+\.?\d*)\s*(.+)$/);
+        return {
+          id: med.id,
+          name: med.name,
+          dosageAmount: match?.[1] || '',
+          dosageUnit: (match?.[2]?.trim() || 'mg') as DosageUnit,
+          instructions: med.instructions || '',
+          frequencyPerDay: med.frequencyPerDay.toString(),
+          endDate: med.endDate ? new Date(med.endDate) : undefined,
+          isExisting: true,
+        };
+      });
+      setPendingMeds(converted);
+    }
+  }, [existingMedications, visible]);
+
+  // Initialize pending labs from existing
+  useEffect(() => {
+    if (existingLabs?.length && visible) {
+      setPendingLabs(existingLabs.map((lab) => ({
+        id: lab.id,
+        description: lab.description,
+        notes: lab.notes || '',
+        isExisting: true,
+      })));
+    }
+  }, [existingLabs, visible]);
 
   // Check if form has unsaved data
   const hasUnsavedChanges = useCallback(() => {
@@ -176,6 +249,8 @@ export function AddEntryModal({
     setNextAppointmentDate(null);
     setPendingMeds([]);
     setPendingLabs([]);
+    setDeletedMedIds([]);
+    setDeletedLabIds([]);
     setCurrentMed({
       name: "",
       dosageAmount: "",
@@ -288,6 +363,11 @@ export function AddEntryModal({
 
   // Remove medication from pending list
   const handleRemovePendingMed = (id: string) => {
+    const medToRemove = pendingMeds.find((m) => m.id === id);
+    // If it's an existing medication, track its ID for deletion
+    if (medToRemove?.isExisting) {
+      setDeletedMedIds([...deletedMedIds, id]);
+    }
     setPendingMeds(pendingMeds.filter((m) => m.id !== id));
   };
 
@@ -303,17 +383,61 @@ export function AddEntryModal({
 
   // Remove lab from pending list
   const handleRemovePendingLab = (id: string) => {
+    const labToRemove = pendingLabs.find((l) => l.id === id);
+    // If it's an existing lab, track its ID for deletion
+    if (labToRemove?.isExisting) {
+      setDeletedLabIds([...deletedLabIds, id]);
+    }
     setPendingLabs(pendingLabs.filter((l) => l.id !== id));
   };
 
+  // Check if there's an unfinished medication or lab form
+  const hasUnfinishedMedication = currentMed.name.trim() !== "" || currentMed.dosageAmount.trim() !== "";
+  const hasUnfinishedLab = currentLab.description.trim() !== "";
+
   // Confirm and save entry
   const handleConfirmSave = () => {
+    // Check for unfinished medication form
+    if (hasUnfinishedMedication) {
+      Alert.alert(
+        "Unfinished Prescription",
+        `You have an unfinished prescription form (${currentMed.name || "unnamed"}). Do you want to save without adding it?`,
+        [
+          { text: "Go Back", style: "cancel" },
+          {
+            text: "Save Without",
+            style: "destructive",
+            onPress: handleSave
+          },
+        ]
+      );
+      return;
+    }
+
+    // Check for unfinished lab form
+    if (hasUnfinishedLab) {
+      Alert.alert(
+        "Unfinished Lab Request",
+        `You have an unfinished lab request (${currentLab.description}). Do you want to save without adding it?`,
+        [
+          { text: "Go Back", style: "cancel" },
+          {
+            text: "Save Without",
+            style: "destructive",
+            onPress: handleSave
+          },
+        ]
+      );
+      return;
+    }
+
+    // Normal save confirmation
     Alert.alert(
-      "Save Entry",
-      "Are you sure you want to save this medical entry?",
+      isEdit ? "Update Entry" : "Save Entry",
+      isEdit ? "Are you sure you want to update this medical entry?" : "Are you sure you want to save this medical entry?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Save", onPress: handleSave },
+        { text: isEdit ? "Update" : "Save", onPress: handleSave },
       ]
     );
   };
@@ -342,21 +466,27 @@ export function AddEntryModal({
       followUpDate: nextAppointmentDate || undefined,
     };
 
-    const medicationsData: MedicationData[] = pendingMeds.map((med) => ({
-      name: med.name,
-      dosage: `${med.dosageAmount} ${med.dosageUnit}`,
-      instructions: med.instructions,
-      frequencyPerDay: parseInt(med.frequencyPerDay) as 1 | 2 | 3 | 4,
-      endDate: med.endDate,
-    }));
+    // Only include NEW medications (not existing ones already in the database)
+    const medicationsData: MedicationData[] = pendingMeds
+      .filter((med) => !med.isExisting)
+      .map((med) => ({
+        name: med.name,
+        dosage: `${med.dosageAmount} ${med.dosageUnit}`,
+        instructions: med.instructions,
+        frequencyPerDay: parseInt(med.frequencyPerDay) as 1 | 2 | 3 | 4,
+        endDate: med.endDate,
+      }));
 
-    const labsData: LabData[] = pendingLabs.map((lab) => ({
-      description: lab.description,
-      notes: lab.notes || undefined,
-    }));
+    // Only include NEW labs (not existing ones already in the database)
+    const labsData: LabData[] = pendingLabs
+      .filter((lab) => !lab.isExisting)
+      .map((lab) => ({
+        description: lab.description,
+        notes: lab.notes || undefined,
+      }));
 
     try {
-      await onSave(entryData, medicationsData, labsData);
+      await onSave(entryData, medicationsData, labsData, isEdit, deletedMedIds, deletedLabIds);
       resetForm();
     } catch (error) {
       // Error handling is done in parent
@@ -388,7 +518,7 @@ export function AddEntryModal({
       <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
         <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <Text className="text-xl font-bold text-gray-900 dark:text-white">
-            Add Entry
+            {isEdit ? "Edit Entry" : "Add Entry"}
           </Text>
           <Pressable onPress={handleCloseModal}>
             <X size={24} color="#6b7280" strokeWidth={1.5} />
@@ -992,7 +1122,7 @@ export function AddEntryModal({
             }`}
           >
             <Text className="text-white font-semibold">
-              {isSaving ? "Saving..." : "Save Entry"}
+              {isSaving ? (isEdit ? "Updating..." : "Saving...") : (isEdit ? "Update Entry" : "Save Entry")}
             </Text>
           </Pressable>
         </KeyboardAwareScrollView>

@@ -212,6 +212,16 @@ export async function updateLabStatus(
   return mapLabRequest(data);
 }
 
+// DELETE /labs/:id
+export async function deleteLabRequest(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('lab_requests')
+    .delete()
+    .eq('id', id);
+
+  if (error) handleSupabaseError(error);
+}
+
 // Helper to map database row to MedicalEntry type
 function mapMedicalEntry(row: Record<string, unknown>): MedicalEntry {
   return {

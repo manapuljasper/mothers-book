@@ -171,6 +171,20 @@ export function useDeactivateMedication() {
   });
 }
 
+export function useDeleteMedication() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.deleteMedication(id),
+    onSuccess: () => {
+      // Invalidate all medication-related caches
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.all,
+      });
+    },
+  });
+}
+
 export function useLogIntake() {
   const queryClient = useQueryClient();
 

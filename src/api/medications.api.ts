@@ -231,6 +231,23 @@ export async function deactivateMedication(id: string): Promise<Medication> {
   return updateMedication(id, { isActive: false });
 }
 
+// DELETE /medications/:id
+export async function deleteMedication(id: string): Promise<void> {
+  // First delete all intake logs for this medication
+  await supabase
+    .from("medication_intake_logs")
+    .delete()
+    .eq("medication_id", id);
+
+  // Then delete the medication itself
+  const { error } = await supabase
+    .from("medications")
+    .delete()
+    .eq("id", id);
+
+  if (error) handleSupabaseError(error);
+}
+
 // POST /medications/:medicationId/intake
 export async function logIntake(
   medicationId: string,
