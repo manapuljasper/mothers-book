@@ -38,7 +38,8 @@ export interface MedicalEntry {
 
 export interface LabRequest {
   id: string;
-  medicalEntryId: string;
+  bookletId: string;
+  medicalEntryId?: string; // Optional - for historical context
   description: string;
   status: LabStatus;
   requestedDate: Date;

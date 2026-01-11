@@ -116,16 +116,11 @@ export async function updateEntry(
 
 // GET /labs?bookletId=:bookletId
 export async function getLabsByBooklet(bookletId: string): Promise<LabRequest[]> {
-  // Join through medical_entries to filter by booklet
+  // Direct query on booklet_id
   const { data, error } = await supabase
     .from('lab_requests')
-    .select(`
-      *,
-      medical_entries!inner (
-        booklet_id
-      )
-    `)
-    .eq('medical_entries.booklet_id', bookletId)
+    .select('*')
+    .eq('booklet_id', bookletId)
     .order('requested_date', { ascending: false });
 
   if (error) handleSupabaseError(error);
@@ -150,17 +145,12 @@ export async function getLabsByEntry(entryId: string): Promise<LabRequest[]> {
 export async function getPendingLabs(bookletId?: string): Promise<LabRequest[]> {
   let query = supabase
     .from('lab_requests')
-    .select(`
-      *,
-      medical_entries!inner (
-        booklet_id
-      )
-    `)
+    .select('*')
     .eq('status', 'pending')
     .order('requested_date', { ascending: false });
 
   if (bookletId) {
-    query = query.eq('medical_entries.booklet_id', bookletId);
+    query = query.eq('booklet_id', bookletId);
   }
 
   const { data, error } = await query;
@@ -177,7 +167,8 @@ export async function createLabRequest(
   const { data, error } = await supabase
     .from('lab_requests')
     .insert({
-      medical_entry_id: labData.medicalEntryId,
+      booklet_id: labData.bookletId,
+      medical_entry_id: labData.medicalEntryId || null,
       description: labData.description,
       status: labData.status,
       requested_date: labData.requestedDate.toISOString(),
@@ -243,7 +234,8 @@ function mapMedicalEntry(row: Record<string, unknown>): MedicalEntry {
 function mapLabRequest(row: Record<string, unknown>): LabRequest {
   return {
     id: row.id as string,
-    medicalEntryId: row.medical_entry_id as string,
+    bookletId: row.booklet_id as string,
+    medicalEntryId: row.medical_entry_id as string | undefined,
     description: row.description as string,
     status: row.status as LabStatus,
     requestedDate: new Date(row.requested_date as string),

@@ -60,16 +60,12 @@ function enrichMedicationWithLogs(
 
 // GET /medications?bookletId=:bookletId
 export async function getMedicationsByBooklet(bookletId: string): Promise<MedicationWithLogs[]> {
-  // Get medications through medical_entries join
+  // Direct query on booklet_id
   const { data: medications, error } = await supabase
     .from('medications')
-    .select(`
-      *,
-      medical_entries!inner (
-        booklet_id
-      )
-    `)
-    .eq('medical_entries.booklet_id', bookletId);
+    .select('*')
+    .eq('booklet_id', bookletId)
+    .order('created_at', { ascending: false });
 
   if (error) handleSupabaseError(error);
 
@@ -92,16 +88,12 @@ export async function getMedicationsByBooklet(bookletId: string): Promise<Medica
 export async function getActiveMedications(bookletId?: string): Promise<MedicationWithLogs[]> {
   let query = supabase
     .from('medications')
-    .select(`
-      *,
-      medical_entries!inner (
-        booklet_id
-      )
-    `)
-    .eq('is_active', true);
+    .select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
 
   if (bookletId) {
-    query = query.eq('medical_entries.booklet_id', bookletId);
+    query = query.eq('booklet_id', bookletId);
   }
 
   const { data: medications, error } = await query;
@@ -163,7 +155,8 @@ export async function createMedication(
   const { data, error } = await supabase
     .from('medications')
     .insert({
-      medical_entry_id: medData.medicalEntryId,
+      booklet_id: medData.bookletId,
+      medical_entry_id: medData.medicalEntryId || null,
       name: medData.name,
       dosage: medData.dosage,
       instructions: medData.instructions,
@@ -300,7 +293,8 @@ export async function getMedicationAdherence(
 function mapMedication(row: Record<string, unknown>): Medication {
   return {
     id: row.id as string,
-    medicalEntryId: row.medical_entry_id as string,
+    bookletId: row.booklet_id as string,
+    medicalEntryId: row.medical_entry_id as string | undefined,
     name: row.name as string,
     dosage: row.dosage as string,
     instructions: row.instructions as string | undefined,

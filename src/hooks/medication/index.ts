@@ -75,15 +75,21 @@ export function useCreateMedication() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<Medication, 'id' | 'createdAt'>) => api.createMedication(data),
+    mutationFn: (data: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'>) =>
+      api.createMedication(data),
     onSuccess: (newMed) => {
-      // Invalidate all medication lists since we don't have bookletId directly
-      queryClient.invalidateQueries({ queryKey: medicationKeys.lists() });
+      // Invalidate specific booklet cache
       queryClient.invalidateQueries({
-        queryKey: medicationKeys.listByEntry(newMed.medicalEntryId),
+        queryKey: medicationKeys.listByBooklet(newMed.bookletId),
       });
-      queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
-      queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
+      // Also invalidate entry-specific cache if medicalEntryId exists
+      if (newMed.medicalEntryId) {
+        queryClient.invalidateQueries({
+          queryKey: medicationKeys.listByEntry(newMed.medicalEntryId),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: medicationKeys.active(newMed.bookletId) });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.today(newMed.bookletId) });
       // Set new medication in cache
       queryClient.setQueryData(medicationKeys.detail(newMed.id), newMed);
     },
@@ -97,12 +103,17 @@ export function useUpdateMedication() {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Medication> }) =>
       api.updateMedication(id, updates),
     onSuccess: (updatedMed) => {
-      queryClient.invalidateQueries({ queryKey: medicationKeys.lists() });
+      // Invalidate specific booklet cache
       queryClient.invalidateQueries({
-        queryKey: medicationKeys.listByEntry(updatedMed.medicalEntryId),
+        queryKey: medicationKeys.listByBooklet(updatedMed.bookletId),
       });
-      queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
-      queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
+      if (updatedMed.medicalEntryId) {
+        queryClient.invalidateQueries({
+          queryKey: medicationKeys.listByEntry(updatedMed.medicalEntryId),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: medicationKeys.active(updatedMed.bookletId) });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.today(updatedMed.bookletId) });
       queryClient.setQueryData(medicationKeys.detail(updatedMed.id), updatedMed);
     },
   });
@@ -114,9 +125,11 @@ export function useDeactivateMedication() {
   return useMutation({
     mutationFn: (id: string) => api.deactivateMedication(id),
     onSuccess: (deactivatedMed) => {
-      queryClient.invalidateQueries({ queryKey: medicationKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: medicationKeys.active() });
-      queryClient.invalidateQueries({ queryKey: medicationKeys.today() });
+      queryClient.invalidateQueries({
+        queryKey: medicationKeys.listByBooklet(deactivatedMed.bookletId),
+      });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.active(deactivatedMed.bookletId) });
+      queryClient.invalidateQueries({ queryKey: medicationKeys.today(deactivatedMed.bookletId) });
       queryClient.setQueryData(medicationKeys.detail(deactivatedMed.id), deactivatedMed);
     },
   });

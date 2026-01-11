@@ -3,7 +3,8 @@ export type IntakeStatus = 'taken' | 'missed' | 'skipped';
 
 export interface Medication {
   id: string;
-  medicalEntryId: string;
+  bookletId: string;
+  medicalEntryId?: string; // Optional - for historical context
   name: string;
   dosage: string;
   instructions?: string;

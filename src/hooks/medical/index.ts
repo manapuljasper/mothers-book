@@ -102,13 +102,22 @@ export function useCreateLabRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<LabRequest, 'id'>) => api.createLabRequest(data),
+    mutationFn: (data: Omit<LabRequest, 'id' | 'createdAt' | 'updatedAt'>) =>
+      api.createLabRequest(data),
     onSuccess: (newLab) => {
-      // Invalidate all lab queries since we don't have bookletId directly on LabRequest
-      queryClient.invalidateQueries({ queryKey: medicalKeys.labs() });
+      // Invalidate specific booklet cache
       queryClient.invalidateQueries({
-        queryKey: medicalKeys.labsByEntry(newLab.medicalEntryId),
+        queryKey: medicalKeys.labsByBooklet(newLab.bookletId),
       });
+      queryClient.invalidateQueries({
+        queryKey: medicalKeys.pendingLabs(newLab.bookletId),
+      });
+      // Also invalidate entry-specific cache if medicalEntryId exists
+      if (newLab.medicalEntryId) {
+        queryClient.invalidateQueries({
+          queryKey: medicalKeys.labsByEntry(newLab.medicalEntryId),
+        });
+      }
     },
   });
 }
@@ -127,11 +136,19 @@ export function useUpdateLabStatus() {
       results?: string;
     }) => api.updateLabStatus(id, status, results),
     onSuccess: (updatedLab) => {
-      // Invalidate all lab queries since we don't have bookletId directly on LabRequest
-      queryClient.invalidateQueries({ queryKey: medicalKeys.labs() });
+      // Invalidate specific booklet cache
       queryClient.invalidateQueries({
-        queryKey: medicalKeys.labsByEntry(updatedLab.medicalEntryId),
+        queryKey: medicalKeys.labsByBooklet(updatedLab.bookletId),
       });
+      queryClient.invalidateQueries({
+        queryKey: medicalKeys.pendingLabs(updatedLab.bookletId),
+      });
+      // Also invalidate entry-specific cache if medicalEntryId exists
+      if (updatedLab.medicalEntryId) {
+        queryClient.invalidateQueries({
+          queryKey: medicalKeys.labsByEntry(updatedLab.medicalEntryId),
+        });
+      }
     },
   });
 }
