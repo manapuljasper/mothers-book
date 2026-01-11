@@ -1,16 +1,16 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { QrCode, Calendar, Users } from "lucide-react-native";
 import { useAuthStore } from "../../../src/stores";
 import { useBookletsByDoctor } from "../../../src/hooks";
 import { formatRelativeDate } from "../../../src/utils";
-import { CardPressable, EmptyState, LoadingScreen } from "../../../src/components/ui";
+import { CardPressable, EmptyState, DoctorDashboardSkeleton } from "../../../src/components/ui";
 
 export default function DoctorDashboard() {
   const router = useRouter();
   const { currentUser, doctorProfile } = useAuthStore();
 
-  const { data: patientBooklets = [], isLoading } = useBookletsByDoctor(doctorProfile?.id);
+  const { data: patientBooklets = [], isLoading, refetch, isRefetching } = useBookletsByDoctor(doctorProfile?.id);
 
   // Get upcoming appointments
   const upcomingAppointments = patientBooklets
@@ -25,11 +25,20 @@ export default function DoctorDashboard() {
   const hasNoPatients = patientBooklets.length === 0;
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <DoctorDashboardSkeleton />;
   }
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <ScrollView
+      className="flex-1 bg-gray-50 dark:bg-gray-900"
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefetching}
+          onRefresh={refetch}
+          tintColor="#3b82f6"
+        />
+      }
+    >
       {/* Stats */}
       <View className="flex-row px-4 pt-4">
         <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 mx-2 border border-gray-100 dark:border-gray-700">

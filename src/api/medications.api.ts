@@ -53,8 +53,6 @@ function enrichMedicationWithLogs(
 ): MedicationWithLogs {
   const logs = allLogs.filter((l) => l.medicationId === medication.id);
 
-  console.log("Logs!: ", isToday(logs?.[0]?.scheduledDate));
-
   const todayLogs = logs.filter((l) => isToday(new Date(l.scheduledDate)));
 
   return {
@@ -122,8 +120,6 @@ export async function getActiveMedications(
 
   const mappedMeds = medications.map(mapMedication);
   const mappedLogs = (logs || []).map(mapIntakeLog);
-
-  console.log("activeMedications: ", mappedLogs);
 
   return mappedMeds.map((m) => enrichMedicationWithLogs(m, mappedLogs));
 }
@@ -240,10 +236,7 @@ export async function deleteMedication(id: string): Promise<void> {
     .eq("medication_id", id);
 
   // Then delete the medication itself
-  const { error } = await supabase
-    .from("medications")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("medications").delete().eq("id", id);
 
   if (error) handleSupabaseError(error);
 }

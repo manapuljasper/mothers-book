@@ -495,6 +495,7 @@ src/components/
 ## Development Notes
 
 - All dates are stored as Date objects (MMKV serializes/deserializes them)
+- Use **dayjs** for all date manipulation (not date-fns). Plugins are configured in `src/utils/date.utils.ts`
 - Booklet access is QR-based: Mother generates QR → Doctor scans → Access granted
 - Medications track daily intake with adherence percentage
 - Filipino context: PRC numbers, Philippine addresses, local medical terminology

@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, Alert } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, Alert, RefreshControl } from "react-native";
 import { useAuthStore } from "@/stores";
 import {
   useBookletsByMother,
@@ -6,18 +7,26 @@ import {
   useLogIntake,
 } from "@/hooks";
 import { FREQUENCY_LABELS } from "@/types";
-import { AnimatedView, DoseButton, LoadingScreen } from "@/components/ui";
+import { AnimatedView, DoseButton, MedicationsSkeleton } from "@/components/ui";
 
 export default function MedicationsScreen() {
   const { motherProfile, currentUser } = useAuthStore();
 
-  const { data: booklets = [], isLoading: bookletLoading } =
+  const { data: booklets = [], isLoading: bookletLoading, refetch: refetchBooklets } =
     useBookletsByMother(motherProfile?.id);
-  const { data: allActiveMedications = [], isLoading: medsLoading } =
+  const { data: allActiveMedications = [], isLoading: medsLoading, refetch: refetchMedications } =
     useActiveMedications();
   const logIntakeMutation = useLogIntake();
 
   const isLoading = bookletLoading || medsLoading;
+
+  // Pull-to-refresh
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchBooklets(), refetchMedications()]);
+    setRefreshing(false);
+  };
 
   const bookletIds = booklets.map((b) => b.id);
 
@@ -48,11 +57,20 @@ export default function MedicationsScreen() {
   };
 
   if (isLoading) {
-    return <LoadingScreen color="#ec4899" />;
+    return <MedicationsSkeleton />;
   }
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900 px-6 py-4">
+    <ScrollView
+      className="flex-1 bg-gray-50 dark:bg-gray-900 px-6 py-4"
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#ec4899"
+        />
+      }
+    >
       {activeMedications.length === 0 ? (
         <AnimatedView
           entering="fadeUp"

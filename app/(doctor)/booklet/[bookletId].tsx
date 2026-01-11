@@ -5,6 +5,7 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -18,8 +19,8 @@ import {
   CardPressable,
   StatCard,
   AnimatedCollapsible,
-  LoadingScreen,
   CollapsibleSectionHeader,
+  DoctorBookletDetailSkeleton,
 } from "@/components/ui";
 import { MedicationCard } from "@/components";
 import {
@@ -56,13 +57,26 @@ export default function DoctorBookletDetailScreen() {
   const { doctorProfile } = useAuthStore();
 
   // React Query hooks for data fetching
-  const { data: doctorBooklets = [], isLoading: isLoadingBooklets } =
+  const { data: doctorBooklets = [], isLoading: isLoadingBooklets, refetch: refetchBooklets } =
     useBookletsByDoctor(doctorProfile?.id);
-  const { data: entries = [], isLoading: isLoadingEntries } =
+  const { data: entries = [], isLoading: isLoadingEntries, refetch: refetchEntries } =
     useEntriesByBooklet(bookletId);
-  const { data: allMedications = [], isLoading: isLoadingMedications } =
+  const { data: allMedications = [], isLoading: isLoadingMedications, refetch: refetchMedications } =
     useMedicationsByBooklet(bookletId);
-  const { data: allLabs = [] } = useLabsByBooklet(bookletId);
+  const { data: allLabs = [], refetch: refetchLabs } = useLabsByBooklet(bookletId);
+
+  // Pull-to-refresh
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchBooklets(),
+      refetchEntries(),
+      refetchMedications(),
+      refetchLabs(),
+    ]);
+    setRefreshing(false);
+  };
 
   // Mutation hooks
   const createEntryMutation = useCreateEntry();
@@ -143,7 +157,7 @@ export default function DoctorBookletDetailScreen() {
 
   // Loading state
   if (isLoading) {
-    return <LoadingScreen />;
+    return <DoctorBookletDetailSkeleton />;
   }
 
   if (!booklet || !doctorProfile) {
@@ -337,7 +351,16 @@ export default function DoctorBookletDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
-      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
+      <ScrollView
+        className="flex-1 bg-gray-50 dark:bg-gray-900"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#3b82f6"
+          />
+        }
+      >
         {/* Header */}
         <View
           className="bg-blue-500 px-6 py-6"

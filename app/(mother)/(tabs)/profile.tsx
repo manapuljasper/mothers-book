@@ -106,7 +106,7 @@ export default function MotherProfileScreen() {
               No doctors connected yet. Share your QR code with your doctor.
             </Text>
           ) : (
-            connectedDoctors.map((doctor, index) => (
+            [...connectedDoctors].map((doctor, index) => (
               <View
                 key={doctor.id}
                 className={`py-3 ${

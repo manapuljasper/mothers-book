@@ -1,86 +1,77 @@
-import {
-  format,
-  formatDistanceToNow,
-  isToday,
-  isYesterday,
-  isTomorrow,
-  startOfDay,
-  endOfDay,
-  addMinutes,
-  isBefore,
-  isAfter,
-  differenceInDays,
-  parseISO,
-} from 'date-fns';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import isTodayPlugin from 'dayjs/plugin/isToday';
+import isYesterdayPlugin from 'dayjs/plugin/isYesterday';
+import isTomorrowPlugin from 'dayjs/plugin/isTomorrow';
+
+// Configure dayjs plugins
+dayjs.extend(relativeTime);
+dayjs.extend(isTodayPlugin);
+dayjs.extend(isYesterdayPlugin);
+dayjs.extend(isTomorrowPlugin);
 
 // Format date for display
 export function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'MMM d, yyyy');
+  return dayjs(date).format('MMM D, YYYY');
 }
 
 export function formatDateTime(date: Date | string): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'MMM d, yyyy h:mm a');
+  return dayjs(date).format('MMM D, YYYY h:mm A');
 }
 
 export function formatTime(date: Date | string): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, 'h:mm a');
+  return dayjs(date).format('h:mm A');
 }
 
 // Relative date formatting
 export function formatRelativeDate(date: Date | string): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
+  const d = dayjs(date);
 
-  if (isToday(d)) return 'Today';
-  if (isYesterday(d)) return 'Yesterday';
-  if (isTomorrow(d)) return 'Tomorrow';
+  if (d.isToday()) return 'Today';
+  if (d.isYesterday()) return 'Yesterday';
+  if (d.isTomorrow()) return 'Tomorrow';
 
-  const daysDiff = differenceInDays(d, new Date());
+  const daysDiff = d.diff(dayjs(), 'day');
   if (daysDiff > 0 && daysDiff <= 7) {
-    return format(d, 'EEEE'); // Day name
+    return d.format('dddd'); // Day name
   }
 
-  return formatDate(d);
+  return formatDate(date);
 }
 
 export function formatTimeAgo(date: Date | string): string {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return formatDistanceToNow(d, { addSuffix: true });
+  return dayjs(date).fromNow();
 }
 
 // Date utilities
 export function getStartOfDay(date: Date = new Date()): Date {
-  return startOfDay(date);
+  return dayjs(date).startOf('day').toDate();
 }
 
 export function getEndOfDay(date: Date = new Date()): Date {
-  return endOfDay(date);
+  return dayjs(date).endOf('day').toDate();
 }
 
 export function addMinutesToDate(date: Date, minutes: number): Date {
-  return addMinutes(date, minutes);
+  return dayjs(date).add(minutes, 'minute').toDate();
 }
 
 export function isExpired(date: Date | string): boolean {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return isBefore(d, new Date());
+  return dayjs(date).isBefore(dayjs());
 }
 
 export function isFutureDate(date: Date | string): boolean {
-  const d = typeof date === 'string' ? parseISO(date) : date;
-  return isAfter(d, new Date());
+  return dayjs(date).isAfter(dayjs());
 }
 
 // Age calculation
 export function calculateAge(birthdate: Date | string): number {
-  const d = typeof birthdate === 'string' ? parseISO(birthdate) : birthdate;
-  const today = new Date();
-  let age = today.getFullYear() - d.getFullYear();
-  const monthDiff = today.getMonth() - d.getMonth();
+  const d = dayjs(birthdate);
+  const today = dayjs();
+  let age = today.year() - d.year();
+  const monthDiff = today.month() - d.month();
 
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d.getDate())) {
+  if (monthDiff < 0 || (monthDiff === 0 && today.date() < d.date())) {
     age--;
   }
 
@@ -89,8 +80,7 @@ export function calculateAge(birthdate: Date | string): number {
 
 // Pregnancy-specific utilities
 export function calculateAOG(lastMenstrualPeriod: Date): string {
-  const today = new Date();
-  const days = differenceInDays(today, lastMenstrualPeriod);
+  const days = dayjs().diff(dayjs(lastMenstrualPeriod), 'day');
   const weeks = Math.floor(days / 7);
   const remainingDays = days % 7;
   return `${weeks} weeks ${remainingDays} days`;
@@ -98,9 +88,7 @@ export function calculateAOG(lastMenstrualPeriod: Date): string {
 
 export function calculateDueDate(lastMenstrualPeriod: Date): Date {
   // Naegele's rule: LMP + 280 days (40 weeks)
-  const dueDate = new Date(lastMenstrualPeriod);
-  dueDate.setDate(dueDate.getDate() + 280);
-  return dueDate;
+  return dayjs(lastMenstrualPeriod).add(280, 'day').toDate();
 }
 
 /**
@@ -113,11 +101,31 @@ export function getDateString(date: Date | string): string {
     if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return date;
     }
-    // Otherwise parse and format
-    return parseISO(date).toISOString().split("T")[0];
   }
-  return date.toISOString().split("T")[0];
+  return dayjs(date).format('YYYY-MM-DD');
 }
 
-// Export date-fns functions for convenience
-export { isToday, isYesterday, isTomorrow, isBefore, isAfter, parseISO };
+// Helper functions for date comparisons
+export function isToday(date: Date | string): boolean {
+  return dayjs(date).isToday();
+}
+
+export function isYesterday(date: Date | string): boolean {
+  return dayjs(date).isYesterday();
+}
+
+export function isTomorrow(date: Date | string): boolean {
+  return dayjs(date).isTomorrow();
+}
+
+export function isBefore(date1: Date | string, date2: Date | string): boolean {
+  return dayjs(date1).isBefore(date2);
+}
+
+export function isAfter(date1: Date | string, date2: Date | string): boolean {
+  return dayjs(date1).isAfter(date2);
+}
+
+export function parseISO(dateString: string): Date {
+  return dayjs(dateString).toDate();
+}
