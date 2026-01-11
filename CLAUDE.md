@@ -11,6 +11,15 @@ yarn android        # Start on Android emulator
 yarn web            # Start in web browser
 ```
 
+## Important: Expo Go Not Supported
+
+This app uses `react-native-mmkv` which requires native modules. It **cannot run in Expo Go**.
+
+**To run the app, use one of these methods:**
+- **Local build**: `npx expo run:ios` or `npx expo run:android`
+- **Development build via EAS**: `eas build --profile development`
+- **Simulators**: `yarn ios` or `yarn android`
+
 ## Tech Stack
 
 - **React Native** with **Expo SDK 54** (New Architecture enabled)
