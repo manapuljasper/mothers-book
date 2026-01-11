@@ -128,3 +128,21 @@ export const selectIsDoctor = (state: AuthState) => state.currentRole === 'docto
 export const selectIsMother = (state: AuthState) => state.currentRole === 'mother';
 export const selectCurrentDoctorId = (state: AuthState) => state.doctorProfile?.id ?? null;
 export const selectCurrentMotherId = (state: AuthState) => state.motherProfile?.id ?? null;
+
+// Profile completeness check
+// Doctor: prcNumber, clinicName, clinicAddress required
+// Mother: birthdate required
+export const selectIsProfileComplete = (state: AuthState): boolean => {
+  if (state.currentRole === 'doctor') {
+    const { doctorProfile } = state;
+    return !!(
+      doctorProfile?.prcNumber?.trim() &&
+      doctorProfile?.clinicName?.trim() &&
+      doctorProfile?.clinicAddress?.trim()
+    );
+  }
+  if (state.currentRole === 'mother') {
+    return !!state.motherProfile?.birthdate;
+  }
+  return false;
+};

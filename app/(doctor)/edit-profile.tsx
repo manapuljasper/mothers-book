@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { View, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { View, ScrollView, KeyboardAvoidingView, Platform, Alert, Text } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "../../src/stores";
 import { useUpdateDoctorProfile } from "../../src/hooks";
@@ -8,6 +8,8 @@ import { ModalHeader, TextField, Button } from "../../src/components/ui";
 
 export default function EditDoctorProfileScreen() {
   const router = useRouter();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isCreateMode = mode === "create";
   const { currentUser, doctorProfile } = useAuthStore();
   const updateProfileMutation = useUpdateDoctorProfile();
 
@@ -33,6 +35,10 @@ export default function EditDoctorProfileScreen() {
       Alert.alert("Error", "Clinic name is required");
       return;
     }
+    if (!clinicAddress.trim()) {
+      Alert.alert("Error", "Clinic address is required");
+      return;
+    }
 
     try {
       await updateProfileMutation.mutateAsync({
@@ -41,10 +47,15 @@ export default function EditDoctorProfileScreen() {
         prcNumber: prcNumber.trim(),
         contactNumber: contactNumber.trim() || undefined,
         clinicName: clinicName.trim(),
-        clinicAddress: clinicAddress.trim() || undefined,
+        clinicAddress: clinicAddress.trim(),
         clinicSchedule: clinicSchedule.trim() || undefined,
       });
-      router.back();
+
+      if (isCreateMode) {
+        router.replace("/(doctor)/(tabs)");
+      } else {
+        router.back();
+      }
     } catch (error) {
       Alert.alert("Error", "Failed to update profile. Please try again.");
     }
@@ -56,10 +67,22 @@ export default function EditDoctorProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ModalHeader title="Edit Profile" onClose={() => router.back()} />
+        <ModalHeader
+          title={isCreateMode ? "Complete Your Profile" : "Edit Profile"}
+          onClose={isCreateMode ? undefined : () => router.back()}
+        />
 
         <ScrollView className="flex-1 px-6" keyboardShouldPersistTaps="handled">
           <View className="py-4">
+            {/* Welcome message for create mode */}
+            {isCreateMode && (
+              <View className="mb-6">
+                <Text className="text-lg text-gray-700 dark:text-gray-300">
+                  Welcome! Please complete your profile to continue.
+                </Text>
+              </View>
+            )}
+
             {/* Personal Information */}
             <View className="mb-6">
               <TextField
@@ -118,6 +141,7 @@ export default function EditDoctorProfileScreen() {
             <View className="mb-6">
               <TextField
                 label="Clinic Address"
+                required
                 value={clinicAddress}
                 onChangeText={setClinicAddress}
                 placeholder="Enter clinic address"
@@ -145,7 +169,7 @@ export default function EditDoctorProfileScreen() {
             loading={updateProfileMutation.isPending}
             disabled={updateProfileMutation.isPending}
           >
-            Save Changes
+            {isCreateMode ? "Get Started" : "Save Changes"}
           </Button>
         </View>
       </KeyboardAvoidingView>

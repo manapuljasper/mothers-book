@@ -7,7 +7,7 @@ import {
   Alert,
   Text,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuthStore } from "../../src/stores";
@@ -21,6 +21,8 @@ import {
 
 export default function EditMotherProfileScreen() {
   const router = useRouter();
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isCreateMode = mode === "create";
   const { currentUser, motherProfile } = useAuthStore();
   const updateProfileMutation = useUpdateMotherProfile();
 
@@ -60,7 +62,12 @@ export default function EditMotherProfileScreen() {
         emergencyContact: emergencyContact.trim() || undefined,
         babyName: babyName.trim() || undefined,
       });
-      router.back();
+
+      if (isCreateMode) {
+        router.replace("/(mother)/(tabs)");
+      } else {
+        router.back();
+      }
     } catch (error) {
       Alert.alert("Error", "Failed to update profile. Please try again.");
     }
@@ -79,10 +86,22 @@ export default function EditMotherProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        <ModalHeader title="Edit Profile" onClose={() => router.back()} />
+        <ModalHeader
+          title={isCreateMode ? "Complete Your Profile" : "Edit Profile"}
+          onClose={isCreateMode ? undefined : () => router.back()}
+        />
 
         <ScrollView className="flex-1 px-6" keyboardShouldPersistTaps="handled">
           <View className="py-4">
+            {/* Welcome message for create mode */}
+            {isCreateMode && (
+              <View className="mb-6">
+                <Text className="text-lg text-gray-700 dark:text-gray-300">
+                  Welcome! Please complete your profile to continue.
+                </Text>
+              </View>
+            )}
+
             {/* Personal Information */}
             <Text className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase">
               Personal Information
@@ -183,7 +202,7 @@ export default function EditMotherProfileScreen() {
             loading={updateProfileMutation.isPending}
             disabled={updateProfileMutation.isPending}
           >
-            Save Changes
+            {isCreateMode ? "Get Started" : "Save Changes"}
           </Button>
         </View>
 
