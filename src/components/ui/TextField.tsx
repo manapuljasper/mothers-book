@@ -96,6 +96,10 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(
             className={inputClasses}
             placeholderTextColor={placeholderColor}
             editable={editable}
+            style={{
+              textAlignVertical: "center",
+              lineHeight: size === "sm" ? 14 : 16,
+            }}
             {...textInputProps}
           />
 
