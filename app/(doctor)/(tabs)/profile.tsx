@@ -30,7 +30,14 @@ export default function DoctorProfileScreen() {
       {/* Profile Avatar */}
       <View className="items-center py-6">
         <View className="w-20 h-20 bg-blue-100 dark:bg-blue-900 rounded-full items-center justify-center mb-3">
-          <Text className="text-3xl">👨‍⚕️</Text>
+          <Text className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {currentUser?.fullName
+              ?.split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2) || "DR"}
+          </Text>
         </View>
         <Text className="text-gray-900 dark:text-white text-lg font-bold">
           {currentUser?.fullName}
@@ -81,7 +88,10 @@ export default function DoctorProfileScreen() {
           />
         </View>
 
-        <Pressable className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700">
+        <Pressable
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
+          onPress={() => router.push("/(doctor)/edit-profile")}
+        >
           <Text className="text-gray-900 dark:text-white font-medium">
             Edit Profile
           </Text>

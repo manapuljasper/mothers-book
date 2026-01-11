@@ -191,8 +191,9 @@ export default function BookletDetailScreen() {
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {doctors.map((doctor) => (
-                <View
+                <CardPressable
                   key={doctor.id}
+                  onPress={() => router.push(`/(mother)/view-doctor/${doctor.id}`)}
                   className="bg-white dark:bg-gray-800 rounded-xl p-4 mr-3 border border-gray-100 dark:border-gray-700 min-w-[140px]"
                 >
                   <Text className="font-medium text-gray-900 dark:text-white">
@@ -201,7 +202,7 @@ export default function BookletDetailScreen() {
                   <Text className="text-gray-400 text-xs">
                     {doctor.specialization || "OB-GYN"}
                   </Text>
-                </View>
+                </CardPressable>
               ))}
             </ScrollView>
           </View>
@@ -404,7 +405,6 @@ export default function BookletDetailScreen() {
                               <MedicationCard
                                 medication={med}
                                 variant="inline"
-                                showDates={false}
                               />
                             </View>
                           ))}

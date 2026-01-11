@@ -17,6 +17,13 @@ export default function DoctorLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="booklet" />
+      <Stack.Screen
+        name="edit-profile"
+        options={{
+          presentation: "modal",
+          animation: "slide_from_bottom",
+        }}
+      />
     </Stack>
   );
 }

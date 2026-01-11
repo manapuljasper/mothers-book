@@ -43,7 +43,14 @@ export default function MotherProfileScreen() {
       {/* Profile Avatar */}
       <View className="items-center py-6">
         <View className="w-20 h-20 bg-pink-100 dark:bg-pink-900 rounded-full items-center justify-center mb-3">
-          <Text className="text-3xl">👩</Text>
+          <Text className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+            {currentUser?.fullName
+              ?.split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2) || "ME"}
+          </Text>
         </View>
         <Text className="text-gray-900 dark:text-white text-lg font-bold">
           {currentUser?.fullName}
@@ -153,7 +160,10 @@ export default function MotherProfileScreen() {
           />
         </View>
 
-        <Pressable className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700">
+        <Pressable
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
+          onPress={() => router.push("/(mother)/edit-profile")}
+        >
           <Text className="text-gray-900 dark:text-white font-medium">
             Edit Profile
           </Text>

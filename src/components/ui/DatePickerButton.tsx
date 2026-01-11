@@ -36,7 +36,7 @@ interface DatePickerButtonProps {
   /**
    * Color when variant is "selected"
    */
-  selectedColor?: "blue" | "green";
+  selectedColor?: "blue" | "green" | "pink";
   /**
    * Size variant
    */
@@ -69,9 +69,12 @@ export function DatePickerButton({
     if (selectedColor === "blue") {
       borderClass = "border-blue-400";
       bgClass = "bg-blue-50 dark:bg-blue-900/30";
-    } else {
+    } else if (selectedColor === "green") {
       borderClass = "border-green-400";
       bgClass = "bg-green-50 dark:bg-green-900/30";
+    } else if (selectedColor === "pink") {
+      borderClass = "border-pink-400";
+      bgClass = "bg-pink-50 dark:bg-pink-900/30";
     }
   }
 

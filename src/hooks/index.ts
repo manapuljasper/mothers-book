@@ -58,3 +58,10 @@ export {
   useDoctorById,
   useSearchDoctors,
 } from './doctors';
+
+// Profile hooks
+export {
+  profileKeys,
+  useUpdateDoctorProfile,
+  useUpdateMotherProfile,
+} from './profile';

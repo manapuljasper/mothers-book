@@ -57,3 +57,9 @@ export {
   getDoctorById,
   searchDoctors,
 } from './doctors.api';
+
+// Profile APIs
+export {
+  updateDoctorProfile,
+  updateMotherProfile,
+} from './profile.api';

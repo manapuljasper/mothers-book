@@ -30,6 +30,11 @@ interface AuthState {
   clearAuth: () => void;
   setLoading: (loading: boolean) => void;
   setInitialized: (initialized: boolean) => void;
+
+  // Profile update methods
+  updateDoctorProfile: (updates: Partial<DoctorProfile>) => void;
+  updateMotherProfile: (updates: Partial<MotherProfile>) => void;
+  updateUserFullName: (fullName: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -75,6 +80,33 @@ export const useAuthStore = create<AuthState>()(
       // Set initialized state
       setInitialized: (initialized) => {
         set({ isInitialized: initialized });
+      },
+
+      // Update doctor profile
+      updateDoctorProfile: (updates) => {
+        set((state) => ({
+          doctorProfile: state.doctorProfile
+            ? { ...state.doctorProfile, ...updates }
+            : null,
+        }));
+      },
+
+      // Update mother profile
+      updateMotherProfile: (updates) => {
+        set((state) => ({
+          motherProfile: state.motherProfile
+            ? { ...state.motherProfile, ...updates }
+            : null,
+        }));
+      },
+
+      // Update user full name
+      updateUserFullName: (fullName) => {
+        set((state) => ({
+          currentUser: state.currentUser
+            ? { ...state.currentUser, fullName }
+            : null,
+        }));
       },
     }),
     {
