@@ -5,7 +5,6 @@ import {
   ScrollView,
   Pressable,
   Alert,
-  RefreshControl,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -13,7 +12,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { ChevronLeft, Plus, FileText, Pill, Edit2, StopCircle } from "lucide-react-native";
-import { useAuthStore } from "@/stores";
+import { useCurrentUser } from "@/hooks";
 import { formatDate } from "@/utils";
 import {
   CardPressable,
@@ -54,45 +53,38 @@ export default function DoctorBookletDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { doctorProfile } = useAuthStore();
+  const currentUser = useCurrentUser();
+  const doctorProfile = currentUser?.doctorProfile;
 
-  // React Query hooks for data fetching
-  const { data: doctorBooklets = [], isLoading: isLoadingBooklets, refetch: refetchBooklets } =
-    useBookletsByDoctor(doctorProfile?.id);
-  const { data: entries = [], isLoading: isLoadingEntries, refetch: refetchEntries } =
-    useEntriesByBooklet(bookletId);
-  const { data: allMedications = [], isLoading: isLoadingMedications, refetch: refetchMedications } =
-    useMedicationsByBooklet(bookletId);
-  const { data: allLabs = [], refetch: refetchLabs } = useLabsByBooklet(bookletId);
-
-  // Pull-to-refresh
-  const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([
-      refetchBooklets(),
-      refetchEntries(),
-      refetchMedications(),
-      refetchLabs(),
-    ]);
-    setRefreshing(false);
-  };
+  // Convex query hooks for data fetching
+  const doctorBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
+  const entries = useEntriesByBooklet(bookletId) ?? [];
+  const allMedications = useMedicationsByBooklet(bookletId) ?? [];
+  const allLabs = useLabsByBooklet(bookletId) ?? [];
 
   // Mutation hooks
-  const createEntryMutation = useCreateEntry();
-  const createMedicationMutation = useCreateMedication();
-  const createLabRequestMutation = useCreateLabRequest();
-  const updateBookletMutation = useUpdateBooklet();
-  const updateMedicationMutation = useUpdateMedication();
-  const updateEntryMutation = useUpdateEntry();
-  const deleteMedicationMutation = useDeleteMedication();
-  const deleteLabRequestMutation = useDeleteLabRequest();
+  const createEntry = useCreateEntry();
+  const createMedication = useCreateMedication();
+  const createLabRequest = useCreateLabRequest();
+  const updateBooklet = useUpdateBooklet();
+  const updateMedication = useUpdateMedication();
+  const updateEntry = useUpdateEntry();
+  const deleteMedication = useDeleteMedication();
+  const deleteLabRequest = useDeleteLabRequest();
+
+  // Local loading states for mutations
+  const [isSavingEntry, setIsSavingEntry] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isSavingMedication, setIsSavingMedication] = useState(false);
 
   // Get booklet with mother info
   const booklet = doctorBooklets.find((b) => b.id === bookletId);
 
   const isLoading =
-    isLoadingBooklets || isLoadingEntries || isLoadingMedications;
+    currentUser === undefined ||
+    doctorBooklets === undefined ||
+    entries === undefined ||
+    allMedications === undefined;
 
   // Get sorted unique dates from entries
   const visitDates = useMemo(() => {
@@ -134,7 +126,7 @@ export default function DoctorBookletDetailScreen() {
   }, [entries, selectedDate]);
 
   // Fetch labs for the selected entry
-  const { data: selectedEntryLabs = [] } = useLabsByEntry(selectedEntry?.id);
+  const selectedEntryLabs = useLabsByEntry(selectedEntry?.id) ?? [];
 
   // Get today's entry (if exists) for edit mode
   const todayEntry = useMemo(() => {
@@ -153,7 +145,7 @@ export default function DoctorBookletDetailScreen() {
   }, [todayEntry, allMedications]);
 
   // Fetch labs for today's entry (for edit mode)
-  const { data: todayEntryLabs = [] } = useLabsByEntry(todayEntry?.id);
+  const todayEntryLabs = useLabsByEntry(todayEntry?.id) ?? [];
 
   // Loading state
   if (isLoading) {
@@ -183,14 +175,17 @@ export default function DoctorBookletDetailScreen() {
   // Save booklet notes
   const handleSaveNotes = async () => {
     if (!booklet) return;
+    setIsSavingNotes(true);
     try {
-      await updateBookletMutation.mutateAsync({
+      await updateBooklet({
         id: booklet.id,
         updates: { notes: editingNotes.trim() || undefined },
       });
       setShowNotesModal(false);
     } catch (_error) {
       Alert.alert("Error", "Failed to save notes. Please try again.");
+    } finally {
+      setIsSavingNotes(false);
     }
   };
 
@@ -206,7 +201,7 @@ export default function DoctorBookletDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await updateMedicationMutation.mutateAsync({
+              await updateMedication({
                 id: medication.id,
                 updates: {
                   endDate: new Date(),
@@ -225,14 +220,17 @@ export default function DoctorBookletDetailScreen() {
   // Update medication
   const handleUpdateMedication = async (updates: Partial<Medication>) => {
     if (!editingMedication) return;
+    setIsSavingMedication(true);
     try {
-      await updateMedicationMutation.mutateAsync({
+      await updateMedication({
         id: editingMedication.id,
         updates,
       });
       setEditingMedication(null);
     } catch (_error) {
       Alert.alert("Error", "Failed to update medication. Please try again.");
+    } finally {
+      setIsSavingMedication(false);
     }
   };
 
@@ -245,12 +243,13 @@ export default function DoctorBookletDetailScreen() {
     deletedMedicationIds: string[],
     deletedLabIds: string[]
   ) => {
+    setIsSavingEntry(true);
     try {
       let entryId: string;
 
       if (isEdit && todayEntry) {
         // UPDATE existing entry
-        await updateEntryMutation.mutateAsync({
+        await updateEntry({
           id: todayEntry.id,
           updates: {
             entryType: entryData.entryType,
@@ -272,7 +271,7 @@ export default function DoctorBookletDetailScreen() {
         if (deletedMedicationIds.length > 0) {
           await Promise.all(
             deletedMedicationIds.map((id) =>
-              deleteMedicationMutation.mutateAsync(id)
+              deleteMedication(id)
             )
           );
         }
@@ -281,15 +280,15 @@ export default function DoctorBookletDetailScreen() {
         if (deletedLabIds.length > 0) {
           await Promise.all(
             deletedLabIds.map((id) =>
-              deleteLabRequestMutation.mutateAsync(id)
+              deleteLabRequest(id)
             )
           );
         }
       } else {
         // CREATE new entry
-        const newEntry = await createEntryMutation.mutateAsync({
+        const newEntry = await createEntry({
           bookletId,
-          doctorId: doctorProfile.id,
+          doctorId: doctorProfile._id,
           entryType: entryData.entryType,
           visitDate: new Date(),
           notes: entryData.notes,
@@ -303,6 +302,9 @@ export default function DoctorBookletDetailScreen() {
             entryData.attachments.length > 0 ? entryData.attachments : undefined,
           followUpDate: entryData.followUpDate,
         });
+        if (!newEntry) {
+          throw new Error("Failed to create entry");
+        }
         entryId = newEntry.id;
       }
 
@@ -310,7 +312,7 @@ export default function DoctorBookletDetailScreen() {
       if (medications.length > 0) {
         await Promise.all(
           medications.map((med) =>
-            createMedicationMutation.mutateAsync({
+            createMedication({
               bookletId,
               medicalEntryId: entryId,
               name: med.name,
@@ -330,7 +332,7 @@ export default function DoctorBookletDetailScreen() {
       if (labs.length > 0) {
         await Promise.all(
           labs.map((lab) =>
-            createLabRequestMutation.mutateAsync({
+            createLabRequest({
               bookletId,
               medicalEntryId: entryId,
               description: lab.description,
@@ -346,21 +348,14 @@ export default function DoctorBookletDetailScreen() {
     } catch (error) {
       Alert.alert("Error", isEdit ? "Failed to update entry. Please try again." : "Failed to save entry. Please try again.");
       throw error; // Re-throw so the modal knows it failed
+    } finally {
+      setIsSavingEntry(false);
     }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
-      <ScrollView
-        className="flex-1 bg-gray-50 dark:bg-gray-900"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#3b82f6"
-          />
-        }
-      >
+      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
         {/* Header */}
         <View
           className="bg-blue-500 px-6 py-6"
@@ -588,7 +583,7 @@ export default function DoctorBookletDetailScreen() {
         visible={showEntryModal}
         onClose={() => setShowEntryModal(false)}
         onSave={handleSaveEntry}
-        isSaving={createEntryMutation.isPending || updateEntryMutation.isPending}
+        isSaving={isSavingEntry}
         existingEntry={todayEntry}
         existingMedications={todayMeds}
         existingLabs={todayEntryLabs}
@@ -601,7 +596,7 @@ export default function DoctorBookletDetailScreen() {
         notes={editingNotes}
         onNotesChange={setEditingNotes}
         onSave={handleSaveNotes}
-        isSaving={updateBookletMutation.isPending}
+        isSaving={isSavingNotes}
       />
 
       {/* Edit Medication Modal */}
@@ -610,7 +605,7 @@ export default function DoctorBookletDetailScreen() {
         medication={editingMedication}
         onClose={() => setEditingMedication(null)}
         onSave={handleUpdateMedication}
-        isSaving={updateMedicationMutation.isPending}
+        isSaving={isSavingMedication}
       />
     </SafeAreaView>
   );

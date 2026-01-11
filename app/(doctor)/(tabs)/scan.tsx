@@ -10,17 +10,19 @@ import {
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { QrCode } from "lucide-react-native";
-import { useAuthStore, useThemeStore } from "@/stores";
-import { useGrantDoctorAccess } from "@/hooks";
+import { useThemeStore } from "@/stores";
+import { useCurrentUser, useGrantDoctorAccess } from "@/hooks";
 
 export default function ScanQRScreen() {
   const router = useRouter();
-  const { doctorProfile } = useAuthStore();
+  const currentUser = useCurrentUser();
+  const doctorProfile = currentUser?.doctorProfile;
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
   const [manualCode, setManualCode] = useState("");
+  const [isGranting, setIsGranting] = useState(false);
 
-  const grantAccessMutation = useGrantDoctorAccess();
+  const grantAccess = useGrantDoctorAccess();
 
   const handleManualEntry = async () => {
     if (!manualCode.trim()) {
@@ -33,11 +35,12 @@ export default function ScanQRScreen() {
       return;
     }
 
+    setIsGranting(true);
     try {
       const bookletId = manualCode.trim();
-      await grantAccessMutation.mutateAsync({
+      await grantAccess({
         bookletId,
-        doctorId: doctorProfile.id,
+        doctorId: doctorProfile._id,
       });
 
       setManualCode("");
@@ -47,6 +50,8 @@ export default function ScanQRScreen() {
         "Error",
         error?.message || "Failed to grant access. Check the booklet ID."
       );
+    } finally {
+      setIsGranting(false);
     }
   };
 
@@ -86,14 +91,14 @@ export default function ScanQRScreen() {
         />
         <Pressable
           className={`rounded-lg py-3 ${
-            grantAccessMutation.isPending
+            isGranting
               ? "bg-blue-400"
               : "bg-blue-600 active:bg-blue-700"
           }`}
           onPress={handleManualEntry}
-          disabled={grantAccessMutation.isPending}
+          disabled={isGranting}
         >
-          {grantAccessMutation.isPending ? (
+          {isGranting ? (
             <ActivityIndicator color="white" />
           ) : (
             <Text className="text-white text-center font-semibold">

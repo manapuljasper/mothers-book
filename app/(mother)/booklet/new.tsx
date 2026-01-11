@@ -15,8 +15,8 @@ import {
 } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { X, Calendar } from "lucide-react-native";
-import { useThemeStore, useAuthStore } from "@/stores";
-import { useCreateBooklet } from "@/hooks";
+import { useThemeStore } from "@/stores";
+import { useCurrentUser, useCreateBooklet } from "@/hooks";
 import { ButtonPressable } from "@/components/ui";
 import { formatDate } from "@/utils";
 
@@ -25,8 +25,9 @@ export default function NewBookletScreen() {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
-  const { motherProfile } = useAuthStore();
-  const createBookletMutation = useCreateBooklet();
+  const currentUser = useCurrentUser();
+  const motherProfile = currentUser?.motherProfile;
+  const createBooklet = useCreateBooklet();
 
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
@@ -57,15 +58,17 @@ export default function NewBookletScreen() {
     setIsSubmitting(true);
 
     try {
-      const newBooklet = await createBookletMutation.mutateAsync({
-        motherId: motherProfile.id,
+      const newBooklet = await createBooklet({
+        motherId: motherProfile._id,
         label: label.trim(),
         status: "active",
-        expectedDueDate: expectedDueDate || undefined,
+        expectedDueDate: expectedDueDate?.getTime(),
         notes: notes.trim() || undefined,
       });
 
-      router.replace(`/booklet/${newBooklet.id}`);
+      if (newBooklet) {
+        router.replace(`/booklet/${newBooklet.id}`);
+      }
     } catch (_error) {
       Alert.alert("Error", "Failed to create booklet");
     } finally {

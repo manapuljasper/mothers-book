@@ -90,14 +90,14 @@ export const useMedicationStore = create<MedicationState>()(
         const medication = get().medications.find((m) => m.id === medicationId);
         if (!medication) return;
 
-        const takenDate = getStartOfDay(date);
+        const scheduledDate = getStartOfDay(date);
 
         // Check if log already exists for this dose on this day
         const existingLog = get().intakeLogs.find(
           (l) =>
             l.medicationId === medicationId &&
             l.doseIndex === doseIndex &&
-            getStartOfDay(new Date(l.takenDate)).getTime() === takenDate.getTime()
+            getStartOfDay(new Date(l.scheduledDate)).getTime() === scheduledDate.getTime()
         );
 
         if (existingLog) {
@@ -109,9 +109,7 @@ export const useMedicationStore = create<MedicationState>()(
         const newLog: MedicationIntakeLog = {
           id: generateIntakeLogId(),
           medicationId,
-          medicalEntryId: medication.medicalEntryId,
-          bookletId: medication.bookletId,
-          takenDate,
+          scheduledDate,
           doseIndex,
           status,
           takenAt: status === 'taken' ? new Date() : undefined,
@@ -153,7 +151,7 @@ export const useMedicationStore = create<MedicationState>()(
           .map((m) => {
             const logs = intakeLogs.filter((l) => l.medicationId === m.id);
             const todayLogs = logs.filter((l) =>
-              isToday(new Date(l.takenDate))
+              isToday(new Date(l.scheduledDate))
             );
 
             return {
@@ -176,7 +174,7 @@ export const useMedicationStore = create<MedicationState>()(
 
         return active.map((m) => {
           const logs = intakeLogs.filter((l) => l.medicationId === m.id);
-          const todayLogs = logs.filter((l) => isToday(new Date(l.takenDate)));
+          const todayLogs = logs.filter((l) => isToday(new Date(l.scheduledDate)));
 
           return {
             ...m,
@@ -236,7 +234,7 @@ function calculateAdherence(
 
   // Count taken doses in the period
   const takenDoses = logs.filter((l) => {
-    const logDate = new Date(l.takenDate);
+    const logDate = new Date(l.scheduledDate);
     return l.status === 'taken' && logDate >= effectiveStartDate && logDate <= today;
   }).length;
 

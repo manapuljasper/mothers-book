@@ -2,25 +2,28 @@ import { useState } from "react";
 import { View, ScrollView, KeyboardAvoidingView, Platform, Alert, Text } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuthStore } from "../../src/stores";
-import { useUpdateDoctorProfile } from "../../src/hooks";
+import { useCurrentUser, useUpdateDoctorProfile } from "../../src/hooks";
 import { ModalHeader, TextField, Button } from "../../src/components/ui";
 
 export default function EditDoctorProfileScreen() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isCreateMode = mode === "create";
-  const { currentUser, doctorProfile } = useAuthStore();
-  const updateProfileMutation = useUpdateDoctorProfile();
+
+  const currentUser = useCurrentUser();
+  const user = currentUser?.user;
+  const doctorProfile = currentUser?.doctorProfile;
+  const updateProfile = useUpdateDoctorProfile();
 
   // Form state
-  const [fullName, setFullName] = useState(currentUser?.fullName || "");
+  const [fullName, setFullName] = useState(user?.fullName || "");
   const [specialization, setSpecialization] = useState(doctorProfile?.specialization || "");
   const [prcNumber, setPrcNumber] = useState(doctorProfile?.prcNumber || "");
   const [contactNumber, setContactNumber] = useState(doctorProfile?.contactNumber || "");
   const [clinicName, setClinicName] = useState(doctorProfile?.clinicName || "");
   const [clinicAddress, setClinicAddress] = useState(doctorProfile?.clinicAddress || "");
   const [clinicSchedule, setClinicSchedule] = useState(doctorProfile?.clinicSchedule || "");
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     if (!fullName.trim()) {
@@ -40,8 +43,13 @@ export default function EditDoctorProfileScreen() {
       return;
     }
 
+    setIsSaving(true);
     try {
-      await updateProfileMutation.mutateAsync({
+      if (!doctorProfile?._id) {
+        throw new Error("No doctor profile found");
+      }
+      await updateProfile({
+        doctorId: doctorProfile._id as string,
         fullName: fullName.trim(),
         specialization: specialization.trim() || undefined,
         prcNumber: prcNumber.trim(),
@@ -58,6 +66,8 @@ export default function EditDoctorProfileScreen() {
       }
     } catch (error) {
       Alert.alert("Error", "Failed to update profile. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -69,7 +79,7 @@ export default function EditDoctorProfileScreen() {
       >
         <ModalHeader
           title={isCreateMode ? "Complete Your Profile" : "Edit Profile"}
-          onClose={isCreateMode ? undefined : () => router.back()}
+          onClose={isCreateMode ? (() => {}) : () => router.back()}
         />
 
         <ScrollView className="flex-1 px-6" keyboardShouldPersistTaps="handled">
@@ -166,8 +176,8 @@ export default function EditDoctorProfileScreen() {
           <Button
             variant="primary"
             onPress={handleSave}
-            loading={updateProfileMutation.isPending}
-            disabled={updateProfileMutation.isPending}
+            loading={isSaving}
+            disabled={isSaving}
           >
             {isCreateMode ? "Get Started" : "Save Changes"}
           </Button>

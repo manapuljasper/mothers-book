@@ -10,7 +10,6 @@ export {
   useSignIn,
   useSignUp,
   useSignOut,
-  useInitializeAuth,
 } from "./auth";
 
 // Booklet hooks

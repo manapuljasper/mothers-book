@@ -6,8 +6,7 @@ import {
 } from "react-native-safe-area-context";
 import { ChevronLeft, Pill, Edit2, StopCircle } from "lucide-react-native";
 import { useState } from "react";
-import { useBookletsByDoctor, useMedicationsByBooklet, useUpdateMedication } from "@/hooks";
-import { useAuthStore } from "@/stores";
+import { useCurrentUser, useBookletsByDoctor, useMedicationsByBooklet, useUpdateMedication } from "@/hooks";
 import { CardPressable, LoadingScreen } from "@/components/ui";
 import { EditMedicationModal } from "@/components/doctor";
 import { MedicationCard } from "@/components";
@@ -17,16 +16,19 @@ export default function DoctorMedicationHistoryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { doctorProfile } = useAuthStore();
 
-  const { data: doctorBooklets = [], isLoading: bookletLoading } = useBookletsByDoctor(doctorProfile?.id);
-  const { data: medications = [], isLoading: medsLoading } = useMedicationsByBooklet(bookletId);
-  const updateMedicationMutation = useUpdateMedication();
+  const currentUser = useCurrentUser();
+  const doctorProfile = currentUser?.doctorProfile;
+
+  const doctorBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
+  const medications = useMedicationsByBooklet(bookletId) ?? [];
+  const updateMedication = useUpdateMedication();
 
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const booklet = doctorBooklets.find((b) => b.id === bookletId);
-  const isLoading = bookletLoading || medsLoading;
+  const isLoading = currentUser === undefined || doctorBooklets === undefined || medications === undefined;
 
   // Stop medication
   const handleStopMedication = async (medication: Medication) => {
@@ -40,7 +42,7 @@ export default function DoctorMedicationHistoryScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await updateMedicationMutation.mutateAsync({
+              await updateMedication({
                 id: medication.id,
                 updates: {
                   endDate: new Date(),
@@ -59,14 +61,17 @@ export default function DoctorMedicationHistoryScreen() {
   // Update medication
   const handleUpdateMedication = async (updates: Partial<Medication>) => {
     if (!editingMedication) return;
+    setIsSaving(true);
     try {
-      await updateMedicationMutation.mutateAsync({
+      await updateMedication({
         id: editingMedication.id,
         updates,
       });
       setEditingMedication(null);
     } catch (error) {
       Alert.alert("Error", "Failed to update medication. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -169,7 +174,7 @@ export default function DoctorMedicationHistoryScreen() {
         medication={editingMedication}
         onClose={() => setEditingMedication(null)}
         onSave={handleUpdateMedication}
-        isSaving={updateMedicationMutation.isPending}
+        isSaving={isSaving}
       />
     </SafeAreaView>
   );

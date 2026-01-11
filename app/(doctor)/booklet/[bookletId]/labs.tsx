@@ -6,26 +6,28 @@ import {
 } from "react-native-safe-area-context";
 import { ChevronLeft, FlaskConical, CheckCircle, Paperclip } from "lucide-react-native";
 import { useState } from "react";
-import { useBookletsByDoctor, useLabsByBooklet, useUpdateLabStatus } from "@/hooks";
-import { useAuthStore } from "@/stores";
-import { CardPressable, LoadingScreen, StatusBadge } from "@/components/ui";
+import { useCurrentUser, useBookletsByDoctor, useLabsByBooklet, useUpdateLabStatus } from "@/hooks";
+import { CardPressable, LoadingScreen } from "@/components/ui";
 import { LabRequestCard } from "@/components";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function DoctorLabHistoryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { doctorProfile } = useAuthStore();
+  const currentUser = useCurrentUser();
+  const doctorProfile = currentUser?.doctorProfile;
 
-  const { data: doctorBooklets = [], isLoading: bookletLoading } = useBookletsByDoctor(doctorProfile?.id);
-  const { data: labs = [], isLoading: labsLoading } = useLabsByBooklet(bookletId);
-  const updateLabMutation = useUpdateLabStatus();
+  const doctorBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
+  const labs = useLabsByBooklet(bookletId as Id<"booklets">) ?? [];
+  const updateLab = useUpdateLabStatus();
 
   const [completingLabId, setCompletingLabId] = useState<string | null>(null);
   const [labResults, setLabResults] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const booklet = doctorBooklets.find((b) => b.id === bookletId);
-  const isLoading = bookletLoading || labsLoading;
+  const isLoading = currentUser === undefined || doctorBooklets === undefined || labs === undefined;
 
   // Mark lab as complete
   const handleCompleteLab = async (labId: string) => {
@@ -33,9 +35,10 @@ export default function DoctorLabHistoryScreen() {
       Alert.alert("Error", "Please enter the lab results");
       return;
     }
+    setIsUpdating(true);
     try {
-      await updateLabMutation.mutateAsync({
-        id: labId,
+      await updateLab({
+        id: labId as Id<"labRequests">,
         status: "completed",
         results: labResults.trim(),
       });
@@ -43,6 +46,8 @@ export default function DoctorLabHistoryScreen() {
       setLabResults("");
     } catch (error) {
       Alert.alert("Error", "Failed to update lab. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 

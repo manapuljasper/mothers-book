@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { BookOpen, Pill } from "lucide-react-native";
-import { useAuthStore } from "@/stores";
-import { useBookletsByMother, useActiveMedications } from "@/hooks";
+import { useCurrentUser, useBookletsByMother, useActiveMedications } from "@/hooks";
 import { formatDate } from "@/utils";
 import {
   CardPressable,
@@ -15,24 +13,17 @@ import {
 
 export default function MotherHomeScreen() {
   const router = useRouter();
-  const { motherProfile } = useAuthStore();
+  const currentUser = useCurrentUser();
+  const motherProfile = currentUser?.motherProfile;
 
-  const booklets = useBookletsByMother(motherProfile?.id);
-  const {
-    data: allActiveMedications = [],
-    isLoading: medsLoading,
-    refetch: refetchMedications,
-  } = useActiveMedications();
+  const booklets = useBookletsByMother(motherProfile?._id) ?? [];
+  const allActiveMedications = useActiveMedications() ?? [];
 
-  const isLoading = bookletLoading || medsLoading;
+  const isLoading = currentUser === undefined || booklets === undefined || allActiveMedications === undefined;
 
-  // Pull-to-refresh
-  const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([refetchBooklets(), refetchMedications()]);
-    setRefreshing(false);
-  };
+  if (isLoading) {
+    return <MotherHomeSkeleton />;
+  }
 
   const activeBooklets = booklets.filter((b) => b.status === "active");
   const pastBooklets = booklets.filter((b) => b.status !== "active");
@@ -42,21 +33,8 @@ export default function MotherHomeScreen() {
     booklets.some((b) => b.id === m.bookletId)
   );
 
-  if (isLoading) {
-    return <MotherHomeSkeleton />;
-  }
-
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50 dark:bg-gray-900"
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#ec4899"
-        />
-      }
-    >
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Quick Stats */}
       <View className="flex-row px-4 pt-4">
         <StatCard

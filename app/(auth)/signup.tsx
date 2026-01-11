@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Alert } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
-import { useThemeStore, useAuthStore } from "../../src/stores";
+import { useThemeStore } from "../../src/stores";
 import { useSignUp } from "../../src/hooks";
 import {
   AnimatedView,
@@ -18,10 +18,10 @@ type Step = "role" | "details";
 
 export default function SignupScreen() {
   const router = useRouter();
-  const { isLoading } = useAuthStore();
-  const signUpMutation = useSignUp();
+  const signUp = useSignUp();
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
+  const [isLoading, setIsLoading] = useState(false);
 
   const [step, setStep] = useState<Step>("role");
   const [role, setRole] = useState<UserRole | null>(null);
@@ -69,16 +69,14 @@ export default function SignupScreen() {
       return;
     }
 
-    const result = await signUpMutation.mutateAsync({
-      email,
-      password,
-      role,
-      fullName,
-    });
-    if (result.success) {
+    setIsLoading(true);
+    try {
+      await signUp({ email, password, role, fullName });
       router.replace("/");
-    } else {
-      Alert.alert("Error", result.error || "Failed to create account");
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to create account");
+    } finally {
+      setIsLoading(false);
     }
   };
 

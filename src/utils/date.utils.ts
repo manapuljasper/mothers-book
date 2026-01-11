@@ -10,21 +10,24 @@ dayjs.extend(isTodayPlugin);
 dayjs.extend(isYesterdayPlugin);
 dayjs.extend(isTomorrowPlugin);
 
+// Date input type - accepts Date, string (ISO), or number (timestamp)
+type DateInput = Date | string | number;
+
 // Format date for display
-export function formatDate(date: Date | string): string {
+export function formatDate(date: DateInput): string {
   return dayjs(date).format('MMM D, YYYY');
 }
 
-export function formatDateTime(date: Date | string): string {
+export function formatDateTime(date: DateInput): string {
   return dayjs(date).format('MMM D, YYYY h:mm A');
 }
 
-export function formatTime(date: Date | string): string {
+export function formatTime(date: DateInput): string {
   return dayjs(date).format('h:mm A');
 }
 
 // Relative date formatting
-export function formatRelativeDate(date: Date | string): string {
+export function formatRelativeDate(date: DateInput): string {
   const d = dayjs(date);
 
   if (d.isToday()) return 'Today';
@@ -39,7 +42,7 @@ export function formatRelativeDate(date: Date | string): string {
   return formatDate(date);
 }
 
-export function formatTimeAgo(date: Date | string): string {
+export function formatTimeAgo(date: DateInput): string {
   return dayjs(date).fromNow();
 }
 
@@ -56,16 +59,16 @@ export function addMinutesToDate(date: Date, minutes: number): Date {
   return dayjs(date).add(minutes, 'minute').toDate();
 }
 
-export function isExpired(date: Date | string): boolean {
+export function isExpired(date: DateInput): boolean {
   return dayjs(date).isBefore(dayjs());
 }
 
-export function isFutureDate(date: Date | string): boolean {
+export function isFutureDate(date: DateInput): boolean {
   return dayjs(date).isAfter(dayjs());
 }
 
 // Age calculation
-export function calculateAge(birthdate: Date | string): number {
+export function calculateAge(birthdate: DateInput): number {
   const d = dayjs(birthdate);
   const today = dayjs();
   let age = today.year() - d.year();
@@ -93,9 +96,9 @@ export function calculateDueDate(lastMenstrualPeriod: Date): Date {
 
 /**
  * Get a date string in YYYY-MM-DD format for grouping/comparison.
- * Handles both Date objects and ISO strings.
+ * Handles Date objects, ISO strings, and timestamps.
  */
-export function getDateString(date: Date | string): string {
+export function getDateString(date: DateInput): string {
   if (typeof date === "string") {
     // If already a simple date string (YYYY-MM-DD), return as-is
     if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -106,23 +109,23 @@ export function getDateString(date: Date | string): string {
 }
 
 // Helper functions for date comparisons
-export function isToday(date: Date | string): boolean {
+export function isToday(date: DateInput): boolean {
   return dayjs(date).isToday();
 }
 
-export function isYesterday(date: Date | string): boolean {
+export function isYesterday(date: DateInput): boolean {
   return dayjs(date).isYesterday();
 }
 
-export function isTomorrow(date: Date | string): boolean {
+export function isTomorrow(date: DateInput): boolean {
   return dayjs(date).isTomorrow();
 }
 
-export function isBefore(date1: Date | string, date2: Date | string): boolean {
+export function isBefore(date1: DateInput, date2: DateInput): boolean {
   return dayjs(date1).isBefore(date2);
 }
 
-export function isAfter(date1: Date | string, date2: Date | string): boolean {
+export function isAfter(date1: DateInput, date2: DateInput): boolean {
   return dayjs(date1).isAfter(date2);
 }
 

@@ -1,15 +1,21 @@
 import { Redirect, Stack } from "expo-router";
-import { useAuthStore } from "../../src/stores";
+import { useCurrentUser } from "../../src/hooks";
 
 export default function DoctorLayout() {
-  const { isAuthenticated, currentRole } = useAuthStore();
+  const currentUser = useCurrentUser();
 
-  // Redirect if not authenticated or not a doctor
-  if (!isAuthenticated) {
+  // Show nothing while loading
+  if (currentUser === undefined) {
+    return null;
+  }
+
+  // Redirect if not authenticated
+  if (!currentUser) {
     return <Redirect href="/(auth)/login" />;
   }
 
-  if (currentRole !== "doctor") {
+  // Redirect if not a doctor
+  if (currentUser.user.role !== "doctor") {
     return <Redirect href="/" />;
   }
 

@@ -14,10 +14,10 @@ export default function LabHistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data: booklet, isLoading: bookletLoading } = useBookletById(bookletId);
-  const { data: labs = [], isLoading: labsLoading } = useLabsByBooklet(bookletId);
+  const booklet = useBookletById(bookletId);
+  const labs = useLabsByBooklet(bookletId) ?? [];
 
-  const isLoading = bookletLoading || labsLoading;
+  const isLoading = booklet === undefined || labs === undefined;
 
   if (isLoading) {
     return <LoadingScreen color="#ec4899" />;

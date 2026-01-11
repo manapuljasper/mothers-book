@@ -10,8 +10,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useAuthStore } from "../../src/stores";
-import { useUpdateMotherProfile } from "../../src/hooks";
+import { useCurrentUser, useUpdateMotherProfile } from "../../src/hooks";
 import {
   ModalHeader,
   TextField,
@@ -23,13 +22,16 @@ export default function EditMotherProfileScreen() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isCreateMode = mode === "create";
-  const { currentUser, motherProfile } = useAuthStore();
-  const updateProfileMutation = useUpdateMotherProfile();
+
+  const currentUser = useCurrentUser();
+  const user = currentUser?.user;
+  const motherProfile = currentUser?.motherProfile;
+  const updateProfile = useUpdateMotherProfile();
 
   // Form state
-  const [fullName, setFullName] = useState(currentUser?.fullName || "");
+  const [fullName, setFullName] = useState(user?.fullName || "");
   const [birthdate, setBirthdate] = useState<Date>(
-    motherProfile?.birthdate || new Date()
+    motherProfile?.birthdate ? new Date(motherProfile.birthdate) : new Date()
   );
   const [contactNumber, setContactNumber] = useState(
     motherProfile?.contactNumber || ""
@@ -45,6 +47,7 @@ export default function EditMotherProfileScreen() {
 
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     if (!fullName.trim()) {
@@ -52,8 +55,13 @@ export default function EditMotherProfileScreen() {
       return;
     }
 
+    setIsSaving(true);
     try {
-      await updateProfileMutation.mutateAsync({
+      if (!motherProfile?._id) {
+        throw new Error("No mother profile found");
+      }
+      await updateProfile({
+        motherId: motherProfile._id as string,
         fullName: fullName.trim(),
         birthdate,
         contactNumber: contactNumber.trim() || undefined,
@@ -70,6 +78,8 @@ export default function EditMotherProfileScreen() {
       }
     } catch (error) {
       Alert.alert("Error", "Failed to update profile. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -88,7 +98,7 @@ export default function EditMotherProfileScreen() {
       >
         <ModalHeader
           title={isCreateMode ? "Complete Your Profile" : "Edit Profile"}
-          onClose={isCreateMode ? undefined : () => router.back()}
+          onClose={isCreateMode ? (() => {}) : () => router.back()}
         />
 
         <ScrollView className="flex-1 px-6" keyboardShouldPersistTaps="handled">
@@ -199,8 +209,8 @@ export default function EditMotherProfileScreen() {
           <Button
             variant="primary"
             onPress={handleSave}
-            loading={updateProfileMutation.isPending}
-            disabled={updateProfileMutation.isPending}
+            loading={isSaving}
+            disabled={isSaving}
           >
             {isCreateMode ? "Get Started" : "Save Changes"}
           </Button>

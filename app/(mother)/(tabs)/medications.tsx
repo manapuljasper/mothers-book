@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { View, Text, ScrollView, Alert, RefreshControl } from "react-native";
-import { useAuthStore } from "@/stores";
+import { View, Text, ScrollView, Alert } from "react-native";
 import {
+  useCurrentUser,
   useBookletsByMother,
   useActiveMedications,
   useLogIntake,
@@ -10,23 +9,15 @@ import { FREQUENCY_LABELS } from "@/types";
 import { AnimatedView, DoseButton, MedicationsSkeleton } from "@/components/ui";
 
 export default function MedicationsScreen() {
-  const { motherProfile, currentUser } = useAuthStore();
+  const currentUser = useCurrentUser();
+  const user = currentUser?.user;
+  const motherProfile = currentUser?.motherProfile;
 
-  const { data: booklets = [], isLoading: bookletLoading, refetch: refetchBooklets } =
-    useBookletsByMother(motherProfile?.id);
-  const { data: allActiveMedications = [], isLoading: medsLoading, refetch: refetchMedications } =
-    useActiveMedications();
-  const logIntakeMutation = useLogIntake();
+  const booklets = useBookletsByMother(motherProfile?._id) ?? [];
+  const allActiveMedications = useActiveMedications() ?? [];
+  const logIntake = useLogIntake();
 
-  const isLoading = bookletLoading || medsLoading;
-
-  // Pull-to-refresh
-  const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([refetchBooklets(), refetchMedications()]);
-    setRefreshing(false);
-  };
+  const isLoading = currentUser === undefined || booklets === undefined || allActiveMedications === undefined;
 
   const bookletIds = booklets.map((b) => b.id);
 
@@ -40,18 +31,17 @@ export default function MedicationsScreen() {
     doseIndex: number,
     currentStatus: string
   ) => {
-    if (!currentUser) return;
+    if (!user) return;
 
     const newStatus = currentStatus === "taken" ? "missed" : "taken";
     try {
-      await logIntakeMutation.mutateAsync({
+      await logIntake({
         medicationId,
         doseIndex,
         status: newStatus,
-        userId: currentUser.id,
+        userId: user._id,
       });
     } catch (error) {
-      // UI already rolled back via optimistic update onError
       Alert.alert("Error", "Failed to update medication status");
     }
   };
@@ -61,16 +51,7 @@ export default function MedicationsScreen() {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50 dark:bg-gray-900 px-6 py-4"
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#ec4899"
-        />
-      }
-    >
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900 px-6 py-4">
       {activeMedications.length === 0 ? (
         <AnimatedView
           entering="fadeUp"

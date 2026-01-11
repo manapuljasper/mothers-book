@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, RefreshControl } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
@@ -30,27 +30,12 @@ export default function BookletDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data: booklet, isLoading: bookletLoading, refetch: refetchBooklet } = useBookletById(bookletId);
-  const { data: doctors = [], refetch: refetchDoctors } = useBookletDoctors(bookletId);
-  const { data: entries = [], isLoading: entriesLoading, refetch: refetchEntries } = useEntriesByBooklet(bookletId);
-  const { data: allMedications = [], isLoading: medsLoading, refetch: refetchMedications } = useMedicationsByBooklet(bookletId);
-  const { data: allLabs = [], refetch: refetchLabs } = useLabsByBooklet(bookletId);
-  const { data: pendingLabs = [], refetch: refetchPendingLabs } = usePendingLabs(bookletId);
-
-  // Pull-to-refresh
-  const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([
-      refetchBooklet(),
-      refetchDoctors(),
-      refetchEntries(),
-      refetchMedications(),
-      refetchLabs(),
-      refetchPendingLabs(),
-    ]);
-    setRefreshing(false);
-  };
+  const booklet = useBookletById(bookletId);
+  const doctors = useBookletDoctors(bookletId) ?? [];
+  const entries = useEntriesByBooklet(bookletId) ?? [];
+  const allMedications = useMedicationsByBooklet(bookletId) ?? [];
+  const allLabs = useLabsByBooklet(bookletId) ?? [];
+  const pendingLabs = usePendingLabs(bookletId) ?? [];
 
   // Get sorted unique dates from entries (as ISO date strings)
   const visitDates = useMemo(() => {
@@ -92,7 +77,7 @@ export default function BookletDetailScreen() {
     );
   }, [entries, selectedDate]);
 
-  const isLoading = bookletLoading || entriesLoading || medsLoading;
+  const isLoading = booklet === undefined || entries === undefined || allMedications === undefined;
 
   if (isLoading) {
     return <MotherBookletDetailSkeleton />;
@@ -129,16 +114,7 @@ export default function BookletDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-pink-500" edges={[]}>
-      <ScrollView
-        className="flex-1 bg-gray-50 dark:bg-gray-900"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#ec4899"
-          />
-        }
-      >
+      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
         {/* Header */}
         <View className="bg-pink-500 px-6 py-6" style={{ paddingTop: insets.top }}>
           <CardPressable onPress={() => router.back()} className="flex-row items-center mb-3">

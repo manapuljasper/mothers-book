@@ -117,10 +117,11 @@ export const listActive = query({
     let medications: Doc<"medications">[];
 
     if (args.bookletId) {
+      const bookletId = args.bookletId;
       medications = await ctx.db
         .query("medications")
         .withIndex("by_booklet_active", (q) =>
-          q.eq("bookletId", args.bookletId).eq("isActive", true)
+          q.eq("bookletId", bookletId).eq("isActive", true)
         )
         .order("desc")
         .collect();
@@ -142,10 +143,11 @@ export const listToday = query({
     let medications: Doc<"medications">[];
 
     if (args.bookletId) {
+      const bookletId = args.bookletId;
       medications = await ctx.db
         .query("medications")
         .withIndex("by_booklet_active", (q) =>
-          q.eq("bookletId", args.bookletId).eq("isActive", true)
+          q.eq("bookletId", bookletId).eq("isActive", true)
         )
         .order("desc")
         .collect();

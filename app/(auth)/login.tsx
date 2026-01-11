@@ -2,7 +2,6 @@ import { useState } from "react";
 import { View, Text, ScrollView, Alert } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuthStore } from "../../src/stores";
 import { useSignIn } from "../../src/hooks";
 import {
   AnimatedView,
@@ -21,10 +20,10 @@ const TEST_PASSWORD = "123456";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { isLoading } = useAuthStore();
-  const signInMutation = useSignIn();
+  const signIn = useSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -36,23 +35,26 @@ export default function LoginScreen() {
       return;
     }
 
-    const result = await signInMutation.mutateAsync({ email, password });
-    if (result.success) {
+    setIsLoading(true);
+    try {
+      await signIn({ email, password });
       router.replace("/");
-    } else {
-      Alert.alert("Error", result.error || "Failed to sign in");
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to sign in");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleQuickLogin = async (testEmail: string) => {
-    const result = await signInMutation.mutateAsync({
-      email: testEmail,
-      password: TEST_PASSWORD,
-    });
-    if (result.success) {
+    setIsLoading(true);
+    try {
+      await signIn({ email: testEmail, password: TEST_PASSWORD });
       router.replace("/");
-    } else {
-      Alert.alert("Error", result.error || "Failed to sign in");
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to sign in");
+    } finally {
+      setIsLoading(false);
     }
   };
 

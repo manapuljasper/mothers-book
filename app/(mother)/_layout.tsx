@@ -1,15 +1,21 @@
 import { Redirect, Stack } from "expo-router";
-import { useAuthStore } from "../../src/stores";
+import { useCurrentUser } from "../../src/hooks";
 
 export default function MotherLayout() {
-  const { isAuthenticated, currentRole } = useAuthStore();
+  const currentUser = useCurrentUser();
 
-  // Redirect if not authenticated or not a mother
-  if (!isAuthenticated) {
+  // Show nothing while loading
+  if (currentUser === undefined) {
+    return null;
+  }
+
+  // Redirect if not authenticated
+  if (!currentUser) {
     return <Redirect href="/(auth)/login" />;
   }
 
-  if (currentRole !== "mother") {
+  // Redirect if not a mother
+  if (currentUser.user.role !== "mother") {
     return <Redirect href="/" />;
   }
 

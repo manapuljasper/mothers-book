@@ -12,15 +12,15 @@ export default function DoctorsScreen() {
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
 
-  // Get all doctors from Supabase
-  const { data: allDoctors = [], isLoading: isLoadingAll } = useAllDoctors();
+  // Get all doctors from Convex
+  const allDoctors = useAllDoctors() ?? [];
 
   // Search doctors when query is entered
-  const { data: searchResults, isLoading: isSearching } = useSearchDoctors(searchQuery);
+  const searchResults = useSearchDoctors(searchQuery);
 
   // Use search results if searching, otherwise use all doctors
-  const doctors = searchQuery.length > 0 ? (searchResults || []) : allDoctors;
-  const isLoading = searchQuery.length > 0 ? isSearching : isLoadingAll;
+  const doctors = searchQuery.length > 0 ? (searchResults ?? []) : allDoctors;
+  const isLoading = searchQuery.length > 0 ? searchResults === undefined : allDoctors === undefined;
 
   function getInitials(name: string | undefined) {
     return name

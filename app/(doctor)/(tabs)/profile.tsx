@@ -1,13 +1,15 @@
 import { View, Text, ScrollView, Pressable, Alert, Switch } from "react-native";
 import { useRouter } from "expo-router";
 import { Moon, Sun } from "lucide-react-native";
-import { useAuthStore, useThemeStore } from "../../../src/stores";
-import { useSignOut } from "../../../src/hooks";
+import { useThemeStore } from "../../../src/stores";
+import { useCurrentUser, useSignOut } from "../../../src/hooks";
 
 export default function DoctorProfileScreen() {
   const router = useRouter();
-  const { currentUser, doctorProfile } = useAuthStore();
-  const signOutMutation = useSignOut();
+  const currentUser = useCurrentUser();
+  const user = currentUser?.user;
+  const doctorProfile = currentUser?.doctorProfile;
+  const signOut = useSignOut();
   const { colorScheme, toggleTheme } = useThemeStore();
   const isDark = colorScheme === "dark";
 
@@ -18,7 +20,7 @@ export default function DoctorProfileScreen() {
         text: "Logout",
         style: "destructive",
         onPress: async () => {
-          await signOutMutation.mutateAsync();
+          await signOut();
           router.replace("/(auth)/login");
         },
       },
@@ -31,7 +33,7 @@ export default function DoctorProfileScreen() {
       <View className="items-center py-6">
         <View className="w-20 h-20 bg-blue-100 dark:bg-blue-900 rounded-full items-center justify-center mb-3">
           <Text className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {currentUser?.fullName
+            {user?.fullName
               ?.split(" ")
               .map((n) => n[0])
               .join("")
@@ -40,7 +42,7 @@ export default function DoctorProfileScreen() {
           </Text>
         </View>
         <Text className="text-gray-900 dark:text-white text-lg font-bold">
-          {currentUser?.fullName}
+          {user?.fullName}
         </Text>
         <Text className="text-gray-500 dark:text-gray-400 text-sm">
           {doctorProfile?.specialization}

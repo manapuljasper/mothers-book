@@ -8,7 +8,8 @@ import { ModalHeader, LoadingScreen } from "../../../src/components/ui";
 export default function ViewDoctorProfileScreen() {
   const { doctorId } = useLocalSearchParams<{ doctorId: string }>();
   const router = useRouter();
-  const { data: doctor, isLoading } = useDoctorById(doctorId);
+  const doctor = useDoctorById(doctorId);
+  const isLoading = doctor === undefined;
 
   const handleCall = () => {
     if (doctor?.contactNumber) {

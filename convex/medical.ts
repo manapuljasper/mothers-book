@@ -152,11 +152,12 @@ export const listPendingLabs = query({
   args: { bookletId: v.optional(v.id("booklets")) },
   handler: async (ctx, args) => {
     if (args.bookletId) {
+      const bookletId = args.bookletId;
       // Use compound index for booklet + status
       const labs = await ctx.db
         .query("labRequests")
         .withIndex("by_booklet_status", (q) =>
-          q.eq("bookletId", args.bookletId).eq("status", "pending")
+          q.eq("bookletId", bookletId).eq("status", "pending")
         )
         .order("desc")
         .collect();

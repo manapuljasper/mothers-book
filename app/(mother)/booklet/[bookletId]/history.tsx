@@ -14,10 +14,10 @@ export default function MedicationHistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data: booklet, isLoading: bookletLoading } = useBookletById(bookletId);
-  const { data: medications = [], isLoading: medsLoading } = useMedicationsByBooklet(bookletId);
+  const booklet = useBookletById(bookletId);
+  const medications = useMedicationsByBooklet(bookletId) ?? [];
 
-  const isLoading = bookletLoading || medsLoading;
+  const isLoading = booklet === undefined || medications === undefined;
 
   if (isLoading) {
     return <LoadingScreen color="#ec4899" />;

@@ -1,21 +1,20 @@
-import { View, Text, ScrollView, TextInput, RefreshControl } from "react-native";
+import { View, Text, ScrollView, TextInput } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Search, Users, QrCode } from "lucide-react-native";
-import { useAuthStore, useThemeStore } from "@/stores";
-import { useBookletsByDoctor } from "@/hooks";
+import { useThemeStore } from "@/stores";
+import { useCurrentUser, useBookletsByDoctor } from "@/hooks";
 import { CardPressable, EmptyState, BookletCard, PatientListSkeleton } from "@/components/ui";
 
 export default function PatientsScreen() {
   const router = useRouter();
-  const { doctorProfile } = useAuthStore();
+  const currentUser = useCurrentUser();
+  const doctorProfile = currentUser?.doctorProfile;
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: patientBooklets = [], isLoading, refetch, isRefetching } = useBookletsByDoctor(
-    doctorProfile?.id
-  );
+  const patientBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
 
   // Filter by search query
   const filteredBooklets = patientBooklets.filter(
@@ -24,7 +23,7 @@ export default function PatientsScreen() {
       b.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (isLoading) {
+  if (currentUser === undefined || patientBooklets === undefined) {
     return <PatientListSkeleton />;
   }
 
@@ -45,16 +44,7 @@ export default function PatientsScreen() {
       </View>
 
       {/* Patient List */}
-      <ScrollView
-        className="flex-1 px-6 py-4"
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor="#3b82f6"
-          />
-        }
-      >
+      <ScrollView className="flex-1 px-6 py-4">
         {filteredBooklets.length === 0 ? (
           <View className="mt-4">
             {searchQuery ? (

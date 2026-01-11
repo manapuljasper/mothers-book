@@ -254,3 +254,57 @@ export const storeUser = mutation({
     return null;
   },
 });
+
+// Create user after auth signup (called from client after signUp succeeds)
+export const createUserAfterAuth = mutation({
+  args: {
+    email: v.string(),
+    role: userRoleValidator,
+    fullName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    // Check if user already exists by token
+    const existingByToken = await getUserByToken(ctx, identity.tokenIdentifier);
+    if (existingByToken) {
+      // User already created, return existing
+      return existingByToken._id;
+    }
+
+    // Check if user already exists by email
+    const existingByEmail = await getUserByEmail(ctx, args.email);
+    if (existingByEmail) {
+      throw new Error("User with this email already exists");
+    }
+
+    // Create user record
+    const userId = await ctx.db.insert("users", {
+      email: args.email,
+      role: args.role,
+      fullName: args.fullName,
+      tokenIdentifier: identity.tokenIdentifier,
+    });
+
+    // Create role-specific profile
+    if (args.role === "doctor") {
+      await ctx.db.insert("doctorProfiles", {
+        userId,
+        prcNumber: "",
+        clinicName: "",
+        clinicAddress: "",
+        contactNumber: "",
+      });
+    } else if (args.role === "mother") {
+      await ctx.db.insert("motherProfiles", {
+        userId,
+        birthdate: Date.now(),
+      });
+    }
+
+    return userId;
+  },
+});
