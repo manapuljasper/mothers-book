@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, ActivityIndicator, Pressable, Alert, TextInput } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
@@ -8,9 +8,8 @@ import { ChevronLeft, FlaskConical, CheckCircle, Paperclip } from "lucide-react-
 import { useState } from "react";
 import { useBookletsByDoctor, useLabsByBooklet, useUpdateLabStatus } from "@/hooks";
 import { useAuthStore } from "@/stores";
-import { formatDate } from "@/utils";
-import { LAB_STATUS_LABELS } from "@/types";
-import { CardPressable } from "@/components/ui";
+import { CardPressable, LoadingScreen, StatusBadge } from "@/components/ui";
+import { LabRequestCard } from "@/components";
 
 export default function DoctorLabHistoryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
@@ -48,11 +47,7 @@ export default function DoctorLabHistoryScreen() {
   };
 
   if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
 
   const pendingLabs = labs.filter((l) => l.status === "pending");
@@ -89,82 +84,60 @@ export default function DoctorLabHistoryScreen() {
           ) : (
             <View>
               {pendingLabs.map((lab) => (
-                <View
-                  key={lab.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1">
-                      <Text className="font-medium text-gray-900 dark:text-white">
-                        {lab.description}
-                      </Text>
-                      <Text className="text-gray-400 text-xs mt-1">
-                        Requested: {formatDate(lab.requestedDate)}
-                      </Text>
-                    </View>
-                    <View className="px-2 py-1 rounded-full border border-amber-400">
-                      <Text className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                        {LAB_STATUS_LABELS[lab.status]}
-                      </Text>
-                    </View>
-                  </View>
-                  {lab.notes && (
-                    <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                      {lab.notes}
-                    </Text>
-                  )}
-
-                  {/* Complete Lab Section */}
-                  {completingLabId === lab.id ? (
-                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <Text className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-2">
-                        Enter Results:
-                      </Text>
-                      <TextInput
-                        value={labResults}
-                        onChangeText={setLabResults}
-                        placeholder="Enter lab results..."
-                        placeholderTextColor="#9ca3af"
-                        multiline
-                        numberOfLines={3}
-                        className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-gray-900 dark:text-white text-sm mb-3"
-                        style={{ textAlignVertical: "top", minHeight: 80 }}
-                      />
-                      <View className="flex-row">
+                <View key={lab.id} className="mb-3">
+                  <LabRequestCard
+                    lab={lab}
+                    action={
+                      completingLabId === lab.id ? (
+                        <View>
+                          <Text className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-2">
+                            Enter Results:
+                          </Text>
+                          <TextInput
+                            value={labResults}
+                            onChangeText={setLabResults}
+                            placeholder="Enter lab results..."
+                            placeholderTextColor="#9ca3af"
+                            multiline
+                            numberOfLines={3}
+                            className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-gray-900 dark:text-white text-sm mb-3"
+                            style={{ textAlignVertical: "top", minHeight: 80 }}
+                          />
+                          <View className="flex-row">
+                            <Pressable
+                              onPress={() => {
+                                setCompletingLabId(null);
+                                setLabResults("");
+                              }}
+                              className="flex-1 mr-2 py-2 rounded-lg bg-gray-100 dark:bg-gray-700"
+                            >
+                              <Text className="text-gray-600 dark:text-gray-300 text-center font-medium">
+                                Cancel
+                              </Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => handleCompleteLab(lab.id)}
+                              className="flex-1 py-2 rounded-lg bg-green-500"
+                            >
+                              <Text className="text-white text-center font-medium">
+                                Complete
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      ) : (
                         <Pressable
-                          onPress={() => {
-                            setCompletingLabId(null);
-                            setLabResults("");
-                          }}
-                          className="flex-1 mr-2 py-2 rounded-lg bg-gray-100 dark:bg-gray-700"
+                          onPress={() => setCompletingLabId(lab.id)}
+                          className="flex-row items-center justify-center py-2 rounded-lg bg-green-50 dark:bg-green-900/30"
                         >
-                          <Text className="text-gray-600 dark:text-gray-300 text-center font-medium">
-                            Cancel
+                          <CheckCircle size={16} color="#22c55e" strokeWidth={1.5} />
+                          <Text className="text-green-600 dark:text-green-400 font-medium ml-2">
+                            Mark Complete
                           </Text>
                         </Pressable>
-                        <Pressable
-                          onPress={() => handleCompleteLab(lab.id)}
-                          className="flex-1 py-2 rounded-lg bg-green-500"
-                        >
-                          <Text className="text-white text-center font-medium">
-                            Complete
-                          </Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  ) : (
-                    <View className="flex-row mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <Pressable
-                        onPress={() => setCompletingLabId(lab.id)}
-                        className="flex-row items-center flex-1 justify-center py-2 rounded-lg bg-green-50 dark:bg-green-900/30"
-                      >
-                        <CheckCircle size={16} color="#22c55e" strokeWidth={1.5} />
-                        <Text className="text-green-600 dark:text-green-400 font-medium ml-2">
-                          Mark Complete
-                        </Text>
-                      </Pressable>
-                    </View>
-                  )}
+                      )
+                    }
+                  />
                 </View>
               ))}
             </View>
@@ -179,50 +152,23 @@ export default function DoctorLabHistoryScreen() {
             </Text>
             <View>
               {completedLabs.map((lab) => (
-                <View
-                  key={lab.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1">
-                      <Text className="font-medium text-gray-900 dark:text-white">
-                        {lab.description}
-                      </Text>
-                      <Text className="text-gray-400 text-xs mt-1">
-                        Requested: {formatDate(lab.requestedDate)}
-                      </Text>
-                    </View>
-                    <View className="px-2 py-1 rounded-full border border-green-400">
-                      <Text className="text-xs font-medium text-green-600 dark:text-green-400">
-                        {LAB_STATUS_LABELS[lab.status]}
-                      </Text>
-                    </View>
-                  </View>
-                  {lab.results && (
-                    <View className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <Text className="text-green-600 dark:text-green-400 text-sm">
-                        <Text className="font-medium">Results: </Text>
-                        {lab.results}
-                      </Text>
-                    </View>
-                  )}
-                  {lab.completedDate && (
-                    <Text className="text-gray-400 text-xs mt-2">
-                      Completed: {formatDate(lab.completedDate)}
-                    </Text>
-                  )}
-                  {/* Add Attachment Button */}
-                  <Pressable
-                    onPress={() => {
-                      // Attachment functionality not implemented yet
-                    }}
-                    className="flex-row items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700"
-                  >
-                    <Paperclip size={14} color="#a855f7" strokeWidth={1.5} />
-                    <Text className="text-purple-500 text-sm font-medium ml-2">
-                      Add Attachment
-                    </Text>
-                  </Pressable>
+                <View key={lab.id} className="mb-3">
+                  <LabRequestCard
+                    lab={lab}
+                    action={
+                      <Pressable
+                        onPress={() => {
+                          // Attachment functionality not implemented yet
+                        }}
+                        className="flex-row items-center"
+                      >
+                        <Paperclip size={14} color="#a855f7" strokeWidth={1.5} />
+                        <Text className="text-purple-500 text-sm font-medium ml-2">
+                          Add Attachment
+                        </Text>
+                      </Pressable>
+                    }
+                  />
                 </View>
               ))}
             </View>

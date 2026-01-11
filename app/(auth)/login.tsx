@@ -1,20 +1,14 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, ScrollView, Alert } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useThemeStore, useAuthStore } from "../../src/stores";
+import { useAuthStore } from "../../src/stores";
 import { useSignIn } from "../../src/hooks";
 import {
   AnimatedView,
-  ButtonPressable,
   ListItemPressable,
+  TextField,
+  Button,
 } from "../../src/components/ui";
 
 // Test accounts for quick login during development
@@ -29,8 +23,6 @@ export default function LoginScreen() {
   const router = useRouter();
   const { isLoading } = useAuthStore();
   const signInMutation = useSignIn();
-  const { colorScheme } = useThemeStore();
-  const isDark = colorScheme === "dark";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -48,7 +40,6 @@ export default function LoginScreen() {
     if (result.success) {
       router.replace("/");
     } else {
-      console.log("result", result);
       Alert.alert("Error", result.error || "Failed to sign in");
     }
   };
@@ -61,7 +52,6 @@ export default function LoginScreen() {
     if (result.success) {
       router.replace("/");
     } else {
-      console.log("result", result);
       Alert.alert("Error", result.error || "Failed to sign in");
     }
   };
@@ -81,28 +71,21 @@ export default function LoginScreen() {
 
         {/* Login Form */}
         <AnimatedView entering="fadeUp" delay={100} className="mb-6">
-          <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Email Address
-          </Text>
-          <TextInput
-            className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base text-gray-900 dark:text-white bg-white dark:bg-gray-800"
+          <TextField
+            label="Email Address"
             placeholder="Enter your email"
-            placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
             editable={!isLoading}
+            containerClassName="mb-4"
           />
 
-          <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 mt-4">
-            Password
-          </Text>
-          <TextInput
-            className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base text-gray-900 dark:text-white bg-white dark:bg-gray-800"
+          <TextField
+            label="Password"
             placeholder="Enter your password"
-            placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -110,26 +93,26 @@ export default function LoginScreen() {
             editable={!isLoading}
           />
 
-          <ButtonPressable
-            className="bg-indigo-600 rounded-lg py-3 mt-6"
-            onPress={handleLogin}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white text-center font-semibold text-base">
-                Sign In
-              </Text>
-            )}
-          </ButtonPressable>
+          <View className="mt-6">
+            <Button
+              variant="indigo"
+              onPress={handleLogin}
+              loading={isLoading}
+              fullWidth
+            >
+              Sign In
+            </Button>
+          </View>
 
           <Link href="/(auth)/signup" asChild>
-            <ButtonPressable className="py-3 mt-2" disabled={isLoading}>
+            <ListItemPressable
+              className="py-3 mt-2"
+              disabled={isLoading}
+            >
               <Text className="text-indigo-600 dark:text-indigo-400 text-center font-medium text-base">
                 Create Account
               </Text>
-            </ButtonPressable>
+            </ListItemPressable>
           </Link>
         </AnimatedView>
 

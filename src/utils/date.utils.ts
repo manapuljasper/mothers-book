@@ -103,5 +103,21 @@ export function calculateDueDate(lastMenstrualPeriod: Date): Date {
   return dueDate;
 }
 
+/**
+ * Get a date string in YYYY-MM-DD format for grouping/comparison.
+ * Handles both Date objects and ISO strings.
+ */
+export function getDateString(date: Date | string): string {
+  if (typeof date === "string") {
+    // If already a simple date string (YYYY-MM-DD), return as-is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return date;
+    }
+    // Otherwise parse and format
+    return parseISO(date).toISOString().split("T")[0];
+  }
+  return date.toISOString().split("T")[0];
+}
+
 // Export date-fns functions for convenience
 export { isToday, isYesterday, isTomorrow, isBefore, isAfter, parseISO };

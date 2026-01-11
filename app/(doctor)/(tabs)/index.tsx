@@ -1,10 +1,10 @@
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { QrCode, Calendar, Users } from "lucide-react-native";
 import { useAuthStore } from "../../../src/stores";
 import { useBookletsByDoctor } from "../../../src/hooks";
 import { formatRelativeDate } from "../../../src/utils";
-import { CardPressable, EmptyState } from "../../../src/components/ui";
+import { CardPressable, EmptyState, LoadingScreen } from "../../../src/components/ui";
 
 export default function DoctorDashboard() {
   const router = useRouter();
@@ -25,11 +25,7 @@ export default function DoctorDashboard() {
   const hasNoPatients = patientBooklets.length === 0;
 
   if (isLoading) {
-    return (
-      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (

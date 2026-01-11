@@ -1,10 +1,10 @@
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { BookOpen, Pill } from "lucide-react-native";
 import { useAuthStore } from "@/stores";
 import { useBookletsByMother, useActiveMedications } from "@/hooks";
 import { formatDate } from "@/utils";
-import { CardPressable, StatCard, BookletCard, EmptyState } from "@/components/ui";
+import { CardPressable, StatCard, BookletCard, EmptyState, LoadingScreen } from "@/components/ui";
 
 export default function MotherHomeScreen() {
   const router = useRouter();
@@ -26,11 +26,7 @@ export default function MotherHomeScreen() {
   );
 
   if (isLoading) {
-    return (
-      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#ec4899" />
-      </View>
-    );
+    return <LoadingScreen color="#ec4899" />;
   }
 
   return (

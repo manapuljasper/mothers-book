@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, ActivityIndicator, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
@@ -8,9 +8,9 @@ import { ChevronLeft, Pill, Edit2, StopCircle } from "lucide-react-native";
 import { useState } from "react";
 import { useBookletsByDoctor, useMedicationsByBooklet, useUpdateMedication } from "@/hooks";
 import { useAuthStore } from "@/stores";
-import { formatDate } from "@/utils";
-import { CardPressable } from "@/components/ui";
+import { CardPressable, LoadingScreen } from "@/components/ui";
 import { EditMedicationModal } from "@/components/doctor";
+import { MedicationCard } from "@/components";
 import type { Medication } from "@/types";
 
 export default function DoctorMedicationHistoryScreen() {
@@ -71,11 +71,7 @@ export default function DoctorMedicationHistoryScreen() {
   };
 
   if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
 
   const activeMeds = medications.filter((m) => m.isActive);
@@ -112,49 +108,26 @@ export default function DoctorMedicationHistoryScreen() {
           ) : (
             <View>
               {activeMeds.map((med) => (
-                <View
-                  key={med.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1">
-                      <Text className="font-medium text-gray-900 dark:text-white">
-                        {med.name}
-                      </Text>
-                      <Text className="text-gray-400 text-sm">
-                        {med.dosage} • {med.frequencyPerDay}x daily
-                      </Text>
-                      <View className="flex-row mt-2 flex-wrap">
-                        <Text className="text-gray-400 text-xs mr-3">
-                          Prescribed: {formatDate(med.startDate)}
-                        </Text>
-                        {med.endDate && (
-                          <Text className="text-gray-400 text-xs">
-                            Until: {formatDate(med.endDate)}
-                          </Text>
-                        )}
+                <View key={med.id} className="mb-3">
+                  <MedicationCard
+                    medication={med}
+                    headerAction={
+                      <View className="flex-row">
+                        <Pressable
+                          onPress={() => setEditingMedication(med)}
+                          className="p-2 mr-1 rounded-lg bg-gray-100 dark:bg-gray-700"
+                        >
+                          <Edit2 size={16} color="#3b82f6" strokeWidth={1.5} />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleStopMedication(med)}
+                          className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30"
+                        >
+                          <StopCircle size={16} color="#ef4444" strokeWidth={1.5} />
+                        </Pressable>
                       </View>
-                      {med.instructions && (
-                        <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                          {med.instructions}
-                        </Text>
-                      )}
-                    </View>
-                    <View className="flex-row">
-                      <Pressable
-                        onPress={() => setEditingMedication(med)}
-                        className="p-2 mr-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                      >
-                        <Edit2 size={16} color="#3b82f6" strokeWidth={1.5} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleStopMedication(med)}
-                        className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30"
-                      >
-                        <StopCircle size={16} color="#ef4444" strokeWidth={1.5} />
-                      </Pressable>
-                    </View>
-                  </View>
+                    }
+                  />
                 </View>
               ))}
             </View>
@@ -167,42 +140,10 @@ export default function DoctorMedicationHistoryScreen() {
             <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
               Ended Medications ({endedMeds.length})
             </Text>
-            <View>
+            <View className="opacity-70">
               {endedMeds.map((med) => (
-                <View
-                  key={med.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700 opacity-70"
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1">
-                      <Text className="font-medium text-gray-900 dark:text-white">
-                        {med.name}
-                      </Text>
-                      <Text className="text-gray-400 text-sm">
-                        {med.dosage} • {med.frequencyPerDay}x daily
-                      </Text>
-                    </View>
-                    <View className="px-2 py-1 rounded-full border border-gray-300 dark:border-gray-600">
-                      <Text className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Ended
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row mt-2 flex-wrap">
-                    <Text className="text-gray-400 text-xs mr-3">
-                      Prescribed: {formatDate(med.startDate)}
-                    </Text>
-                    {med.endDate && (
-                      <Text className="text-gray-400 text-xs">
-                        Ended: {formatDate(med.endDate)}
-                      </Text>
-                    )}
-                  </View>
-                  {med.instructions && (
-                    <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                      {med.instructions}
-                    </Text>
-                  )}
+                <View key={med.id} className="mb-3">
+                  <MedicationCard medication={med} />
                 </View>
               ))}
             </View>

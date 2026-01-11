@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
@@ -6,9 +6,8 @@ import {
 } from "react-native-safe-area-context";
 import { ChevronLeft, FlaskConical, Paperclip } from "lucide-react-native";
 import { useBookletById, useLabsByBooklet } from "@/hooks";
-import { formatDate } from "@/utils";
-import { LAB_STATUS_LABELS } from "@/types";
-import { CardPressable } from "@/components/ui";
+import { CardPressable, LoadingScreen } from "@/components/ui";
+import { LabRequestCard } from "@/components";
 
 export default function LabHistoryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
@@ -21,11 +20,7 @@ export default function LabHistoryScreen() {
   const isLoading = bookletLoading || labsLoading;
 
   if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#ec4899" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen color="#ec4899" />;
   }
 
   return (
@@ -63,71 +58,23 @@ export default function LabHistoryScreen() {
           ) : (
             <View>
               {labs.map((lab) => (
-                <View
-                  key={lab.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1">
-                      <Text className="font-medium text-gray-900 dark:text-white">
-                        {lab.description}
-                      </Text>
-                      <Text className="text-gray-400 text-xs mt-1">
-                        Requested: {formatDate(lab.requestedDate)}
-                      </Text>
-                    </View>
-                    <View
-                      className={`px-2 py-1 rounded-full border ${
-                        lab.status === "completed"
-                          ? "border-green-400"
-                          : lab.status === "pending"
-                          ? "border-amber-400"
-                          : "border-gray-300 dark:border-gray-600"
-                      }`}
-                    >
-                      <Text
-                        className={`text-xs font-medium ${
-                          lab.status === "completed"
-                            ? "text-green-600 dark:text-green-400"
-                            : lab.status === "pending"
-                            ? "text-amber-600 dark:text-amber-400"
-                            : "text-gray-500 dark:text-gray-400"
-                        }`}
+                <View key={lab.id} className="mb-3">
+                  <LabRequestCard
+                    lab={lab}
+                    action={
+                      <Pressable
+                        onPress={() => {
+                          // Attachment functionality not implemented yet
+                        }}
+                        className="flex-row items-center"
                       >
-                        {LAB_STATUS_LABELS[lab.status]}
-                      </Text>
-                    </View>
-                  </View>
-                  {lab.notes && (
-                    <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                      {lab.notes}
-                    </Text>
-                  )}
-                  {lab.results && (
-                    <View className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <Text className="text-green-600 dark:text-green-400 text-sm">
-                        <Text className="font-medium">Results: </Text>
-                        {lab.results}
-                      </Text>
-                    </View>
-                  )}
-                  {lab.completedDate && (
-                    <Text className="text-gray-400 text-xs mt-2">
-                      Completed: {formatDate(lab.completedDate)}
-                    </Text>
-                  )}
-                  {/* Add Attachment Button (UI only) */}
-                  <Pressable
-                    onPress={() => {
-                      // Attachment functionality not implemented yet
-                    }}
-                    className="flex-row items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700"
-                  >
-                    <Paperclip size={14} color="#a855f7" strokeWidth={1.5} />
-                    <Text className="text-purple-500 text-sm font-medium ml-2">
-                      Add Attachment
-                    </Text>
-                  </Pressable>
+                        <Paperclip size={14} color="#a855f7" strokeWidth={1.5} />
+                        <Text className="text-purple-500 text-sm font-medium ml-2">
+                          Add Attachment
+                        </Text>
+                      </Pressable>
+                    }
+                  />
                 </View>
               ))}
             </View>

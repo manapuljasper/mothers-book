@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ScrollView, Alert } from "react-native";
 import { useAuthStore } from "@/stores";
 import {
   useBookletsByMother,
@@ -6,7 +6,7 @@ import {
   useLogIntake,
 } from "@/hooks";
 import { FREQUENCY_LABELS } from "@/types";
-import { AnimatedView, DoseButton } from "@/components/ui";
+import { AnimatedView, DoseButton, LoadingScreen } from "@/components/ui";
 
 export default function MedicationsScreen() {
   const { motherProfile, currentUser } = useAuthStore();
@@ -48,11 +48,7 @@ export default function MedicationsScreen() {
   };
 
   if (isLoading) {
-    return (
-      <View className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#ec4899" />
-      </View>
-    );
+    return <LoadingScreen color="#ec4899" />;
   }
 
   return (

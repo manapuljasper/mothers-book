@@ -305,6 +305,193 @@ Before writing or duplicating UI patterns, always evaluate whether a reusable co
 - `SectionHeader` - title with optional "See all" action
 - `InfoRow` - label + value pairs in consistent layout
 
+## Reusable UI Components
+
+The app has a library of reusable components in `src/components/`. Always prefer using these over inline implementations.
+
+### Form Primitives (`src/components/ui/`)
+
+**Button** - Standardized button with variants and states:
+```tsx
+import { Button } from "../src/components/ui";
+
+<Button variant="primary" onPress={handleSave}>Save</Button>
+<Button variant="secondary" onPress={handleCancel}>Cancel</Button>
+<Button variant="outline" icon={Plus} onPress={handleAdd}>Add Item</Button>
+<Button variant="ghost" onPress={handleClear}>Clear</Button>
+<Button variant="danger" onPress={handleDelete}>Delete</Button>
+<Button loading disabled>Saving...</Button>
+```
+- Variants: `primary`, `secondary`, `outline`, `ghost`, `danger`
+- Sizes: `sm`, `md`, `lg`
+- Props: `loading`, `disabled`, `icon`, `iconPosition`, `fullWidth`
+
+**TextField** - Text input with label, helper text, and error state:
+```tsx
+import { TextField } from "../src/components/ui";
+
+<TextField
+  label="Email Address"
+  required
+  placeholder="Enter your email"
+  keyboardType="email-address"
+  value={email}
+  onChangeText={setEmail}
+  error={errors.email}
+  helperText="We'll never share your email"
+/>
+```
+- Props: `label`, `required`, `helperText`, `error`, `leftIcon`, `rightIcon`, `size`
+
+**OptionButtonGroup** - Segmented selection buttons:
+```tsx
+import { OptionButtonGroup } from "../src/components/ui";
+
+<OptionButtonGroup
+  options={["mg", "mcg", "g", "mL"]}
+  value={dosageUnit}
+  onChange={setDosageUnit}
+  color="green"
+  scrollable
+/>
+```
+- Props: `options`, `value`, `onChange`, `labels`, `color`, `size`, `scrollable`
+
+**DatePickerButton** - Triggers date picker with formatted display:
+```tsx
+import { DatePickerButton } from "../src/components/ui";
+
+<DatePickerButton
+  label="End Date"
+  value={endDate}
+  onPress={() => setShowPicker(true)}
+  onClear={() => setEndDate(null)}
+  placeholder="Select end date"
+  variant="selected"
+  selectedColor="green"
+/>
+```
+
+### Display Components (`src/components/ui/`)
+
+**StatusBadge** - Consistent status indicators:
+```tsx
+import { StatusBadge } from "../src/components/ui";
+
+<StatusBadge status="active" />        // Green
+<StatusBadge status="pending" />       // Amber
+<StatusBadge status="completed" />     // Green
+<StatusBadge status="ended" />         // Gray
+<StatusBadge status="cancelled" />     // Gray
+<StatusBadge status="active" light />  // For colored backgrounds
+```
+
+**LoadingScreen** - Full-screen loading state:
+```tsx
+import { LoadingScreen } from "../src/components/ui";
+
+if (isLoading) return <LoadingScreen />;
+```
+
+**ModalHeader** - Consistent modal headers with close button:
+```tsx
+import { ModalHeader } from "../src/components/ui";
+
+<ModalHeader
+  title="Add Entry"
+  subtitle="Optional subtitle"
+  onClose={handleClose}
+/>
+```
+
+**CollapsibleSectionHeader** - Expand/collapse headers:
+```tsx
+import { CollapsibleSectionHeader, AnimatedCollapsible } from "../src/components/ui";
+
+<CollapsibleSectionHeader
+  title="Medications"
+  count={medications.length}
+  expanded={isExpanded}
+  onToggle={() => setIsExpanded(!isExpanded)}
+  icon={Pill}
+/>
+<AnimatedCollapsible expanded={isExpanded}>
+  {/* Content */}
+</AnimatedCollapsible>
+```
+
+**PageHeader** - Colored page headers with back button:
+```tsx
+import { PageHeader } from "../src/components/ui";
+
+<PageHeader
+  title="Patient Name"
+  subtitle="Booklet Label"
+  color="blue"  // or "pink"
+  status="active"
+  additionalInfo="Due: Jan 15, 2025"
+/>
+```
+
+### Domain Components (`src/components/`)
+
+**MedicationCard** - Display medication information:
+```tsx
+import { MedicationCard } from "../src/components";
+
+<MedicationCard medication={medication} showDates />
+<MedicationCard medication={medication} variant="inline" />  // For inside other cards
+```
+
+**LabRequestCard** - Display lab request information:
+```tsx
+import { LabRequestCard } from "../src/components";
+
+<LabRequestCard lab={labRequest} showDates />
+<LabRequestCard lab={labRequest} variant="inline" />
+```
+
+**VitalsDisplay** - Display vital signs in a grid:
+```tsx
+import { VitalsDisplay } from "../src/components";
+
+<VitalsDisplay vitals={entry.vitals} showBorder />
+```
+
+### Component Organization
+
+```
+src/components/
+├── ui/                      # Generic UI primitives (no business logic)
+│   ├── Button.tsx
+│   ├── TextField.tsx
+│   ├── OptionButtonGroup.tsx
+│   ├── StatusBadge.tsx
+│   ├── LoadingScreen.tsx
+│   ├── ModalHeader.tsx
+│   ├── CollapsibleSectionHeader.tsx
+│   ├── DatePickerButton.tsx
+│   ├── PageHeader.tsx
+│   ├── AnimatedPressable.tsx  # Base + CardPressable, ButtonPressable, ListItemPressable
+│   ├── AnimatedView.tsx
+│   ├── AnimatedCollapsible.tsx
+│   ├── EmptyState.tsx
+│   ├── StatCard.tsx
+│   ├── BookletCard.tsx
+│   ├── DoseButton.tsx
+│   └── index.ts
+├── doctor/                  # Doctor-specific components
+│   ├── AddEntryModal.tsx
+│   ├── EditMedicationModal.tsx
+│   ├── EntryCard.tsx
+│   ├── NotesEditModal.tsx
+│   └── index.ts
+├── MedicationCard.tsx       # Domain components (shared between roles)
+├── LabRequestCard.tsx
+├── VitalsDisplay.tsx
+└── index.ts
+```
+
 ## Development Notes
 
 - All dates are stored as Date objects (MMKV serializes/deserializes them)

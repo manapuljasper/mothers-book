@@ -43,7 +43,6 @@ export default function ScanQRScreen() {
       setManualCode("");
       router.push(`/(doctor)/booklet/${bookletId}`);
     } catch (error: any) {
-      console.log("Grant access error:", error);
       Alert.alert(
         "Error",
         error?.message || "Failed to grant access. Check the booklet ID."

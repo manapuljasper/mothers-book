@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, ScrollView, Alert } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
@@ -16,6 +9,8 @@ import {
   AnimatedView,
   ButtonPressable,
   ListItemPressable,
+  TextField,
+  Button,
 } from "../../src/components/ui";
 import type { UserRole } from "../../src/types";
 
@@ -87,9 +82,6 @@ export default function SignupScreen() {
     }
   };
 
-  const inputClass =
-    "border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base text-gray-900 dark:text-white bg-white dark:bg-gray-800";
-
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
       {/* Header */}
@@ -150,98 +142,71 @@ export default function SignupScreen() {
               Fill in your information to create your account
             </Text>
 
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Full Name
-              </Text>
-              <TextInput
-                className={inputClass}
-                placeholder={
-                  role === "doctor"
-                    ? "Dr. Juan Dela Cruz"
-                    : "Maria Dela Cruz"
-                }
-                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                value={fullName}
-                onChangeText={setFullName}
-                autoComplete="name"
-                editable={!isLoading}
-              />
-            </View>
+            <TextField
+              label="Full Name"
+              placeholder={
+                role === "doctor" ? "Dr. Juan Dela Cruz" : "Maria Dela Cruz"
+              }
+              value={fullName}
+              onChangeText={setFullName}
+              autoComplete="name"
+              editable={!isLoading}
+              containerClassName="mb-4"
+            />
 
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
-              </Text>
-              <TextInput
-                className={inputClass}
-                placeholder="you@example.com"
-                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                editable={!isLoading}
-              />
-            </View>
+            <TextField
+              label="Email Address"
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              editable={!isLoading}
+              containerClassName="mb-4"
+            />
 
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password
-              </Text>
-              <TextInput
-                className={inputClass}
-                placeholder="At least 6 characters"
-                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoComplete="new-password"
-                editable={!isLoading}
-              />
-            </View>
+            <TextField
+              label="Password"
+              placeholder="At least 6 characters"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="new-password"
+              editable={!isLoading}
+              containerClassName="mb-4"
+            />
 
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Confirm Password
-              </Text>
-              <TextInput
-                className={inputClass}
-                placeholder="Re-enter your password"
-                placeholderTextColor={isDark ? "#6b7280" : "#9ca3af"}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                autoComplete="new-password"
-                editable={!isLoading}
-              />
-            </View>
+            <TextField
+              label="Confirm Password"
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              autoComplete="new-password"
+              editable={!isLoading}
+              containerClassName="mb-6"
+            />
 
-            <ButtonPressable
-              className="bg-indigo-600 rounded-lg py-3.5"
+            <Button
+              variant="indigo"
               onPress={handleSignUp}
-              disabled={isLoading}
+              loading={isLoading}
+              fullWidth
             >
-              {isLoading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white text-center font-semibold text-base">
-                  Create Account
-                </Text>
-              )}
-            </ButtonPressable>
+              Create Account
+            </Button>
 
             <View className="flex-row justify-center mt-6 mb-8">
               <Text className="text-gray-500 dark:text-gray-400">
                 Already have an account?{" "}
               </Text>
               <Link href="/(auth)/login" asChild>
-                <ButtonPressable disabled={isLoading}>
+                <ListItemPressable disabled={isLoading}>
                   <Text className="text-indigo-600 dark:text-indigo-400 font-medium">
                     Sign In
                   </Text>
-                </ButtonPressable>
+                </ListItemPressable>
               </Link>
             </View>
           </AnimatedView>

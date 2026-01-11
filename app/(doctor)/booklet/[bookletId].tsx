@@ -5,17 +5,23 @@ import {
   ScrollView,
   Pressable,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { ChevronLeft, Plus, FileText, Pill, Edit2, StopCircle, ChevronDown, ChevronUp } from "lucide-react-native";
+import { ChevronLeft, Plus, FileText, Pill, Edit2, StopCircle } from "lucide-react-native";
 import { useAuthStore } from "@/stores";
 import { formatDate } from "@/utils";
-import { CardPressable, StatCard, AnimatedCollapsible } from "@/components/ui";
+import {
+  CardPressable,
+  StatCard,
+  AnimatedCollapsible,
+  LoadingScreen,
+  CollapsibleSectionHeader,
+} from "@/components/ui";
+import { MedicationCard } from "@/components";
 import {
   NotesEditModal,
   EntryCard,
@@ -137,12 +143,7 @@ export default function DoctorBookletDetailScreen() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="text-gray-400 mt-2">Loading...</Text>
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
 
   if (!booklet || !doctorProfile) {
@@ -174,9 +175,8 @@ export default function DoctorBookletDetailScreen() {
         updates: { notes: editingNotes.trim() || undefined },
       });
       setShowNotesModal(false);
-    } catch (error) {
+    } catch (_error) {
       Alert.alert("Error", "Failed to save notes. Please try again.");
-      console.error("Save notes error:", error);
     }
   };
 
@@ -199,9 +199,8 @@ export default function DoctorBookletDetailScreen() {
                   isActive: false,
                 },
               });
-            } catch (error) {
+            } catch (_error) {
               Alert.alert("Error", "Failed to stop medication. Please try again.");
-              console.error("Stop medication error:", error);
             }
           },
         },
@@ -218,9 +217,8 @@ export default function DoctorBookletDetailScreen() {
         updates,
       });
       setEditingMedication(null);
-    } catch (error) {
+    } catch (_error) {
       Alert.alert("Error", "Failed to update medication. Please try again.");
-      console.error("Update medication error:", error);
     }
   };
 
@@ -333,7 +331,6 @@ export default function DoctorBookletDetailScreen() {
       setShowEntryModal(false);
     } catch (error) {
       Alert.alert("Error", isEdit ? "Failed to update entry. Please try again." : "Failed to save entry. Please try again.");
-      console.error("Save entry error:", error);
       throw error; // Re-throw so the modal knows it failed
     }
   };
@@ -443,22 +440,16 @@ export default function DoctorBookletDetailScreen() {
 
         {/* Active Medications Section */}
         <View className="px-6 mt-6">
-          <Pressable
-            onPress={() => setActiveMedsExpanded(!activeMedsExpanded)}
-            className="flex-row justify-between items-center mb-3"
-          >
-            <View className="flex-row items-center">
-              <Pill size={18} color="#22c55e" strokeWidth={1.5} />
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
-                Active Medications ({activeMeds.length})
-              </Text>
-            </View>
-            {activeMedsExpanded ? (
-              <ChevronUp size={20} color="#9ca3af" strokeWidth={1.5} />
-            ) : (
-              <ChevronDown size={20} color="#9ca3af" strokeWidth={1.5} />
-            )}
-          </Pressable>
+          <View className="mb-3">
+            <CollapsibleSectionHeader
+              title="Active Medications"
+              count={activeMeds.length}
+              expanded={activeMedsExpanded}
+              onToggle={() => setActiveMedsExpanded(!activeMedsExpanded)}
+              icon={Pill}
+              size="md"
+            />
+          </View>
           <AnimatedCollapsible expanded={activeMedsExpanded}>
             {activeMeds.length === 0 ? (
               <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
@@ -470,43 +461,26 @@ export default function DoctorBookletDetailScreen() {
             ) : (
               <View>
                 {activeMeds.map((med) => (
-                  <View
-                    key={med.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                  >
-                    <View className="flex-row justify-between items-start">
-                      <View className="flex-1">
-                        <Text className="font-medium text-gray-900 dark:text-white">
-                          {med.name}
-                        </Text>
-                        <Text className="text-gray-400 text-sm">
-                          {med.dosage} • {med.frequencyPerDay}x daily
-                        </Text>
-                        <Text className="text-gray-400 text-xs mt-1">
-                          Prescribed: {formatDate(med.startDate)}
-                          {med.endDate && ` • Until: ${formatDate(med.endDate)}`}
-                        </Text>
-                        {med.instructions && (
-                          <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1">
-                            {med.instructions}
-                          </Text>
-                        )}
-                      </View>
-                      <View className="flex-row">
-                        <Pressable
-                          onPress={() => setEditingMedication(med)}
-                          className="p-2 mr-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                        >
-                          <Edit2 size={16} color="#3b82f6" strokeWidth={1.5} />
-                        </Pressable>
-                        <Pressable
-                          onPress={() => handleStopMedication(med)}
-                          className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30"
-                        >
-                          <StopCircle size={16} color="#ef4444" strokeWidth={1.5} />
-                        </Pressable>
-                      </View>
-                    </View>
+                  <View key={med.id} className="mb-3">
+                    <MedicationCard
+                      medication={med}
+                      headerAction={
+                        <View className="flex-row">
+                          <Pressable
+                            onPress={() => setEditingMedication(med)}
+                            className="p-2 mr-1 rounded-lg bg-gray-100 dark:bg-gray-700"
+                          >
+                            <Edit2 size={16} color="#3b82f6" strokeWidth={1.5} />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleStopMedication(med)}
+                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30"
+                          >
+                            <StopCircle size={16} color="#ef4444" strokeWidth={1.5} />
+                          </Pressable>
+                        </View>
+                      }
+                    />
                   </View>
                 ))}
               </View>

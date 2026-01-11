@@ -10,9 +10,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { X, Calendar } from "lucide-react-native";
+import { Calendar, X } from "lucide-react-native";
 import type { Medication, MedicationFrequency } from "@/types";
 import { formatDate } from "@/utils";
+import { ModalHeader } from "@/components/ui";
 
 const DOSAGE_UNITS = ["mg", "mcg", "g", "mL", "IU", "tablet", "capsule"] as const;
 type DosageUnit = (typeof DOSAGE_UNITS)[number];
@@ -96,19 +97,11 @@ export function EditMedicationModal({
     >
       <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
         {/* Header */}
-        <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <View>
-            <Text className="text-xl font-bold text-gray-900 dark:text-white">
-              Edit Medication
-            </Text>
-            <Text className="text-gray-500 text-sm mt-1">
-              Prescribed: {formatDate(medication.startDate)}
-            </Text>
-          </View>
-          <Pressable onPress={onClose} className="p-2">
-            <X size={24} color="#6b7280" strokeWidth={1.5} />
-          </Pressable>
-        </View>
+        <ModalHeader
+          title="Edit Medication"
+          subtitle={`Prescribed: ${formatDate(medication.startDate)}`}
+          onClose={onClose}
+        />
 
         <ScrollView className="flex-1 px-6 py-4">
           {/* Medication Name */}

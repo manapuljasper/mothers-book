@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
@@ -6,8 +6,8 @@ import {
 } from "react-native-safe-area-context";
 import { ChevronLeft, Pill } from "lucide-react-native";
 import { useBookletById, useMedicationsByBooklet } from "@/hooks";
-import { formatDate } from "@/utils";
-import { CardPressable } from "@/components/ui";
+import { CardPressable, LoadingScreen } from "@/components/ui";
+import { MedicationCard } from "@/components";
 
 export default function MedicationHistoryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
@@ -20,11 +20,7 @@ export default function MedicationHistoryScreen() {
   const isLoading = bookletLoading || medsLoading;
 
   if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#ec4899" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen color="#ec4899" />;
   }
 
   return (
@@ -61,58 +57,11 @@ export default function MedicationHistoryScreen() {
             </View>
           ) : (
             <View>
-              {medications.map((med) => {
-                const isActive = med.isActive && (!med.endDate || new Date(med.endDate) >= new Date());
-                return (
-                  <View
-                    key={med.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                  >
-                    <View className="flex-row justify-between items-start">
-                      <View className="flex-1">
-                        <Text className="font-medium text-gray-900 dark:text-white">
-                          {med.name}
-                        </Text>
-                        <Text className="text-gray-400 text-sm">
-                          {med.dosage} • {med.frequencyPerDay}x daily
-                        </Text>
-                      </View>
-                      <View
-                        className={`px-2 py-1 rounded-full border ${
-                          isActive
-                            ? "border-green-400"
-                            : "border-gray-300 dark:border-gray-600"
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-medium ${
-                            isActive
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-gray-500 dark:text-gray-400"
-                          }`}
-                        >
-                          {isActive ? "Active" : "Ended"}
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="flex-row mt-2 flex-wrap">
-                      <Text className="text-gray-400 text-xs mr-3">
-                        Prescribed: {formatDate(med.startDate)}
-                      </Text>
-                      {med.endDate && (
-                        <Text className="text-gray-400 text-xs">
-                          Until: {formatDate(med.endDate)}
-                        </Text>
-                      )}
-                    </View>
-                    {med.instructions && (
-                      <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                        {med.instructions}
-                      </Text>
-                    )}
-                  </View>
-                );
-              })}
+              {medications.map((med) => (
+                <View key={med.id} className="mb-3">
+                  <MedicationCard medication={med} />
+                </View>
+              ))}
             </View>
           )}
         </View>

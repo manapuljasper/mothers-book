@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
@@ -14,9 +14,17 @@ import {
   useMedicationsByBooklet,
   usePendingLabs,
 } from "@/hooks";
-import { formatDate } from "@/utils";
-import { ENTRY_TYPE_LABELS, LAB_STATUS_LABELS } from "@/types";
-import { CardPressable, AnimatedCollapsible, StatCard } from "@/components/ui";
+import { formatDate, getDateString } from "@/utils";
+import { ENTRY_TYPE_LABELS } from "@/types";
+import {
+  CardPressable,
+  AnimatedCollapsible,
+  StatCard,
+  LoadingScreen,
+  StatusBadge,
+  CollapsibleSectionHeader,
+} from "@/components/ui";
+import { VitalsDisplay, MedicationCard, LabRequestCard } from "@/components";
 
 export default function BookletDetailScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
@@ -73,11 +81,7 @@ export default function BookletDetailScreen() {
   const isLoading = bookletLoading || entriesLoading || medsLoading;
 
   if (isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#ec4899" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen color="#ec4899" />;
   }
 
   if (!booklet) {
@@ -182,22 +186,16 @@ export default function BookletDetailScreen() {
 
         {/* Pending Labs Section - collapsed by default */}
         <View className="px-6 mt-6">
-          <Pressable
-            onPress={() => setPendingLabsExpanded(!pendingLabsExpanded)}
-            className="flex-row justify-between items-center mb-3"
-          >
-            <View className="flex-row items-center">
-              <FlaskConical size={18} color="#f59e0b" strokeWidth={1.5} />
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
-                Pending Labs ({pendingLabs.length})
-              </Text>
-            </View>
-            {pendingLabsExpanded ? (
-              <ChevronUp size={20} color="#9ca3af" strokeWidth={1.5} />
-            ) : (
-              <ChevronDown size={20} color="#9ca3af" strokeWidth={1.5} />
-            )}
-          </Pressable>
+          <View className="mb-3">
+            <CollapsibleSectionHeader
+              title="Pending Labs"
+              count={pendingLabs.length}
+              expanded={pendingLabsExpanded}
+              onToggle={() => setPendingLabsExpanded(!pendingLabsExpanded)}
+              icon={FlaskConical}
+              size="md"
+            />
+          </View>
           <AnimatedCollapsible expanded={pendingLabsExpanded}>
             <View>
               {pendingLabs.length === 0 ? (
@@ -206,42 +204,23 @@ export default function BookletDetailScreen() {
                 </View>
               ) : (
                 pendingLabs.map((lab) => (
-                  <View
-                    key={lab.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                  >
-                    <View className="flex-row justify-between items-start">
-                      <View className="flex-1">
-                        <Text className="font-medium text-gray-900 dark:text-white">
-                          {lab.description}
-                        </Text>
-                        <Text className="text-gray-400 text-xs mt-1">
-                          Requested: {formatDate(lab.requestedDate)}
-                        </Text>
-                        {lab.notes && (
-                          <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                            {lab.notes}
+                  <View key={lab.id} className="mb-3">
+                    <LabRequestCard
+                      lab={lab}
+                      action={
+                        <Pressable
+                          onPress={() => {
+                            // Attachment functionality not implemented yet
+                          }}
+                          className="flex-row items-center"
+                        >
+                          <Paperclip size={14} color="#ec4899" strokeWidth={1.5} />
+                          <Text className="text-pink-500 text-sm font-medium ml-2">
+                            Add Attachment
                           </Text>
-                        )}
-                      </View>
-                      <View className="px-2 py-1 rounded-full border border-amber-400">
-                        <Text className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                          {LAB_STATUS_LABELS[lab.status]}
-                        </Text>
-                      </View>
-                    </View>
-                    {/* Add Attachment Button (UI only) */}
-                    <Pressable
-                      onPress={() => {
-                        // Attachment functionality not implemented yet
-                      }}
-                      className="flex-row items-center mt-3 pt-3 border-t border-gray-100 dark:border-gray-700"
-                    >
-                      <Paperclip size={14} color="#ec4899" strokeWidth={1.5} />
-                      <Text className="text-pink-500 text-sm font-medium ml-2">
-                        Add Attachment
-                      </Text>
-                    </Pressable>
+                        </Pressable>
+                      }
+                    />
                   </View>
                 ))
               )}
@@ -251,22 +230,16 @@ export default function BookletDetailScreen() {
 
         {/* Active Medications Section - collapsed by default */}
         <View className="px-6 mt-4">
-          <Pressable
-            onPress={() => setActiveMedsExpanded(!activeMedsExpanded)}
-            className="flex-row justify-between items-center mb-3"
-          >
-            <View className="flex-row items-center">
-              <Pill size={18} color="#3b82f6" strokeWidth={1.5} />
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
-                Active Medications ({activeMeds.length})
-              </Text>
-            </View>
-            {activeMedsExpanded ? (
-              <ChevronUp size={20} color="#9ca3af" strokeWidth={1.5} />
-            ) : (
-              <ChevronDown size={20} color="#9ca3af" strokeWidth={1.5} />
-            )}
-          </Pressable>
+          <View className="mb-3">
+            <CollapsibleSectionHeader
+              title="Active Medications"
+              count={activeMeds.length}
+              expanded={activeMedsExpanded}
+              onToggle={() => setActiveMedsExpanded(!activeMedsExpanded)}
+              icon={Pill}
+              size="md"
+            />
+          </View>
           <AnimatedCollapsible expanded={activeMedsExpanded}>
             <View>
               {activeMeds.length === 0 ? (
@@ -275,40 +248,8 @@ export default function BookletDetailScreen() {
                 </View>
               ) : (
                 activeMeds.map((med) => (
-                  <View
-                    key={med.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-3 border border-gray-100 dark:border-gray-700"
-                  >
-                    <View className="flex-row justify-between items-start">
-                      <View className="flex-1">
-                        <Text className="font-medium text-gray-900 dark:text-white">
-                          {med.name}
-                        </Text>
-                        <Text className="text-gray-400 text-sm">
-                          {med.dosage} • {med.frequencyPerDay}x daily
-                        </Text>
-                      </View>
-                      <View className="px-2 py-1 rounded-full border border-green-400">
-                        <Text className="text-xs font-medium text-green-600 dark:text-green-400">
-                          Active
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="flex-row mt-2 flex-wrap">
-                      <Text className="text-gray-400 text-xs mr-3">
-                        Started: {formatDate(med.startDate)}
-                      </Text>
-                      {med.endDate && (
-                        <Text className="text-gray-400 text-xs">
-                          Until: {formatDate(med.endDate)}
-                        </Text>
-                      )}
-                    </View>
-                    {med.instructions && (
-                      <Text className="text-gray-500 dark:text-gray-400 text-sm mt-2">
-                        {med.instructions}
-                      </Text>
-                    )}
+                  <View key={med.id} className="mb-3">
+                    <MedicationCard medication={med} />
                   </View>
                 ))
               )}
@@ -391,53 +332,11 @@ export default function BookletDetailScreen() {
                   </View>
 
                   {/* Vitals */}
-                  {selectedEntry.vitals &&
-                    Object.keys(selectedEntry.vitals).length > 0 && (
-                      <View className="flex-row flex-wrap mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                        {selectedEntry.vitals.bloodPressure && (
-                          <View className="mr-4 mb-2">
-                            <Text className="text-gray-400 text-xs">BP</Text>
-                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
-                              {selectedEntry.vitals.bloodPressure}
-                            </Text>
-                          </View>
-                        )}
-                        {selectedEntry.vitals.weight && (
-                          <View className="mr-4 mb-2">
-                            <Text className="text-gray-400 text-xs">Weight</Text>
-                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
-                              {selectedEntry.vitals.weight} kg
-                            </Text>
-                          </View>
-                        )}
-                        {selectedEntry.vitals.fetalHeartRate && (
-                          <View className="mr-4 mb-2">
-                            <Text className="text-gray-400 text-xs">FHR</Text>
-                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
-                              {selectedEntry.vitals.fetalHeartRate} bpm
-                            </Text>
-                          </View>
-                        )}
-                        {selectedEntry.vitals.fundalHeight && (
-                          <View className="mr-4 mb-2">
-                            <Text className="text-gray-400 text-xs">
-                              Fundal Height
-                            </Text>
-                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
-                              {selectedEntry.vitals.fundalHeight} cm
-                            </Text>
-                          </View>
-                        )}
-                        {selectedEntry.vitals.aog && (
-                          <View className="mr-4 mb-2">
-                            <Text className="text-gray-400 text-xs">AOG</Text>
-                            <Text className="text-gray-700 dark:text-gray-200 font-medium">
-                              {selectedEntry.vitals.aog}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
+                  {selectedEntry.vitals && (
+                    <View className="mt-3">
+                      <VitalsDisplay vitals={selectedEntry.vitals} />
+                    </View>
+                  )}
 
                   {/* Notes */}
                   {selectedEntry.notes && (
@@ -469,51 +368,21 @@ export default function BookletDetailScreen() {
                   {/* Medications active during this visit */}
                   {selectedDate && getMedsActiveOnDate(selectedDate).length > 0 && (
                     <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <Pressable
-                        onPress={() => setMedsExpanded(!medsExpanded)}
-                        className="flex-row justify-between items-center"
-                      >
-                        <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                          Active Medications ({getMedsActiveOnDate(selectedDate).length})
-                        </Text>
-                        {medsExpanded ? (
-                          <ChevronUp size={16} color="#9ca3af" strokeWidth={1.5} />
-                        ) : (
-                          <ChevronDown size={16} color="#9ca3af" strokeWidth={1.5} />
-                        )}
-                      </Pressable>
+                      <CollapsibleSectionHeader
+                        title="Active Medications"
+                        count={getMedsActiveOnDate(selectedDate).length}
+                        expanded={medsExpanded}
+                        onToggle={() => setMedsExpanded(!medsExpanded)}
+                      />
                       <AnimatedCollapsible expanded={medsExpanded}>
                         <View className="pt-2">
                           {getMedsActiveOnDate(selectedDate).map((med) => (
-                            <View
-                              key={med.id}
-                              className="border border-gray-100 dark:border-gray-700 rounded-lg p-3 mb-2"
-                            >
-                              <View className="flex-row justify-between items-start">
-                                <View className="flex-1">
-                                  <Text className="font-medium text-gray-900 dark:text-white">
-                                    {med.name}
-                                  </Text>
-                                  <Text className="text-gray-400 text-sm">
-                                    {med.dosage} • {med.frequencyPerDay}x daily
-                                  </Text>
-                                </View>
-                              </View>
-                              <View className="flex-row mt-1 flex-wrap">
-                                <Text className="text-blue-500 dark:text-blue-400 text-xs mr-3">
-                                  Prescribed: {formatDate(med.startDate)}
-                                </Text>
-                                {med.endDate && (
-                                  <Text className="text-gray-400 text-xs">
-                                    Until: {formatDate(med.endDate)}
-                                  </Text>
-                                )}
-                              </View>
-                              {med.instructions && (
-                                <Text className="text-gray-400 text-xs mt-1">
-                                  {med.instructions}
-                                </Text>
-                              )}
+                            <View key={med.id} className="mb-2">
+                              <MedicationCard
+                                medication={med}
+                                variant="inline"
+                                showDates={false}
+                              />
                             </View>
                           ))}
                         </View>
@@ -524,58 +393,21 @@ export default function BookletDetailScreen() {
                   {/* Lab requests from this visit date */}
                   {selectedDate && getLabsForVisitDate(selectedDate).length > 0 && (
                     <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <Pressable
-                        onPress={() => setLabsExpanded(!labsExpanded)}
-                        className="flex-row justify-between items-center"
-                      >
-                        <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                          Lab Requests ({getLabsForVisitDate(selectedDate).length})
-                        </Text>
-                        {labsExpanded ? (
-                          <ChevronUp size={16} color="#9ca3af" strokeWidth={1.5} />
-                        ) : (
-                          <ChevronDown size={16} color="#9ca3af" strokeWidth={1.5} />
-                        )}
-                      </Pressable>
+                      <CollapsibleSectionHeader
+                        title="Lab Requests"
+                        count={getLabsForVisitDate(selectedDate).length}
+                        expanded={labsExpanded}
+                        onToggle={() => setLabsExpanded(!labsExpanded)}
+                      />
                       <AnimatedCollapsible expanded={labsExpanded}>
                         <View className="pt-2">
                           {getLabsForVisitDate(selectedDate).map((lab) => (
-                            <View
-                              key={lab.id}
-                              className="border border-gray-100 dark:border-gray-700 rounded-lg p-3 mb-2"
-                            >
-                              <View className="flex-row justify-between items-start">
-                                <Text className="font-medium text-gray-900 dark:text-white flex-1">
-                                  {lab.description}
-                                </Text>
-                                <View
-                                  className={`px-2 py-1 rounded-full border ${
-                                    lab.status === "completed"
-                                      ? "border-green-400"
-                                      : lab.status === "pending"
-                                      ? "border-amber-400"
-                                      : "border-gray-300 dark:border-gray-600"
-                                  }`}
-                                >
-                                  <Text
-                                    className={`text-xs font-medium ${
-                                      lab.status === "completed"
-                                        ? "text-green-600 dark:text-green-400"
-                                        : lab.status === "pending"
-                                        ? "text-amber-600 dark:text-amber-400"
-                                        : "text-gray-500 dark:text-gray-400"
-                                    }`}
-                                  >
-                                    {LAB_STATUS_LABELS[lab.status]}
-                                  </Text>
-                                </View>
-                              </View>
-                              {lab.results && (
-                                <Text className="text-green-600 dark:text-green-400 text-sm mt-2">
-                                  <Text className="font-medium">Results: </Text>
-                                  {lab.results}
-                                </Text>
-                              )}
+                            <View key={lab.id} className="mb-2">
+                              <LabRequestCard
+                                lab={lab}
+                                variant="inline"
+                                showDates={false}
+                              />
                             </View>
                           ))}
                         </View>

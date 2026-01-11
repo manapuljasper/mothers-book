@@ -66,8 +66,7 @@ export default function NewBookletScreen() {
       });
 
       router.replace(`/booklet/${newBooklet.id}`);
-    } catch (error) {
-      console.log("Error: ", error);
+    } catch (_error) {
       Alert.alert("Error", "Failed to create booklet");
     } finally {
       setIsSubmitting(false);

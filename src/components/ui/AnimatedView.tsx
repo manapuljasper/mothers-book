@@ -60,17 +60,3 @@ export function AnimatedView({
     </Animated.View>
   );
 }
-
-// Counter animation for stats
-interface AnimatedNumberProps {
-  value: number;
-  className?: string;
-}
-
-export function AnimatedNumber({ value, className }: AnimatedNumberProps) {
-  return (
-    <Animated.Text className={className} entering={ZoomIn.duration(200)}>
-      {value}
-    </Animated.Text>
-  );
-}

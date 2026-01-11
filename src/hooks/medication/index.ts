@@ -254,12 +254,10 @@ export function useLogIntake() {
     },
 
     // Rollback on error
-    onError: (err, variables, context) => {
-      console.log("Error here");
+    onError: (_err, _variables, context) => {
       if (context?.previousMeds) {
         queryClient.setQueryData(medicationKeys.active(), context.previousMeds);
       }
-      console.error("Failed to log intake:", err);
     },
 
     // Refetch after mutation settles to sync with server
