@@ -4,20 +4,8 @@ import { useCurrentUser } from "../../src/hooks";
 export default function DoctorLayout() {
   const currentUser = useCurrentUser();
 
-  // Show nothing while loading
-  if (currentUser === undefined) {
-    return null;
-  }
-
-  // Redirect if not authenticated
-  if (!currentUser) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  // Redirect if not a doctor
-  if (currentUser.user.role !== "doctor") {
-    return <Redirect href="/" />;
-  }
+  if (currentUser === undefined) return null;
+  if (!currentUser) return <Redirect href="/(auth)/login" />;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -25,10 +13,7 @@ export default function DoctorLayout() {
       <Stack.Screen name="booklet" />
       <Stack.Screen
         name="edit-profile"
-        options={{
-          presentation: "modal",
-          animation: "slide_from_bottom",
-        }}
+        options={{ presentation: "modal", animation: "slide_from_bottom" }}
       />
     </Stack>
   );

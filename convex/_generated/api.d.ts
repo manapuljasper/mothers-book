@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as booklets from "../booklets.js";
 import type * as doctors from "../doctors.js";
+import type * as http from "../http.js";
 import type * as lib_validators from "../lib/validators.js";
 import type * as medical from "../medical.js";
 import type * as medications from "../medications.js";
@@ -27,6 +28,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   booklets: typeof booklets;
   doctors: typeof doctors;
+  http: typeof http;
   "lib/validators": typeof lib_validators;
   medical: typeof medical;
   medications: typeof medications;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -6,6 +6,7 @@ import {
   Platform,
   Alert,
   Text,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,30 +25,48 @@ export default function EditMotherProfileScreen() {
   const isCreateMode = mode === "create";
 
   const currentUser = useCurrentUser();
-  const user = currentUser?.user;
-  const motherProfile = currentUser?.motherProfile;
   const updateProfile = useUpdateMotherProfile();
 
+  // Extract user and profile only when available and not pending
+  const user = currentUser && "user" in currentUser ? currentUser.user : null;
+  const motherProfile = currentUser && "motherProfile" in currentUser ? currentUser.motherProfile : null;
+
   // Form state
-  const [fullName, setFullName] = useState(user?.fullName || "");
-  const [birthdate, setBirthdate] = useState<Date>(
-    motherProfile?.birthdate ? new Date(motherProfile.birthdate) : new Date()
-  );
-  const [contactNumber, setContactNumber] = useState(
-    motherProfile?.contactNumber || ""
-  );
-  const [address, setAddress] = useState(motherProfile?.address || "");
-  const [emergencyContactName, setEmergencyContactName] = useState(
-    motherProfile?.emergencyContactName || ""
-  );
-  const [emergencyContact, setEmergencyContact] = useState(
-    motherProfile?.emergencyContact || ""
-  );
-  const [babyName, setBabyName] = useState(motherProfile?.babyName || "");
+  const [fullName, setFullName] = useState("");
+  const [birthdate, setBirthdate] = useState<Date>(new Date());
+  const [contactNumber, setContactNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContact, setEmergencyContact] = useState("");
+  const [babyName, setBabyName] = useState("");
 
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  // Initialize form values when user data loads
+  useEffect(() => {
+    if (user && motherProfile && !initialized) {
+      setFullName(user.fullName || "");
+      setBirthdate(motherProfile.birthdate ? new Date(motherProfile.birthdate) : new Date());
+      setContactNumber(motherProfile.contactNumber || "");
+      setAddress(motherProfile.address || "");
+      setEmergencyContactName(motherProfile.emergencyContactName || "");
+      setEmergencyContact(motherProfile.emergencyContact || "");
+      setBabyName(motherProfile.babyName || "");
+      setInitialized(true);
+    }
+  }, [user, motherProfile, initialized]);
+
+  // Show loading while data is loading
+  if (currentUser === undefined || (currentUser && "pending" in currentUser)) {
+    return (
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#6366f1" />
+      </SafeAreaView>
+    );
+  }
 
   const handleSave = async () => {
     if (!fullName.trim()) {

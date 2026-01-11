@@ -1,25 +1,17 @@
-/**
- * Auth Convex Hooks
- *
- * Hooks for authentication operations using Convex Auth.
- * These hooks call Convex auth functions directly.
- */
-
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../convex/_generated/api";
-import type { UserRole } from "../../types";
+import { useAuthStore } from "../../stores";
 
 /**
- * Hook to get current user from Convex
- * Returns undefined while loading, null if not authenticated, or user data
+ * Get current authenticated user with profiles
  */
 export function useCurrentUser() {
   return useQuery(api.users.getCurrentUser, {});
 }
 
 /**
- * Sign in hook - returns async function directly
+ * Sign in with email/password
  */
 export function useSignIn() {
   const { signIn } = useAuthActions();
@@ -30,39 +22,38 @@ export function useSignIn() {
 }
 
 /**
- * Sign up hook - returns async function directly
- * Signs up with Convex Auth, then creates the user record with role and profile
+ * Sign up with email/password/name
  */
 export function useSignUp() {
   const { signIn } = useAuthActions();
-  const createUser = useMutation(api.users.createUserAfterAuth);
 
   return async ({
     email,
     password,
-    role,
     fullName,
   }: {
     email: string;
     password: string;
-    role: UserRole;
     fullName: string;
   }) => {
-    // First, sign up with Convex Auth to create auth record
-    await signIn("password", { email, password, flow: "signUp" });
-
-    // Then create the user record with role and profile
-    await createUser({ email, role, fullName });
+    await signIn("password", {
+      email,
+      password,
+      name: fullName,
+      flow: "signUp",
+    });
   };
 }
 
 /**
- * Sign out hook - returns async function directly
+ * Sign out and clear role
  */
 export function useSignOut() {
   const { signOut } = useAuthActions();
+  const clearRole = useAuthStore((s) => s.clearRole);
 
   return async () => {
+    clearRole();
     await signOut();
   };
 }

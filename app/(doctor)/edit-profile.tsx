@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { View, ScrollView, KeyboardAvoidingView, Platform, Alert, Text } from "react-native";
+import { useState, useEffect } from "react";
+import { View, ScrollView, KeyboardAvoidingView, Platform, Alert, Text, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCurrentUser, useUpdateDoctorProfile } from "../../src/hooks";
@@ -11,19 +11,45 @@ export default function EditDoctorProfileScreen() {
   const isCreateMode = mode === "create";
 
   const currentUser = useCurrentUser();
-  const user = currentUser?.user;
-  const doctorProfile = currentUser?.doctorProfile;
   const updateProfile = useUpdateDoctorProfile();
 
+  // Extract user and profile only when available and not pending
+  const user = currentUser && "user" in currentUser ? currentUser.user : null;
+  const doctorProfile = currentUser && "doctorProfile" in currentUser ? currentUser.doctorProfile : null;
+
   // Form state
-  const [fullName, setFullName] = useState(user?.fullName || "");
-  const [specialization, setSpecialization] = useState(doctorProfile?.specialization || "");
-  const [prcNumber, setPrcNumber] = useState(doctorProfile?.prcNumber || "");
-  const [contactNumber, setContactNumber] = useState(doctorProfile?.contactNumber || "");
-  const [clinicName, setClinicName] = useState(doctorProfile?.clinicName || "");
-  const [clinicAddress, setClinicAddress] = useState(doctorProfile?.clinicAddress || "");
-  const [clinicSchedule, setClinicSchedule] = useState(doctorProfile?.clinicSchedule || "");
+  const [fullName, setFullName] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [prcNumber, setPrcNumber] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  const [clinicName, setClinicName] = useState("");
+  const [clinicAddress, setClinicAddress] = useState("");
+  const [clinicSchedule, setClinicSchedule] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  // Initialize form values when user data loads
+  useEffect(() => {
+    if (user && doctorProfile && !initialized) {
+      setFullName(user.fullName || "");
+      setSpecialization(doctorProfile.specialization || "");
+      setPrcNumber(doctorProfile.prcNumber || "");
+      setContactNumber(doctorProfile.contactNumber || "");
+      setClinicName(doctorProfile.clinicName || "");
+      setClinicAddress(doctorProfile.clinicAddress || "");
+      setClinicSchedule(doctorProfile.clinicSchedule || "");
+      setInitialized(true);
+    }
+  }, [user, doctorProfile, initialized]);
+
+  // Show loading while data is loading
+  if (currentUser === undefined || (currentUser && "pending" in currentUser)) {
+    return (
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#6366f1" />
+      </SafeAreaView>
+    );
+  }
 
   const handleSave = async () => {
     if (!fullName.trim()) {
