@@ -36,6 +36,11 @@ export { TimelineEntryCard } from "./TimelineEntryCard";
 export { BookletTabBar, type BookletTab } from "./BookletTabBar";
 export { AOGBadge } from "./AOGBadge";
 
+// Entry detail components
+export { VitalCard } from "./VitalCard";
+export { VitalInput } from "./VitalInput";
+export { InstructionsCard } from "./InstructionsCard";
+
 // Skeleton components
 export {
   SkeletonProvider,

@@ -7,7 +7,7 @@ import {
 } from "react-native-safe-area-context";
 import { ChevronLeft, Plus, Baby } from "lucide-react-native";
 import { useCurrentUser } from "@/hooks";
-import { formatDate, getDateString } from "@/utils";
+import { formatDate } from "@/utils";
 import {
   CardPressable,
   StatusBadge,
@@ -18,30 +18,19 @@ import {
 } from "@/components/ui";
 import {
   NotesEditModal,
-  AddEntryModal,
   EditMedicationModal,
   HistoryTabContent,
   MedsTabContent,
   LabsTabContent,
-  type EntryFormData,
-  type MedicationData,
-  type LabData,
 } from "@/components/doctor";
 import type { Medication } from "@/types";
 import {
   useBookletsByDoctor,
   useEntriesByBooklet,
-  useLabsByEntry,
   useLabsByBooklet,
   useMedicationsByBooklet,
-  useCreateEntry,
-  useCreateMedication,
-  useCreateLabRequest,
   useUpdateBooklet,
   useUpdateMedication,
-  useUpdateEntry,
-  useDeleteMedication,
-  useDeleteLabRequest,
 } from "@/hooks";
 
 export default function DoctorBookletDetailScreen() {
@@ -59,21 +48,13 @@ export default function DoctorBookletDetailScreen() {
   const allLabs = useLabsByBooklet(bookletId) ?? [];
 
   // Mutation hooks
-  const createEntry = useCreateEntry();
-  const createMedication = useCreateMedication();
-  const createLabRequest = useCreateLabRequest();
   const updateBooklet = useUpdateBooklet();
   const updateMedication = useUpdateMedication();
-  const updateEntry = useUpdateEntry();
-  const deleteMedication = useDeleteMedication();
-  const deleteLabRequest = useDeleteLabRequest();
 
   // Local state
-  const [isSavingEntry, setIsSavingEntry] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isSavingMedication, setIsSavingMedication] = useState(false);
   const [activeTab, setActiveTab] = useState<BookletTab>("history");
-  const [showEntryModal, setShowEntryModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [editingNotes, setEditingNotes] = useState("");
   const [editingMedication, setEditingMedication] = useState<Medication | null>(
@@ -97,19 +78,6 @@ export default function DoctorBookletDetailScreen() {
       return dateB - dateA;
     });
   }, [entries]);
-
-  // Today's entry for edit mode
-  const todayEntry = useMemo(() => {
-    const todayStr = getDateString(new Date());
-    return entries.find((e) => getDateString(e.visitDate) === todayStr) || null;
-  }, [entries]);
-
-  const todayMeds = useMemo(() => {
-    if (!todayEntry) return [];
-    return allMedications.filter((m) => m.medicalEntryId === todayEntry.id);
-  }, [todayEntry, allMedications]);
-
-  const todayEntryLabs = useLabsByEntry(todayEntry?.id) ?? [];
 
   // Latest AOG from entries
   const latestAOG = useMemo(() => {
@@ -188,118 +156,6 @@ export default function DoctorBookletDetailScreen() {
     }
   };
 
-  const handleSaveEntry = async (
-    entryData: EntryFormData,
-    medications: MedicationData[],
-    labs: LabData[],
-    isEdit: boolean,
-    deletedMedicationIds: string[],
-    deletedLabIds: string[]
-  ) => {
-    setIsSavingEntry(true);
-    try {
-      let entryId: string;
-
-      if (isEdit && todayEntry) {
-        await updateEntry({
-          id: todayEntry.id,
-          updates: {
-            entryType: entryData.entryType,
-            notes: entryData.notes,
-            diagnosis: entryData.diagnosis || undefined,
-            recommendations: entryData.recommendations || undefined,
-            vitals:
-              Object.keys(entryData.vitals).length > 0
-                ? entryData.vitals
-                : undefined,
-            attachments:
-              entryData.attachments.length > 0
-                ? entryData.attachments
-                : undefined,
-            followUpDate: entryData.followUpDate,
-          },
-        });
-        entryId = todayEntry.id;
-
-        if (deletedMedicationIds.length > 0) {
-          await Promise.all(
-            deletedMedicationIds.map((id) => deleteMedication(id))
-          );
-        }
-        if (deletedLabIds.length > 0) {
-          await Promise.all(deletedLabIds.map((id) => deleteLabRequest(id)));
-        }
-      } else {
-        const newEntry = await createEntry({
-          bookletId,
-          doctorId: doctorProfile._id,
-          entryType: entryData.entryType,
-          visitDate: new Date(),
-          notes: entryData.notes,
-          diagnosis: entryData.diagnosis || undefined,
-          recommendations: entryData.recommendations || undefined,
-          vitals:
-            Object.keys(entryData.vitals).length > 0
-              ? entryData.vitals
-              : undefined,
-          attachments:
-            entryData.attachments.length > 0
-              ? entryData.attachments
-              : undefined,
-          followUpDate: entryData.followUpDate,
-        });
-        if (!newEntry) throw new Error("Failed to create entry");
-        entryId = newEntry.id;
-      }
-
-      if (medications.length > 0) {
-        await Promise.all(
-          medications.map((med) =>
-            createMedication({
-              bookletId,
-              medicalEntryId: entryId,
-              name: med.name,
-              dosage: med.dosage,
-              instructions: med.instructions,
-              startDate: new Date(),
-              frequencyPerDay: med.frequencyPerDay,
-              isActive: true,
-              endDate: med.endDate || entryData.followUpDate,
-            })
-          )
-        );
-      }
-
-      if (labs.length > 0) {
-        await Promise.all(
-          labs.map((lab) =>
-            createLabRequest({
-              bookletId,
-              medicalEntryId: entryId,
-              description: lab.description,
-              status: "pending",
-              requestedDate: new Date(),
-              notes: lab.notes || undefined,
-            })
-          )
-        );
-      }
-
-      setShowEntryModal(false);
-    } catch {
-      Alert.alert(
-        "Error",
-        isEdit ? "Failed to update entry." : "Failed to save entry."
-      );
-    } finally {
-      setIsSavingEntry(false);
-    }
-  };
-
-  const handleEntryPress = (entryId: string) => {
-    console.log("Entry pressed:", entryId);
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
       <ScrollView
@@ -360,17 +216,14 @@ export default function DoctorBookletDetailScreen() {
         {/* Content */}
         <View className="px-5 -mt-8 relative z-20 pb-24">
           <View className="mb-6">
-            <BookletTabBar
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
+            <BookletTabBar activeTab={activeTab} onTabChange={setActiveTab} />
           </View>
 
           {activeTab === "history" && (
             <HistoryTabContent
               entries={sortedEntries}
               allMedications={allMedications}
-              onEntryPress={handleEntryPress}
+              bookletId={bookletId}
             />
           )}
 
@@ -389,7 +242,12 @@ export default function DoctorBookletDetailScreen() {
 
       {/* FAB */}
       <TouchableOpacity
-        onPress={() => setShowEntryModal(true)}
+        onPress={() =>
+          router.push({
+            pathname: "/(doctor)/booklet/add-entry",
+            params: { bookletId },
+          })
+        }
         activeOpacity={0.8}
         className="absolute bottom-24 right-5 bg-blue-500 rounded-full w-14 h-14 items-center justify-center shadow-lg"
         style={{
@@ -404,16 +262,6 @@ export default function DoctorBookletDetailScreen() {
       </TouchableOpacity>
 
       {/* Modals */}
-      <AddEntryModal
-        visible={showEntryModal}
-        onClose={() => setShowEntryModal(false)}
-        onSave={handleSaveEntry}
-        isSaving={isSavingEntry}
-        existingEntry={todayEntry}
-        existingMedications={todayMeds}
-        existingLabs={todayEntryLabs}
-      />
-
       <NotesEditModal
         visible={showNotesModal}
         onClose={() => setShowNotesModal(false)}
