@@ -30,6 +30,12 @@ export { CollapsibleSectionHeader } from "./CollapsibleSectionHeader";
 export { DatePickerButton } from "./DatePickerButton";
 export { PageHeader } from "./PageHeader";
 
+// Timeline components
+export { TimelineDateBadge } from "./TimelineDateBadge";
+export { TimelineEntryCard } from "./TimelineEntryCard";
+export { BookletTabBar, type BookletTab } from "./BookletTabBar";
+export { AOGBadge } from "./AOGBadge";
+
 // Skeleton components
 export {
   SkeletonProvider,

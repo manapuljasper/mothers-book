@@ -1,30 +1,25 @@
-import { useState, useMemo, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  Alert,
-} from "react-native";
+import { useState, useMemo } from "react";
+import { View, Text, ScrollView, Pressable, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { ChevronLeft, Plus, FileText, Pill, Edit2, StopCircle } from "lucide-react-native";
+import { ChevronLeft, Plus, Baby } from "lucide-react-native";
 import { useCurrentUser } from "@/hooks";
-import { formatDate } from "@/utils";
+import { formatDate, getDateString } from "@/utils";
 import {
   CardPressable,
-  StatCard,
-  AnimatedCollapsible,
-  CollapsibleSectionHeader,
+  StatusBadge,
+  AOGBadge,
+  BookletTabBar,
+  TimelineDateBadge,
+  TimelineEntryCard,
   DoctorBookletDetailSkeleton,
+  type BookletTab,
 } from "@/components/ui";
-import { MedicationCard } from "@/components";
 import {
   NotesEditModal,
-  EntryCard,
   AddEntryModal,
   EditMedicationModal,
   type EntryFormData,
@@ -77,6 +72,9 @@ export default function DoctorBookletDetailScreen() {
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isSavingMedication, setIsSavingMedication] = useState(false);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<BookletTab>("history");
+
   // Get booklet with mother info
   const booklet = doctorBooklets.find((b) => b.id === bookletId);
 
@@ -86,56 +84,32 @@ export default function DoctorBookletDetailScreen() {
     entries === undefined ||
     allMedications === undefined;
 
-  // Get sorted unique dates from entries
-  const visitDates = useMemo(() => {
-    const dateStrings = entries.map((e) => {
-      const d = e.visitDate;
-      return typeof d === "string" ? d : new Date(d).toISOString().split("T")[0];
-    });
-    return [...new Set(dateStrings)].sort(
-      (a, b) => new Date(b).getTime() - new Date(a).getTime()
-    );
-  }, [entries]);
-
   // State
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [editingNotes, setEditingNotes] = useState("");
-  const [activeMedsExpanded, setActiveMedsExpanded] = useState(true);
-  const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
+  const [editingMedication, setEditingMedication] = useState<Medication | null>(
+    null
+  );
 
-  // Set selected date to most recent when entries load
-  useEffect(() => {
-    if (visitDates.length > 0 && selectedDate === null) {
-      setSelectedDate(visitDates[0]);
-    }
-  }, [visitDates, selectedDate]);
-
-  // Get entry for selected date
-  const selectedEntry = useMemo(() => {
-    if (!selectedDate) return null;
-    return (
-      entries.find((e) => {
-        const d = e.visitDate;
-        const dateStr =
-          typeof d === "string" ? d : new Date(d).toISOString().split("T")[0];
-        return dateStr === selectedDate;
-      }) || null
-    );
-  }, [entries, selectedDate]);
-
-  // Fetch labs for the selected entry
-  const selectedEntryLabs = useLabsByEntry(selectedEntry?.id) ?? [];
+  // Get sorted entries by date (most recent first)
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort((a, b) => {
+      const dateA = new Date(a.visitDate).getTime();
+      const dateB = new Date(b.visitDate).getTime();
+      return dateB - dateA;
+    });
+  }, [entries]);
 
   // Get today's entry (if exists) for edit mode
   const todayEntry = useMemo(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    return entries.find((e) => {
-      const d = e.visitDate;
-      const dateStr = typeof d === "string" ? d : new Date(d).toISOString().split("T")[0];
-      return dateStr === todayStr;
-    }) || null;
+    const todayStr = getDateString(new Date());
+    return (
+      entries.find((e) => {
+        const dateStr = getDateString(e.visitDate);
+        return dateStr === todayStr;
+      }) || null
+    );
   }, [entries]);
 
   // Get medications for today's entry
@@ -165,6 +139,16 @@ export default function DoctorBookletDetailScreen() {
   const getMedsForEntry = (entryId: string) => {
     return allMedications.filter((m) => m.medicalEntryId === entryId);
   };
+
+  // Get the most recent AOG from entries
+  const latestAOG = useMemo(() => {
+    for (const entry of sortedEntries) {
+      if (entry.vitals?.aog) {
+        return entry.vitals.aog;
+      }
+    }
+    return null;
+  }, [sortedEntries]);
 
   // Open notes editing modal
   const handleOpenNotesModal = () => {
@@ -209,7 +193,10 @@ export default function DoctorBookletDetailScreen() {
                 },
               });
             } catch (_error) {
-              Alert.alert("Error", "Failed to stop medication. Please try again.");
+              Alert.alert(
+                "Error",
+                "Failed to stop medication. Please try again."
+              );
             }
           },
         },
@@ -261,7 +248,9 @@ export default function DoctorBookletDetailScreen() {
                 ? entryData.vitals
                 : undefined,
             attachments:
-              entryData.attachments.length > 0 ? entryData.attachments : undefined,
+              entryData.attachments.length > 0
+                ? entryData.attachments
+                : undefined,
             followUpDate: entryData.followUpDate,
           },
         });
@@ -270,19 +259,13 @@ export default function DoctorBookletDetailScreen() {
         // Delete removed medications
         if (deletedMedicationIds.length > 0) {
           await Promise.all(
-            deletedMedicationIds.map((id) =>
-              deleteMedication(id)
-            )
+            deletedMedicationIds.map((id) => deleteMedication(id))
           );
         }
 
         // Delete removed labs
         if (deletedLabIds.length > 0) {
-          await Promise.all(
-            deletedLabIds.map((id) =>
-              deleteLabRequest(id)
-            )
-          );
+          await Promise.all(deletedLabIds.map((id) => deleteLabRequest(id)));
         }
       } else {
         // CREATE new entry
@@ -299,7 +282,9 @@ export default function DoctorBookletDetailScreen() {
               ? entryData.vitals
               : undefined,
           attachments:
-            entryData.attachments.length > 0 ? entryData.attachments : undefined,
+            entryData.attachments.length > 0
+              ? entryData.attachments
+              : undefined,
           followUpDate: entryData.followUpDate,
         });
         if (!newEntry) {
@@ -346,237 +331,136 @@ export default function DoctorBookletDetailScreen() {
 
       setShowEntryModal(false);
     } catch (error) {
-      Alert.alert("Error", isEdit ? "Failed to update entry. Please try again." : "Failed to save entry. Please try again.");
+      Alert.alert(
+        "Error",
+        isEdit
+          ? "Failed to update entry. Please try again."
+          : "Failed to save entry. Please try again."
+      );
       throw error; // Re-throw so the modal knows it failed
     } finally {
       setIsSavingEntry(false);
     }
   };
 
+  // Handle entry card press - navigate to entry detail (future)
+  const handleEntryPress = (entryId: string) => {
+    // For now, just log it. In future, navigate to entry detail screen
+    console.log("Entry pressed:", entryId);
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
-      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
-        {/* Header */}
+      <ScrollView
+        className="flex-1 bg-slate-900"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header with curved blue background */}
         <View
-          className="bg-blue-500 px-6 py-6"
-          style={{ paddingTop: insets.top }}
+          className="bg-blue-500 px-5 pb-12 relative overflow-hidden"
+          style={{
+            paddingTop: insets.top + 8,
+            borderBottomLeftRadius: 40,
+            borderBottomRightRadius: 40,
+          }}
         >
+          {/* Decorative blur circle */}
+          <View
+            className="absolute -top-32 -right-16 w-64 h-64 bg-white/5 rounded-full"
+            style={{ transform: [{ scale: 1.5 }] }}
+          />
+
+          {/* Back Button */}
           <CardPressable
             onPress={() => router.back()}
-            className="flex-row items-center mb-3"
+            className="flex-row items-center mb-6 opacity-90"
           >
-            <ChevronLeft size={20} color="#bfdbfe" strokeWidth={1.5} />
-            <Text className="text-blue-200 ml-1">Back</Text>
+            <ChevronLeft size={20} color="#ffffff" strokeWidth={2} />
+            <Text className="text-white text-sm font-semibold tracking-wide ml-1">
+              Back
+            </Text>
           </CardPressable>
-          <Text className="text-white text-2xl font-bold">
-            {booklet.motherName}
-          </Text>
-          <Text className="text-blue-200">{booklet.label}</Text>
-          <View className="flex-row items-center mt-2">
-            <View
-              className={`px-2 py-1 rounded-full border ${
-                booklet.status === "active"
-                  ? "border-white/50"
-                  : "border-white/30"
-              }`}
-            >
-              <Text className="text-white text-xs font-medium">
-                {booklet.status}
-              </Text>
-            </View>
-            {booklet.expectedDueDate && (
-              <Text className="text-blue-200 ml-3">
-                Due: {formatDate(booklet.expectedDueDate)}
-              </Text>
-            )}
-          </View>
-        </View>
 
-        {/* Quick Stats - tappable to navigate to history */}
-        <View className="flex-row px-4 -mt-4">
-          <StatCard
-            value={entries.length}
-            label="Visits"
-            color="blue"
-            size="sm"
-          />
-          <StatCard
-            value={allMedications.length}
-            label="Medications"
-            color="green"
-            size="sm"
-            onPress={() => router.push(`/(doctor)/booklet/${bookletId}/history`)}
-          />
-          <StatCard
-            value={allLabs.length}
-            label="Labs"
-            color="purple"
-            size="sm"
-            onPress={() => router.push(`/(doctor)/booklet/${bookletId}/labs`)}
-          />
-        </View>
-
-        {/* Add Entry Button */}
-        <View className="px-6 mt-6">
-          <Pressable
-            onPress={() => setShowEntryModal(true)}
-            className="flex-row items-center justify-center bg-blue-500 px-4 py-3 rounded-xl"
-          >
-            <Plus size={18} color="white" strokeWidth={1.5} />
-            <Text className="text-white font-medium ml-2">Add Entry</Text>
-          </Pressable>
-        </View>
-
-        {/* Doctor Notes Section */}
-        <View className="px-6 mt-6">
-          <View className="flex-row justify-between items-center mb-3">
-            <View className="flex-row items-center">
-              <FileText size={18} color="#6b7280" strokeWidth={1.5} />
-              <Text className="text-lg font-semibold text-gray-900 dark:text-white ml-2">
-                Doctor Notes
+          {/* Patient Info Row */}
+          <View className="flex-row justify-between items-start">
+            <View className="flex-1">
+              <Text className="text-3xl font-bold text-white tracking-tight">
+                {booklet.motherName}
               </Text>
-            </View>
-            <Pressable
-              onPress={handleOpenNotesModal}
-              className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800"
-            >
-              <Text className="text-blue-500 text-sm font-medium">Edit</Text>
-            </Pressable>
-          </View>
-          <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-            {booklet.notes ? (
-              <Text className="text-gray-600 dark:text-gray-300 text-sm">
-                {booklet.notes}
-              </Text>
-            ) : (
-              <Text className="text-gray-400 text-sm italic">
-                No notes yet. Tap Edit to add notes about this patient.
-              </Text>
-            )}
-          </View>
-        </View>
-
-        {/* Active Medications Section */}
-        <View className="px-6 mt-6">
-          <View className="mb-3">
-            <CollapsibleSectionHeader
-              title="Active Medications"
-              count={activeMeds.length}
-              expanded={activeMedsExpanded}
-              onToggle={() => setActiveMedsExpanded(!activeMedsExpanded)}
-              icon={Pill}
-              size="md"
-            />
-          </View>
-          <AnimatedCollapsible expanded={activeMedsExpanded}>
-            {activeMeds.length === 0 ? (
-              <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-                <Text className="text-gray-400 text-center">No active medications</Text>
-                <Text className="text-gray-300 dark:text-gray-500 text-sm text-center mt-1">
-                  Add medications when creating an entry
+              <View className="flex-row items-center gap-2 mt-1">
+                <Baby size={14} color="#bfdbfe" strokeWidth={1.5} />
+                <Text className="text-blue-100 font-medium">
+                  {booklet.label}
                 </Text>
               </View>
-            ) : (
-              <View>
-                {activeMeds.map((med) => (
-                  <View key={med.id} className="mb-3">
-                    <MedicationCard
-                      medication={med}
-                      headerAction={
-                        <View className="flex-row">
-                          <Pressable
-                            onPress={() => setEditingMedication(med)}
-                            className="p-2 mr-1 rounded-lg bg-gray-100 dark:bg-gray-700"
-                          >
-                            <Edit2 size={16} color="#3b82f6" strokeWidth={1.5} />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => handleStopMedication(med)}
-                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30"
-                          >
-                            <StopCircle size={16} color="#ef4444" strokeWidth={1.5} />
-                          </Pressable>
-                        </View>
-                      }
-                    />
-                  </View>
-                ))}
+            </View>
+
+            {/* AOG Badge */}
+            {latestAOG && <AOGBadge aog={latestAOG} size="md" />}
+          </View>
+
+          {/* Status Badges Row */}
+          <View className="flex-row items-center gap-3 mt-5">
+            <StatusBadge
+              status={booklet.status}
+              showDot
+              glassmorphism
+            />
+            {booklet.expectedDueDate && (
+              <View className="bg-blue-600/30 px-3 py-1 rounded-full border border-white/10">
+                <Text className="text-blue-50 text-xs font-medium">
+                  Due: {formatDate(booklet.expectedDueDate)}
+                </Text>
               </View>
             )}
-          </AnimatedCollapsible>
+          </View>
         </View>
 
-        {/* Visit History */}
-        <View className="px-6 mt-8">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-            Visit History
-          </Text>
-          {visitDates.length === 0 ? (
-            <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-              <Text className="text-gray-400 text-center">No visits yet</Text>
-              <Text className="text-gray-300 dark:text-gray-500 text-sm text-center mt-1">
-                Add your first entry above
-              </Text>
-            </View>
-          ) : (
-            <>
-              {/* Horizontal Date Selector */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="mb-4"
-              >
-                {visitDates.map((date) => {
-                  const isSelected = date === selectedDate;
-                  const dateObj = new Date(date);
-                  const day = dateObj.getDate();
-                  const month = dateObj.toLocaleDateString("en-US", {
-                    month: "short",
-                  });
+        {/* Main Content Area */}
+        <View className="px-5 -mt-8 relative z-20 pb-24">
+          {/* Tab Bar */}
+          <View className="mb-6">
+            <BookletTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+          </View>
 
-                  return (
-                    <Pressable
-                      key={date}
-                      onPress={() => setSelectedDate(date)}
-                      className={`items-center justify-center px-4 py-3 mr-2 rounded-xl border ${
-                        isSelected
-                          ? "bg-blue-500 border-blue-500"
-                          : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700"
-                      }`}
-                    >
-                      <Text
-                        className={`text-xs ${
-                          isSelected ? "text-blue-200" : "text-gray-400"
-                        }`}
-                      >
-                        {month}
-                      </Text>
-                      <Text
-                        className={`text-xl font-bold ${
-                          isSelected
-                            ? "text-white"
-                            : "text-gray-700 dark:text-gray-200"
-                        }`}
-                      >
-                        {day}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
+          {/* Tab Content */}
+          {activeTab === "history" && (
+            <HistoryTabContent
+              entries={sortedEntries}
+              allMedications={allMedications}
+              onEntryPress={handleEntryPress}
+            />
+          )}
 
-              {/* Selected Entry Display */}
-              {selectedEntry && (
-                <EntryCard
-                  entry={selectedEntry}
-                  medications={getMedsForEntry(selectedEntry.id)}
-                  labs={selectedEntryLabs}
-                />
-              )}
-            </>
+          {activeTab === "meds" && (
+            <MedsTabContent
+              medications={allMedications}
+              activeMeds={activeMeds}
+              onEditMedication={setEditingMedication}
+              onStopMedication={handleStopMedication}
+            />
+          )}
+
+          {activeTab === "labs" && (
+            <LabsTabContent labs={allLabs} bookletId={bookletId} />
           )}
         </View>
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <Pressable
+        onPress={() => setShowEntryModal(true)}
+        className="absolute bottom-24 right-5 bg-blue-500 rounded-full w-14 h-14 items-center justify-center shadow-lg"
+        style={{
+          shadowColor: "#3b82f6",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 8,
+        }}
+      >
+        <Plus size={28} color="#ffffff" strokeWidth={2} />
+      </Pressable>
 
       {/* Add Entry Modal */}
       <AddEntryModal
@@ -608,5 +492,282 @@ export default function DoctorBookletDetailScreen() {
         isSaving={isSavingMedication}
       />
     </SafeAreaView>
+  );
+}
+
+// ============================================================================
+// Tab Content Components
+// ============================================================================
+
+interface HistoryTabContentProps {
+  entries: Array<{
+    id: string;
+    entryType: any;
+    doctorName: string;
+    visitDate: Date | string;
+    vitals?: any;
+    followUpDate?: Date | string;
+    notes?: string;
+  }>;
+  allMedications: Array<{ medicalEntryId?: string }>;
+  onEntryPress: (entryId: string) => void;
+}
+
+function HistoryTabContent({
+  entries,
+  allMedications,
+  onEntryPress,
+}: HistoryTabContentProps) {
+  if (entries.length === 0) {
+    return (
+      <View className="items-center justify-center py-12">
+        <Text className="text-slate-600 text-sm">No records yet</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="relative">
+      {/* Vertical Timeline Line */}
+      <View
+        className="absolute left-[27px] top-4 bottom-0 w-0.5 bg-slate-700/50"
+        style={{ zIndex: 0 }}
+      />
+
+      {/* Timeline Entries */}
+      {entries.map((entry, index) => {
+        const isFirst = index === 0;
+        const hasMeds = allMedications.some(
+          (m) => m.medicalEntryId === entry.id
+        );
+        const hasNotes = !!entry.notes && entry.notes.trim().length > 0;
+
+        return (
+          <View key={entry.id} className="relative pb-8" style={{ zIndex: 10 }}>
+            <View className="flex-row items-start gap-4">
+              {/* Date Badge */}
+              <View className="min-w-[56px]">
+                <TimelineDateBadge date={entry.visitDate} isActive={isFirst} />
+              </View>
+
+              {/* Entry Card */}
+              <TimelineEntryCard
+                entryType={entry.entryType}
+                doctorName={entry.doctorName}
+                visitDate={entry.visitDate}
+                vitals={entry.vitals}
+                followUpDate={entry.followUpDate}
+                hasNotes={hasNotes}
+                hasMedications={hasMeds}
+                variant={isFirst ? "expanded" : "compact"}
+                faded={!isFirst}
+                onPress={() => onEntryPress(entry.id)}
+              />
+            </View>
+          </View>
+        );
+      })}
+
+      {/* End of Records */}
+      <View className="items-center mt-2">
+        <Text className="text-xs text-slate-600 font-medium bg-slate-900 px-2">
+          No more records
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+interface MedsTabContentProps {
+  medications: Medication[];
+  activeMeds: Medication[];
+  onEditMedication: (med: Medication) => void;
+  onStopMedication: (med: Medication) => void;
+}
+
+function MedsTabContent({
+  medications,
+  activeMeds,
+  onEditMedication,
+  onStopMedication,
+}: MedsTabContentProps) {
+  const inactiveMeds = medications.filter((m) => !m.isActive);
+
+  if (medications.length === 0) {
+    return (
+      <View className="items-center justify-center py-12">
+        <Text className="text-slate-600 text-sm">No medications yet</Text>
+        <Text className="text-slate-700 text-xs mt-1">
+          Add medications when creating an entry
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      {/* Active Medications */}
+      {activeMeds.length > 0 && (
+        <View className="mb-6">
+          <Text className="text-white font-semibold mb-3">
+            Active ({activeMeds.length})
+          </Text>
+          {activeMeds.map((med) => (
+            <View
+              key={med.id}
+              className="bg-slate-800 rounded-xl p-4 mb-3 border border-slate-700"
+            >
+              <View className="flex-row justify-between items-start">
+                <View className="flex-1">
+                  <Text className="text-white font-semibold">{med.name}</Text>
+                  <Text className="text-slate-400 text-sm">{med.dosage}</Text>
+                  {med.instructions && (
+                    <Text className="text-slate-500 text-xs mt-1">
+                      {med.instructions}
+                    </Text>
+                  )}
+                </View>
+                <View className="flex-row gap-2">
+                  <Pressable
+                    onPress={() => onEditMedication(med)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-700"
+                  >
+                    <Text className="text-blue-400 text-xs font-medium">
+                      Edit
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => onStopMedication(med)}
+                    className="px-3 py-1.5 rounded-lg bg-red-900/30"
+                  >
+                    <Text className="text-red-400 text-xs font-medium">
+                      Stop
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Inactive Medications */}
+      {inactiveMeds.length > 0 && (
+        <View>
+          <Text className="text-slate-500 font-semibold mb-3">
+            Past ({inactiveMeds.length})
+          </Text>
+          {inactiveMeds.map((med) => (
+            <View
+              key={med.id}
+              className="bg-slate-800/50 rounded-xl p-4 mb-3 border border-slate-700/50 opacity-60"
+            >
+              <Text className="text-white font-semibold">{med.name}</Text>
+              <Text className="text-slate-400 text-sm">{med.dosage}</Text>
+              {med.endDate && (
+                <Text className="text-slate-500 text-xs mt-1">
+                  Ended: {formatDate(med.endDate)}
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+interface LabsTabContentProps {
+  labs: Array<{
+    id: string;
+    description: string;
+    status: string;
+    requestedDate: Date | string;
+    completedDate?: Date | string;
+    results?: string;
+  }>;
+  bookletId: string;
+}
+
+function LabsTabContent({ labs }: LabsTabContentProps) {
+  const pendingLabs = labs.filter((l) => l.status === "pending");
+  const completedLabs = labs.filter((l) => l.status === "completed");
+  const cancelledLabs = labs.filter((l) => l.status === "cancelled");
+
+  if (labs.length === 0) {
+    return (
+      <View className="items-center justify-center py-12">
+        <Text className="text-slate-600 text-sm">No lab requests yet</Text>
+        <Text className="text-slate-700 text-xs mt-1">
+          Add lab requests when creating an entry
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      {/* Pending Labs */}
+      {pendingLabs.length > 0 && (
+        <View className="mb-6">
+          <Text className="text-amber-400 font-semibold mb-3">
+            Pending ({pendingLabs.length})
+          </Text>
+          {pendingLabs.map((lab) => (
+            <View
+              key={lab.id}
+              className="bg-slate-800 rounded-xl p-4 mb-3 border border-amber-500/30"
+            >
+              <Text className="text-white font-semibold">{lab.description}</Text>
+              <Text className="text-slate-400 text-xs mt-1">
+                Requested: {formatDate(lab.requestedDate)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Completed Labs */}
+      {completedLabs.length > 0 && (
+        <View className="mb-6">
+          <Text className="text-green-400 font-semibold mb-3">
+            Completed ({completedLabs.length})
+          </Text>
+          {completedLabs.map((lab) => (
+            <View
+              key={lab.id}
+              className="bg-slate-800 rounded-xl p-4 mb-3 border border-green-500/30"
+            >
+              <Text className="text-white font-semibold">{lab.description}</Text>
+              {lab.results && (
+                <Text className="text-slate-300 text-sm mt-2">
+                  {lab.results}
+                </Text>
+              )}
+              <Text className="text-slate-400 text-xs mt-1">
+                Completed: {formatDate(lab.completedDate || lab.requestedDate)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Cancelled Labs */}
+      {cancelledLabs.length > 0 && (
+        <View>
+          <Text className="text-slate-500 font-semibold mb-3">
+            Cancelled ({cancelledLabs.length})
+          </Text>
+          {cancelledLabs.map((lab) => (
+            <View
+              key={lab.id}
+              className="bg-slate-800/50 rounded-xl p-4 mb-3 border border-slate-700/50 opacity-60"
+            >
+              <Text className="text-white font-semibold">{lab.description}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
