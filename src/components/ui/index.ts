@@ -20,7 +20,6 @@ export { BookletCard } from "./BookletCard";
 // New form primitives
 export { Button } from "./Button";
 export { TextField } from "./TextField";
-export { OptionButtonGroup } from "./OptionButtonGroup";
 
 // New display components
 export { StatusBadge } from "./StatusBadge";
@@ -28,7 +27,6 @@ export { LoadingScreen } from "./LoadingScreen";
 export { ModalHeader } from "./ModalHeader";
 export { CollapsibleSectionHeader } from "./CollapsibleSectionHeader";
 export { DatePickerButton } from "./DatePickerButton";
-export { PageHeader } from "./PageHeader";
 
 // Timeline components
 export { TimelineDateBadge } from "./TimelineDateBadge";
