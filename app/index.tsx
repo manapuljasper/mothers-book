@@ -3,32 +3,34 @@ import { Redirect } from "expo-router";
 import { View, ActivityIndicator, Text } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { useCurrentUser } from "../src/hooks";
+import { useCurrentUser, useClinicsByDoctor } from "../src/hooks";
 import { useAuthStore } from "../src/stores";
 
-// Profile completeness check
-// Doctor: prcNumber, clinicName, clinicAddress required
-// Mother: birthdate required (always set on creation, so just check profile exists)
-function isProfileComplete(
-  role: "doctor" | "mother",
+// Profile completeness check for doctor
+// Doctor: prcNumber, contactNumber required, AND at least one clinic
+function isDoctorProfileComplete(
   doctorProfile:
-    | { prcNumber?: string; clinicName?: string; clinicAddress?: string }
+    | {
+        prcNumber?: string;
+        contactNumber?: string;
+      }
     | null
     | undefined,
+  clinicsCount: number
+): boolean {
+  return !!(
+    doctorProfile?.prcNumber?.trim() &&
+    doctorProfile?.contactNumber?.trim() &&
+    clinicsCount > 0
+  );
+}
+
+// Profile completeness check for mother
+// Mother: birthdate required (always set on creation, so just check profile exists)
+function isMotherProfileComplete(
   motherProfile: { birthdate?: number } | null | undefined
 ): boolean {
-  if (role === "doctor") {
-    return !!(
-      doctorProfile?.prcNumber?.trim() &&
-      doctorProfile?.clinicName?.trim() &&
-      doctorProfile?.clinicAddress?.trim()
-    );
-  }
-  if (role === "mother") {
-    // Mother profile is complete if it exists (birthdate is set on creation)
-    return !!motherProfile;
-  }
-  return false;
+  return !!motherProfile;
 }
 
 export default function Index() {
@@ -48,6 +50,13 @@ export default function Index() {
     currentUser && "motherProfile" in currentUser
       ? currentUser.motherProfile
       : null;
+
+  // Get clinics for doctor profile (if doctor role selected)
+  const clinics = useClinicsByDoctor(
+    selectedRole === "doctor" && doctorProfile?._id
+      ? (doctorProfile._id as string)
+      : undefined
+  );
 
   const selectedProfile =
     selectedRole === "doctor" ? doctorProfile : motherProfile;
@@ -115,15 +124,22 @@ export default function Index() {
     );
   }
 
-  // Check profile completeness
-  const profileComplete = isProfileComplete(
-    selectedRole,
-    doctorProfile,
-    motherProfile
-  );
+  // For doctors, wait for clinics to load before checking completeness
+  if (selectedRole === "doctor" && clinics === undefined) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white dark:bg-gray-900">
+        <ActivityIndicator size="large" color="#6366f1" />
+        <Text className="text-gray-500 dark:text-gray-400 mt-4">
+          Loading profile...
+        </Text>
+      </View>
+    );
+  }
 
   // Redirect based on role and profile completeness
   if (selectedRole === "doctor") {
+    const clinicsCount = clinics?.length ?? 0;
+    const profileComplete = isDoctorProfileComplete(doctorProfile, clinicsCount);
     if (!profileComplete) {
       return <Redirect href="/(doctor)/edit-profile?mode=create" />;
     }
@@ -131,6 +147,7 @@ export default function Index() {
   }
 
   if (selectedRole === "mother") {
+    const profileComplete = isMotherProfileComplete(motherProfile);
     if (!profileComplete) {
       return <Redirect href="/(mother)/edit-profile?mode=create" />;
     }

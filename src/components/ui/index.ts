@@ -39,6 +39,10 @@ export { VitalCard } from "./VitalCard";
 export { VitalInput } from "./VitalInput";
 export { InstructionsCard } from "./InstructionsCard";
 
+export { ScheduleEditor } from "./ScheduleEditor";
+export type { ScheduleItem } from "./ScheduleEditor";
+export { ClinicCard } from "./ClinicCard";
+
 // Skeleton components
 export {
   SkeletonProvider,

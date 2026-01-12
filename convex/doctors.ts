@@ -1,17 +1,42 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { query, QueryCtx } from "./_generated/server";
 import { Id, Doc } from "./_generated/dataModel";
 
-// Helper: Get doctor with user info
-async function getDoctorWithUserInfo(
-  ctx: { db: { get: (id: Id<"users">) => Promise<Doc<"users"> | null> } },
+// Helper: Get doctor with user info and clinics
+async function getDoctorWithUserInfoAndClinics(
+  ctx: QueryCtx,
   doctorProfile: Doc<"doctorProfiles">
 ) {
   const user = await ctx.db.get(doctorProfile.userId);
+
+  // Get all clinics for this doctor
+  const clinics = await ctx.db
+    .query("doctorClinics")
+    .withIndex("by_doctor", (q) => q.eq("doctorId", doctorProfile._id))
+    .collect();
+
+  // Sort clinics: primary first, then by creation date
+  clinics.sort((a, b) => {
+    if (a.isPrimary && !b.isPrimary) return -1;
+    if (!a.isPrimary && b.isPrimary) return 1;
+    return a.createdAt - b.createdAt;
+  });
+
+  // Get primary clinic for backward compatibility
+  const primaryClinic = clinics.find((c) => c.isPrimary) || clinics[0];
+
   return {
     ...doctorProfile,
     fullName: user?.fullName || "",
-    contactNumber: doctorProfile.contactNumber || "",
+    // Include all clinics
+    clinics,
+    // Primary clinic info for backward compatibility
+    primaryClinic,
+    // Legacy fields (from primary clinic) for backward compatibility
+    clinicName: primaryClinic?.name || "",
+    clinicAddress: primaryClinic?.address || "",
+    clinicSchedule: primaryClinic?.schedule || [],
+    googleMapsLink: primaryClinic?.googleMapsLink || "",
   };
 }
 
@@ -22,7 +47,7 @@ export const listAll = query({
     const doctors = await ctx.db.query("doctorProfiles").collect();
 
     const doctorsWithInfo = await Promise.all(
-      doctors.map((doc) => getDoctorWithUserInfo(ctx, doc))
+      doctors.map((doc) => getDoctorWithUserInfoAndClinics(ctx, doc))
     );
 
     return doctorsWithInfo;
@@ -36,7 +61,7 @@ export const getById = query({
     const doctor = await ctx.db.get(args.id);
     if (!doctor) return null;
 
-    return await getDoctorWithUserInfo(ctx, doctor);
+    return await getDoctorWithUserInfoAndClinics(ctx, doctor);
   },
 });
 
@@ -63,30 +88,41 @@ export const search = query({
       }
     });
 
+    // Get all clinics
+    const allClinics = await ctx.db.query("doctorClinics").collect();
+
+    // Create a map of doctorId to clinics
+    const clinicsMap = new Map<string, Doc<"doctorClinics">[]>();
+    allClinics.forEach((clinic) => {
+      const existing = clinicsMap.get(clinic.doctorId) || [];
+      existing.push(clinic);
+      clinicsMap.set(clinic.doctorId, existing);
+    });
+
     // Filter doctors based on search term
     const matchingDoctors = doctors.filter((doc) => {
       const user = userMap.get(doc.userId);
       const fullName = user?.fullName?.toLowerCase() || "";
-      const clinicName = doc.clinicName?.toLowerCase() || "";
-      const clinicAddress = doc.clinicAddress?.toLowerCase() || "";
       const specialization = doc.specialization?.toLowerCase() || "";
+
+      // Check clinics for matches
+      const clinics = clinicsMap.get(doc._id) || [];
+      const clinicMatch = clinics.some(
+        (clinic) =>
+          clinic.name.toLowerCase().includes(searchTerm) ||
+          clinic.address.toLowerCase().includes(searchTerm)
+      );
 
       return (
         fullName.includes(searchTerm) ||
-        clinicName.includes(searchTerm) ||
-        clinicAddress.includes(searchTerm) ||
-        specialization.includes(searchTerm)
+        specialization.includes(searchTerm) ||
+        clinicMatch
       );
     });
 
-    // Enrich with user info
-    return matchingDoctors.map((doc) => {
-      const user = userMap.get(doc.userId);
-      return {
-        ...doc,
-        fullName: user?.fullName || "",
-        contactNumber: doc.contactNumber || "",
-      };
-    });
+    // Enrich with user info and clinics
+    return Promise.all(
+      matchingDoctors.map((doc) => getDoctorWithUserInfoAndClinics(ctx, doc))
+    );
   },
 });

@@ -13,21 +13,40 @@ export default defineSchema({
     fullName: v.optional(v.string()),
   }).index("by_email", ["email"]),
 
-  // Doctor profiles
+  // Doctor profiles (personal info only, clinics are separate)
   doctorProfiles: defineTable({
     userId: v.id("users"),
     prcNumber: v.string(),
-    clinicName: v.string(),
-    clinicAddress: v.string(),
-    contactNumber: v.string(),
     specialization: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
-    clinicSchedule: v.optional(v.string()),
-    latitude: v.optional(v.number()),
-    longitude: v.optional(v.number()),
+    contactNumber: v.string(), // Personal contact number
   })
     .index("by_user", ["userId"])
     .index("by_prc", ["prcNumber"]),
+
+  // Doctor clinics (one doctor can have multiple clinics)
+  doctorClinics: defineTable({
+    doctorId: v.id("doctorProfiles"),
+    name: v.string(),
+    address: v.string(),
+    contactNumber: v.optional(v.string()), // Clinic-specific contact
+    googleMapsLink: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    schedule: v.optional(
+      v.array(
+        v.object({
+          days: v.string(), // "Mon - Fri", "Weekends", "Monday", etc.
+          startTime: v.string(), // "09:00 AM"
+          endTime: v.string(), // "05:00 PM"
+        })
+      )
+    ),
+    isPrimary: v.boolean(), // Mark one clinic as primary
+    createdAt: v.number(),
+  })
+    .index("by_doctor", ["doctorId"])
+    .index("by_doctor_primary", ["doctorId", "isPrimary"]),
 
   // Mother profiles
   motherProfiles: defineTable({
