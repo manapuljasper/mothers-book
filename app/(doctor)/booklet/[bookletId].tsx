@@ -362,9 +362,7 @@ export default function DoctorBookletDetailScreen() {
           <View className="mb-6">
             <BookletTabBar
               activeTab={activeTab}
-              onTabChange={() => {
-                setActiveTab("meds");
-              }}
+              onTabChange={setActiveTab}
             />
           </View>
 

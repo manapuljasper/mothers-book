@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { History, Pill, FlaskConical } from "lucide-react-native";
 
 export type BookletTab = "history" | "meds" | "labs";
@@ -9,15 +9,20 @@ interface BookletTabBarProps {
 }
 
 export function BookletTabBar({ activeTab, onTabChange }: BookletTabBarProps) {
+  const handlePress = (tab: BookletTab) => {
+    onTabChange(tab);
+  };
+
   return (
-    <View className="bg-white dark:bg-slate-800 p-1.5 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700/60 flex-row">
+    <View style={styles.container}>
       {/* History Tab */}
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={() => onTabChange("history")}
-        className={`flex-1 py-2.5 rounded-xl flex-row items-center justify-center gap-2 ${
-          activeTab === "history" ? "bg-blue-500 shadow-md" : ""
-        }`}
+        onPress={() => handlePress("history")}
+        style={[
+          styles.tab,
+          activeTab === "history" && styles.activeTab,
+        ]}
       >
         <History
           size={18}
@@ -25,11 +30,10 @@ export function BookletTabBar({ activeTab, onTabChange }: BookletTabBarProps) {
           strokeWidth={1.5}
         />
         <Text
-          className={`text-sm font-medium ${
-            activeTab === "history"
-              ? "text-white font-semibold"
-              : "text-gray-500 dark:text-gray-400"
-          }`}
+          style={[
+            styles.tabText,
+            activeTab === "history" && styles.activeTabText,
+          ]}
         >
           History
         </Text>
@@ -38,10 +42,11 @@ export function BookletTabBar({ activeTab, onTabChange }: BookletTabBarProps) {
       {/* Meds Tab */}
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={() => onTabChange("meds")}
-        className={`flex-1 py-2.5 rounded-xl flex-row items-center justify-center gap-2 ${
-          activeTab === "meds" ? "bg-blue-500 shadow-md" : ""
-        }`}
+        onPress={() => handlePress("meds")}
+        style={[
+          styles.tab,
+          activeTab === "meds" && styles.activeTab,
+        ]}
       >
         <Pill
           size={18}
@@ -49,11 +54,10 @@ export function BookletTabBar({ activeTab, onTabChange }: BookletTabBarProps) {
           strokeWidth={1.5}
         />
         <Text
-          className={`text-sm font-medium ${
-            activeTab === "meds"
-              ? "text-white font-semibold"
-              : "text-gray-500 dark:text-gray-400"
-          }`}
+          style={[
+            styles.tabText,
+            activeTab === "meds" && styles.activeTabText,
+          ]}
         >
           Meds
         </Text>
@@ -62,10 +66,11 @@ export function BookletTabBar({ activeTab, onTabChange }: BookletTabBarProps) {
       {/* Labs Tab */}
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={() => onTabChange("labs")}
-        className={`flex-1 py-2.5 rounded-xl flex-row items-center justify-center gap-2 ${
-          activeTab === "labs" ? "bg-blue-500 shadow-md" : ""
-        }`}
+        onPress={() => handlePress("labs")}
+        style={[
+          styles.tab,
+          activeTab === "labs" && styles.activeTab,
+        ]}
       >
         <FlaskConical
           size={18}
@@ -73,11 +78,10 @@ export function BookletTabBar({ activeTab, onTabChange }: BookletTabBarProps) {
           strokeWidth={1.5}
         />
         <Text
-          className={`text-sm font-medium ${
-            activeTab === "labs"
-              ? "text-white font-semibold"
-              : "text-gray-500 dark:text-gray-400"
-          }`}
+          style={[
+            styles.tabText,
+            activeTab === "labs" && styles.activeTabText,
+          ]}
         >
           Labs
         </Text>
@@ -85,3 +89,45 @@ export function BookletTabBar({ activeTab, onTabChange }: BookletTabBarProps) {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#1e293b", // slate-800
+    padding: 6,
+    borderRadius: 16,
+    flexDirection: "row",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "rgba(71, 85, 105, 0.6)", // slate-700/60
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  activeTab: {
+    backgroundColor: "#3b82f6", // blue-500
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#9ca3af", // gray-400
+  },
+  activeTabText: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+});

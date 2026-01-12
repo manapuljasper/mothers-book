@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { formatDate } from "@/utils";
 import type { Medication } from "@/types";
 
@@ -19,9 +19,9 @@ export function MedsTabContent({
 
   if (medications.length === 0) {
     return (
-      <View className="items-center justify-center py-12">
-        <Text className="text-slate-600 text-sm">No medications yet</Text>
-        <Text className="text-slate-700 text-xs mt-1">
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No medications yet</Text>
+        <Text style={styles.emptySubtext}>
           Add medications when creating an entry
         </Text>
       </View>
@@ -32,43 +32,36 @@ export function MedsTabContent({
     <View>
       {/* Active Medications */}
       {activeMeds.length > 0 && (
-        <View className="mb-6">
-          <Text className="text-white font-semibold mb-3">
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
             Active ({activeMeds.length})
           </Text>
           {activeMeds.map((med) => (
-            <View
-              key={med.id}
-              className="bg-slate-800 rounded-xl p-4 mb-3 border border-slate-700"
-            >
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  <Text className="text-white font-semibold">{med.name}</Text>
-                  <Text className="text-slate-400 text-sm">{med.dosage}</Text>
+            <View key={med.id} style={styles.activeCard}>
+              <View style={styles.cardContent}>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.medName}>{med.name}</Text>
+                  <Text style={styles.medDosage}>{med.dosage}</Text>
                   {med.instructions && (
-                    <Text className="text-slate-500 text-xs mt-1">
+                    <Text style={styles.medInstructions}>
                       {med.instructions}
                     </Text>
                   )}
                 </View>
-                <View className="flex-row gap-2">
+                <View style={styles.buttonGroup}>
                   <TouchableOpacity
                     onPress={() => onEditMedication(med)}
-                    className="px-3 py-1.5 rounded-lg bg-slate-700"
+                    style={styles.editButton}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-blue-400 text-xs font-medium">
-                      Edit
-                    </Text>
+                    <Text style={styles.editButtonText}>Edit</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => onStopMedication(med)}
-                    className="px-3 py-1.5 rounded-lg bg-red-900/30"
+                    style={styles.stopButton}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-red-400 text-xs font-medium">
-                      Stop
-                    </Text>
+                    <Text style={styles.stopButtonText}>Stop</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -80,18 +73,15 @@ export function MedsTabContent({
       {/* Inactive Medications */}
       {inactiveMeds.length > 0 && (
         <View>
-          <Text className="text-slate-500 font-semibold mb-3">
+          <Text style={styles.inactiveSectionTitle}>
             Past ({inactiveMeds.length})
           </Text>
           {inactiveMeds.map((med) => (
-            <View
-              key={med.id}
-              className="bg-slate-800/50 rounded-xl p-4 mb-3 border border-slate-700/50 opacity-60"
-            >
-              <Text className="text-white font-semibold">{med.name}</Text>
-              <Text className="text-slate-400 text-sm">{med.dosage}</Text>
+            <View key={med.id} style={styles.inactiveCard}>
+              <Text style={styles.medName}>{med.name}</Text>
+              <Text style={styles.medDosage}>{med.dosage}</Text>
               {med.endDate && (
-                <Text className="text-slate-500 text-xs mt-1">
+                <Text style={styles.endDate}>
                   Ended: {formatDate(med.endDate)}
                 </Text>
               )}
@@ -102,3 +92,102 @@ export function MedsTabContent({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+  },
+  emptyText: {
+    color: "#475569", // slate-600
+    fontSize: 14,
+  },
+  emptySubtext: {
+    color: "#334155", // slate-700
+    fontSize: 12,
+    marginTop: 4,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    color: "#ffffff",
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  inactiveSectionTitle: {
+    color: "#64748b", // slate-500
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  activeCard: {
+    backgroundColor: "#1e293b", // slate-800
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#334155", // slate-700
+  },
+  inactiveCard: {
+    backgroundColor: "rgba(30, 41, 59, 0.5)", // slate-800/50
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(51, 65, 85, 0.5)", // slate-700/50
+    opacity: 0.6,
+  },
+  cardContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  medName: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  medDosage: {
+    color: "#94a3b8", // slate-400
+    fontSize: 14,
+  },
+  medInstructions: {
+    color: "#64748b", // slate-500
+    fontSize: 12,
+    marginTop: 4,
+  },
+  endDate: {
+    color: "#64748b", // slate-500
+    fontSize: 12,
+    marginTop: 4,
+  },
+  buttonGroup: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  editButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#334155", // slate-700
+  },
+  editButtonText: {
+    color: "#60a5fa", // blue-400
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  stopButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(127, 29, 29, 0.3)", // red-900/30
+  },
+  stopButtonText: {
+    color: "#f87171", // red-400
+    fontSize: 12,
+    fontWeight: "500",
+  },
+});
