@@ -18,6 +18,7 @@ function transformBooklet(doc: Doc<"booklets">): MotherBooklet {
     label: doc.label,
     status: doc.status,
     createdAt: new Date(doc._creationTime),
+    lastMenstrualPeriod: doc.lastMenstrualPeriod ? new Date(doc.lastMenstrualPeriod) : undefined,
     expectedDueDate: doc.expectedDueDate ? new Date(doc.expectedDueDate) : undefined,
     actualDeliveryDate: doc.actualDeliveryDate ? new Date(doc.actualDeliveryDate) : undefined,
     notes: doc.notes,
@@ -93,6 +94,7 @@ export function useCreateBooklet() {
     motherId: Id<"motherProfiles">;
     label: string;
     status: "active" | "completed" | "archived";
+    lastMenstrualPeriod?: number;
     expectedDueDate?: number;
     actualDeliveryDate?: number;
     notes?: string;
@@ -110,6 +112,7 @@ export function useUpdateBooklet() {
     updates: {
       label?: string;
       status?: "active" | "completed" | "archived";
+      lastMenstrualPeriod?: number;
       expectedDueDate?: number;
       actualDeliveryDate?: number;
       notes?: string;

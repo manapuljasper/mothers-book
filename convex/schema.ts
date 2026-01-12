@@ -69,6 +69,7 @@ export default defineSchema({
       v.literal("archived"),
       v.literal("completed")
     ),
+    lastMenstrualPeriod: v.optional(v.number()), // Unix timestamp for AOG calculation
     expectedDueDate: v.optional(v.number()),
     actualDeliveryDate: v.optional(v.number()),
     notes: v.optional(v.string()),

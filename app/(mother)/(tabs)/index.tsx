@@ -1,14 +1,21 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { BookOpen, Pill } from "lucide-react-native";
-import { useCurrentUser, useBookletsByMother, useActiveMedications } from "@/hooks";
-import { formatDate } from "@/utils";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Pill } from "lucide-react-native";
 import {
-  CardPressable,
+  useCurrentUser,
+  useBookletsByMother,
+  useBookletDoctors,
+  useActiveMedications,
+  useLogIntake,
+} from "@/hooks";
+import {
   StatCard,
-  BookletCard,
   EmptyState,
   MotherHomeSkeleton,
+  DashboardHeader,
+  CurrentPregnancyCard,
+  MedicationDoseCard,
 } from "@/components/ui";
 
 export default function MotherHomeScreen() {
@@ -18,143 +25,135 @@ export default function MotherHomeScreen() {
 
   const booklets = useBookletsByMother(motherProfile?._id) ?? [];
   const allActiveMedications = useActiveMedications() ?? [];
+  const logIntake = useLogIntake();
 
-  const isLoading = currentUser === undefined || booklets === undefined || allActiveMedications === undefined;
+  // Get the primary (first active) booklet
+  const activeBooklets = booklets.filter((b) => b.status === "active");
+  const primaryBooklet = activeBooklets[0];
+
+  // Get doctors for the primary booklet
+  const primaryBookletDoctors = useBookletDoctors(primaryBooklet?.id);
+  const primaryDoctor = primaryBookletDoctors?.[0] ?? null;
+
+  const isLoading =
+    currentUser === undefined ||
+    booklets === undefined ||
+    allActiveMedications === undefined;
 
   if (isLoading) {
     return <MotherHomeSkeleton />;
   }
-
-  const activeBooklets = booklets.filter((b) => b.status === "active");
-  const pastBooklets = booklets.filter((b) => b.status !== "active");
 
   // Filter medications to only those belonging to this mother's booklets
   const activeMedications = allActiveMedications.filter((m) =>
     booklets.some((b) => b.id === m.bookletId)
   );
 
+  // Calculate medication stats for today
+  const totalDosesToday = activeMedications.reduce(
+    (sum, med) => sum + med.frequencyPerDay,
+    0
+  );
+  const takenDosesToday = activeMedications.reduce(
+    (sum, med) =>
+      sum + (med.todayLogs?.filter((l) => l.status === "taken").length ?? 0),
+    0
+  );
+
+  // Get mother's name and user ID
+  const motherName = currentUser?.user?.fullName || "there";
+  const userId = currentUser?.user?._id;
+
+  // Get booklet label for medication
+  const getBookletLabel = (bookletId: string): string | undefined => {
+    return booklets.find((b) => b.id === bookletId)?.label;
+  };
+
+  // Handle dose toggle
+  const handleToggleDose = async (
+    medicationId: string,
+    doseIndex: number,
+    currentlyTaken: boolean
+  ) => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+    try {
+      await logIntake({
+        medicationId,
+        doseIndex,
+        status: currentlyTaken ? "missed" : "taken",
+        userId,
+      });
+    } catch {
+      Alert.alert("Error", "Failed to update dose status");
+    }
+  };
+
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
-      {/* Quick Stats */}
-      <View className="flex-row px-4 pt-4">
-        <StatCard
-          value={activeBooklets.length}
-          label="Active Booklets"
-          color="pink"
-        />
-        <StatCard
-          value={activeMedications.length}
-          label="Meds Today"
-          color="amber"
-        />
-      </View>
+    <SafeAreaView edges={[]} className="flex-1 bg-pink-500">
+      <ScrollView
+        className="flex-1 bg-gray-50 dark:bg-gray-900"
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* Pink Header with rounded bottom */}
+        <DashboardHeader userName={motherName} />
 
-      {/* Active Booklets */}
-      <View className="px-6 mt-6">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white">
-            My Booklets
-          </Text>
-          <CardPressable onPress={() => router.push("/booklet/new")}>
-            <Text className="text-pink-600 dark:text-pink-400 font-medium">
-              + New
+        {/* Stats Cards - slightly overlapping header */}
+        <View className="flex-row px-4 -mt-4 gap-2">
+          <StatCard
+            value={activeBooklets.length}
+            label="Active Booklets"
+            color="pink"
+          />
+          <StatCard
+            value={`${takenDosesToday}/${totalDosesToday}`}
+            label="Meds Today"
+            color="amber"
+          />
+        </View>
+
+        {/* Current Pregnancy Card */}
+        {primaryBooklet && (
+          <View className="mt-6">
+            <Text className="text-lg font-semibold text-gray-900 dark:text-white px-6 mb-2">
+              Current Pregnancy
             </Text>
-          </CardPressable>
-        </View>
-
-        {activeBooklets.length === 0 ? (
-          <EmptyState
-            icon={BookOpen}
-            title="No active booklets"
-            description="Create a new booklet to start tracking your pregnancy"
-          />
-        ) : (
-          activeBooklets.map((booklet) => (
-            <BookletCard
-              key={booklet.id}
-              booklet={booklet}
-              onPress={() => router.push(`/booklet/${booklet.id}`)}
-              variant="mother"
+            <CurrentPregnancyCard
+              booklet={primaryBooklet}
+              assignedDoctor={primaryDoctor}
+              onViewRecords={() => router.push(`/booklet/${primaryBooklet.id}`)}
             />
-          ))
+          </View>
         )}
-      </View>
 
-      {/* Completed/Archived Booklets */}
-      {pastBooklets.length > 0 && (
-        <View className="px-6 mt-8">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Past Booklets
+        {/* Today's Medications Section */}
+        <View className="px-5 mt-6">
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+            Today's Medications
           </Text>
-          {pastBooklets.map((booklet) => (
-            <CardPressable
-              key={booklet.id}
-              className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
-              onPress={() => router.push(`/booklet/${booklet.id}`)}
-            >
-              <Text className="font-medium text-gray-700 dark:text-gray-300">
-                {booklet.label}
-              </Text>
-              {booklet.actualDeliveryDate && (
-                <Text className="text-gray-400 text-sm">
-                  Delivered: {formatDate(booklet.actualDeliveryDate)}
-                </Text>
-              )}
-            </CardPressable>
-          ))}
-        </View>
-      )}
 
-      {/* Today's Medications Reminder */}
-      <View className="px-6 mt-8 mb-8">
-        <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Today's Medications
-        </Text>
-        {activeMedications.length === 0 ? (
-          <EmptyState
-            icon={Pill}
-            title="No medications"
-            description="Prescribed medications will appear here"
-          />
-        ) : (
-          activeMedications.slice(0, 5).map((med) => {
-            const takenCount =
-              med.todayLogs?.filter((l) => l.status === "taken").length || 0;
-            const isComplete = takenCount >= med.frequencyPerDay;
-
-            return (
-              <View
+          {activeMedications.length === 0 ? (
+            <EmptyState
+              icon={Pill}
+              title="No medications"
+              description="Prescribed medications will appear here"
+            />
+          ) : (
+            activeMedications.map((med) => (
+              <MedicationDoseCard
                 key={med.id}
-                className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5 mb-3"
-              >
-                <View className="flex-row justify-between items-center">
-                  <View>
-                    <Text className="font-semibold text-gray-900 dark:text-white">
-                      {med.name}
-                    </Text>
-                    <Text className="text-gray-400 text-sm">{med.dosage}</Text>
-                  </View>
-                  <View
-                    className={`border px-3 py-1 rounded-full ${
-                      isComplete ? "border-green-400" : "border-amber-400"
-                    }`}
-                  >
-                    <Text
-                      className={`text-sm ${
-                        isComplete
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-amber-600 dark:text-amber-400"
-                      }`}
-                    >
-                      {takenCount}/{med.frequencyPerDay} taken
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            );
-          })
-        )}
-      </View>
-    </ScrollView>
+                medication={med}
+                bookletLabel={getBookletLabel(med.bookletId)}
+                onToggleDose={(doseIndex, currentlyTaken) =>
+                  handleToggleDose(med.id, doseIndex, currentlyTaken)
+                }
+              />
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

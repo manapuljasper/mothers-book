@@ -43,6 +43,11 @@ export { ScheduleEditor } from "./ScheduleEditor";
 export type { ScheduleItem } from "./ScheduleEditor";
 export { ClinicCard } from "./ClinicCard";
 
+// Dashboard components
+export { DashboardHeader } from "./DashboardHeader";
+export { CurrentPregnancyCard } from "./CurrentPregnancyCard";
+export { MedicationDoseCard } from "./MedicationDoseCard";
+
 // Skeleton components
 export {
   SkeletonProvider,

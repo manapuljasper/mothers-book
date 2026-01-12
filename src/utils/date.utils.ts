@@ -88,11 +88,20 @@ export function calculateAge(birthdate: DateInput): number {
 }
 
 // Pregnancy-specific utilities
-export function calculateAOG(lastMenstrualPeriod: Date): string {
-  const days = dayjs().diff(dayjs(lastMenstrualPeriod), 'day');
-  const weeks = Math.floor(days / 7);
-  const remainingDays = days % 7;
-  return `${weeks} weeks ${remainingDays} days`;
+
+// Core function returns structured AOG data
+export function calculateAOGParts(lmp: DateInput): { weeks: number; days: number } {
+  const totalDays = dayjs().diff(dayjs(lmp), 'day');
+  return {
+    weeks: Math.floor(totalDays / 7),
+    days: totalDays % 7,
+  };
+}
+
+// Formatted AOG string (uses core function)
+export function calculateAOG(lastMenstrualPeriod: DateInput): string {
+  const { weeks, days } = calculateAOGParts(lastMenstrualPeriod);
+  return `${weeks} weeks ${days} days`;
 }
 
 export function calculateDueDate(lastMenstrualPeriod: Date): Date {
