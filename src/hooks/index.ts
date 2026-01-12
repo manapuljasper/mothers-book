@@ -15,6 +15,7 @@ export {
 // Booklet hooks
 export {
   useBookletById,
+  useBookletByIdWithMother,
   useBookletsByMother,
   useBookletsByDoctor,
   useBookletDoctors,

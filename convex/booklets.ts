@@ -1,22 +1,44 @@
 import { v } from "convex/values";
-import { query, mutation, QueryCtx } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { query, mutation } from "./_generated/server";
 import { bookletStatusValidator } from "./lib/validators";
-
-// Helper: Get booklet with authorization check
-async function getBookletWithAuth(ctx: QueryCtx, bookletId: Id<"booklets">) {
-  const booklet = await ctx.db.get(bookletId);
-  if (!booklet) {
-    throw new Error("Booklet not found");
-  }
-  return booklet;
-}
 
 // Get booklet by ID
 export const getById = query({
   args: { id: v.id("booklets") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
+  },
+});
+
+// Get booklet by ID with mother info
+export const getByIdWithMother = query({
+  args: { id: v.id("booklets") },
+  handler: async (ctx, args) => {
+    const booklet = await ctx.db.get(args.id);
+    if (!booklet) return null;
+
+    // Get mother profile and user info
+    const motherProfile = await ctx.db.get(booklet.motherId);
+
+    console.log("motherProfile: ", motherProfile);
+
+    const user = motherProfile ? await ctx.db.get(motherProfile.userId) : null;
+
+    console.log("user: ", user);
+
+    // Get latest medical entry for visit/followup dates
+    const latestEntry = await ctx.db
+      .query("medicalEntries")
+      .withIndex("by_booklet", (q) => q.eq("bookletId", booklet._id))
+      .order("desc")
+      .first();
+
+    return {
+      ...booklet,
+      motherName: user?.fullName || user?.name || "Unknown",
+      lastVisitDate: latestEntry?.visitDate,
+      nextAppointment: latestEntry?.followUpDate,
+    };
   },
 });
 
@@ -66,7 +88,7 @@ export const listByDoctor = query({
 
         return {
           ...booklet,
-          motherName: user?.fullName || "Unknown",
+          motherName: user?.fullName || user?.name || "Unknown",
           lastVisitDate: latestEntry?.visitDate,
           nextAppointment: latestEntry?.followUpDate,
         };
@@ -107,7 +129,7 @@ export const getDoctors = query({
 
         return {
           ...doctorProfile,
-          fullName: user?.fullName || "Unknown",
+          fullName: user?.fullName || user?.name || "Unknown",
           // Include primary clinic name for backward compatibility
           clinicName: primaryClinic?.name || "",
         };

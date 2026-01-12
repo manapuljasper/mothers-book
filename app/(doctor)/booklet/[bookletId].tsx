@@ -25,7 +25,7 @@ import {
 } from "@/components/doctor";
 import type { Medication } from "@/types";
 import {
-  useBookletsByDoctor,
+  useBookletByIdWithMother,
   useEntriesByBooklet,
   useLabsByBooklet,
   useMedicationsByBooklet,
@@ -42,7 +42,7 @@ export default function DoctorBookletDetailScreen() {
   const doctorProfile = currentUser?.doctorProfile;
 
   // Convex query hooks
-  const doctorBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
+  const booklet = useBookletByIdWithMother(bookletId);
   const entries = useEntriesByBooklet(bookletId) ?? [];
   const allMedications = useMedicationsByBooklet(bookletId) ?? [];
   const allLabs = useLabsByBooklet(bookletId) ?? [];
@@ -61,12 +61,9 @@ export default function DoctorBookletDetailScreen() {
     null
   );
 
-  // Get booklet with mother info
-  const booklet = doctorBooklets.find((b) => b.id === bookletId);
-
   const isLoading =
     currentUser === undefined ||
-    doctorBooklets === undefined ||
+    booklet === undefined ||
     entries === undefined ||
     allMedications === undefined;
 

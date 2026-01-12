@@ -18,9 +18,15 @@ function transformBooklet(doc: Doc<"booklets">): MotherBooklet {
     label: doc.label,
     status: doc.status,
     createdAt: new Date(doc._creationTime),
-    lastMenstrualPeriod: doc.lastMenstrualPeriod ? new Date(doc.lastMenstrualPeriod) : undefined,
-    expectedDueDate: doc.expectedDueDate ? new Date(doc.expectedDueDate) : undefined,
-    actualDeliveryDate: doc.actualDeliveryDate ? new Date(doc.actualDeliveryDate) : undefined,
+    lastMenstrualPeriod: doc.lastMenstrualPeriod
+      ? new Date(doc.lastMenstrualPeriod)
+      : undefined,
+    expectedDueDate: doc.expectedDueDate
+      ? new Date(doc.expectedDueDate)
+      : undefined,
+    actualDeliveryDate: doc.actualDeliveryDate
+      ? new Date(doc.actualDeliveryDate)
+      : undefined,
     notes: doc.notes,
   };
 }
@@ -28,7 +34,10 @@ function transformBooklet(doc: Doc<"booklets">): MotherBooklet {
 // Query hooks
 
 export function useBookletById(id: string | undefined) {
-  const result = useQuery(api.booklets.getById, id ? { id: id as Id<"booklets"> } : "skip");
+  const result = useQuery(
+    api.booklets.getById,
+    id ? { id: id as Id<"booklets"> } : "skip"
+  );
   return useMemo(() => {
     if (result === undefined) return undefined;
     if (result === null) return null;
@@ -36,7 +45,33 @@ export function useBookletById(id: string | undefined) {
   }, [result]);
 }
 
-export function useBookletsByMother(motherId: Id<"motherProfiles"> | undefined) {
+export function useBookletByIdWithMother(id: string | undefined) {
+  const result = useQuery(
+    api.booklets.getByIdWithMother,
+    id ? { id: id as Id<"booklets"> } : "skip"
+  );
+
+  console.log("result: ", result);
+
+  return useMemo(() => {
+    if (result === undefined) return undefined;
+    if (result === null) return null;
+    return {
+      ...transformBooklet(result),
+      motherName: result.motherName,
+      lastVisitDate: result.lastVisitDate
+        ? new Date(result.lastVisitDate)
+        : undefined,
+      nextAppointment: result.nextAppointment
+        ? new Date(result.nextAppointment)
+        : undefined,
+    } as BookletWithMother;
+  }, [result]);
+}
+
+export function useBookletsByMother(
+  motherId: Id<"motherProfiles"> | undefined
+) {
   const result = useQuery(
     api.booklets.listByMother,
     motherId ? { motherId } : "skip"
@@ -47,7 +82,9 @@ export function useBookletsByMother(motherId: Id<"motherProfiles"> | undefined) 
   }, [result]);
 }
 
-export function useBookletsByDoctor(doctorId: Id<"doctorProfiles"> | undefined) {
+export function useBookletsByDoctor(
+  doctorId: Id<"doctorProfiles"> | undefined
+) {
   const result = useQuery(
     api.booklets.listByDoctor,
     doctorId ? { doctorId } : "skip"
@@ -57,12 +94,18 @@ export function useBookletsByDoctor(doctorId: Id<"doctorProfiles"> | undefined) 
     // The doctor endpoint returns booklets with mother info, filter out nulls
     return result
       .filter((doc): doc is NonNullable<typeof doc> => doc !== null)
-      .map((doc): BookletWithMother => ({
-        ...transformBooklet(doc),
-        motherName: doc.motherName ?? "Unknown",
-        lastVisitDate: doc.lastVisitDate ? new Date(doc.lastVisitDate) : undefined,
-        nextAppointment: doc.nextAppointment ? new Date(doc.nextAppointment) : undefined,
-      }));
+      .map(
+        (doc): BookletWithMother => ({
+          ...transformBooklet(doc),
+          motherName: doc.motherName ?? "Unknown",
+          lastVisitDate: doc.lastVisitDate
+            ? new Date(doc.lastVisitDate)
+            : undefined,
+          nextAppointment: doc.nextAppointment
+            ? new Date(doc.nextAppointment)
+            : undefined,
+        })
+      );
   }, [result]);
 }
 
@@ -129,7 +172,10 @@ export function useUpdateBooklet() {
 export function useGrantDoctorAccess() {
   const mutation = useMutation(api.booklets.grantAccess);
 
-  return async (args: { bookletId: string; doctorId: Id<"doctorProfiles"> }) => {
+  return async (args: {
+    bookletId: string;
+    doctorId: Id<"doctorProfiles">;
+  }) => {
     return await mutation({
       bookletId: args.bookletId as Id<"booklets">,
       doctorId: args.doctorId,

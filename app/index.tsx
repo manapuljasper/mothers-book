@@ -139,7 +139,10 @@ export default function Index() {
   // Redirect based on role and profile completeness
   if (selectedRole === "doctor") {
     const clinicsCount = clinics?.length ?? 0;
-    const profileComplete = isDoctorProfileComplete(doctorProfile, clinicsCount);
+    const profileComplete = isDoctorProfileComplete(
+      doctorProfile,
+      clinicsCount
+    );
     if (!profileComplete) {
       return <Redirect href="/(doctor)/edit-profile?mode=create" />;
     }

@@ -19,10 +19,12 @@ import {
   Calendar,
   Check,
   CalendarDays,
+  CalendarClock,
+  X,
 } from "lucide-react-native";
 import {
   useCurrentUser,
-  useBookletsByDoctor,
+  useBookletByIdWithMother,
   useEntriesByBooklet,
   useCreateEntry,
   useUpdateEntry,
@@ -39,8 +41,7 @@ export default function AddEntryScreen() {
   // Data hooks
   const currentUser = useCurrentUser();
   const doctorProfile = currentUser?.doctorProfile;
-  const doctorBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
-  const booklet = doctorBooklets.find((b) => b.id === bookletId);
+  const booklet = useBookletByIdWithMother(bookletId);
   const entries = useEntriesByBooklet(bookletId);
 
   // Mutations
@@ -56,6 +57,9 @@ export default function AddEntryScreen() {
   const [fhr, setFhr] = useState("");
   const [notes, setNotes] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [followUpDate, setFollowUpDate] = useState<Date | null>(null);
+  const [tempFollowUpDate, setTempFollowUpDate] = useState(new Date());
+  const [showFollowUpPicker, setShowFollowUpPicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Track the entry being edited (if any)
@@ -63,7 +67,7 @@ export default function AddEntryScreen() {
 
   const isLoading =
     currentUser === undefined ||
-    doctorBooklets === undefined ||
+    booklet === undefined ||
     entries === undefined;
 
   // Find entry by date
@@ -76,9 +80,14 @@ export default function AddEntryScreen() {
   // Check if current date has an existing entry
   const isEdit = editingEntryId !== null;
 
-  // Computed AOG based on entry date
+  // Computed AOG based on today's date (not entry date)
   const computedAOG = booklet?.expectedDueDate
-    ? computeAOG(booklet.expectedDueDate, entryDate)
+    ? computeAOG(booklet.expectedDueDate, new Date())
+    : null;
+
+  // Extract just the weeks from AOG (e.g., "32 weeks, 3 days" -> "32")
+  const aogWeeks = computedAOG
+    ? computedAOG.split(" ")[0]
     : null;
 
   // Patient info for context bar
@@ -96,7 +105,8 @@ export default function AddEntryScreen() {
       instructions !== "" ||
       bpValue !== "" ||
       weight !== "" ||
-      fhr !== ""
+      fhr !== "" ||
+      followUpDate !== null
     );
   };
 
@@ -107,6 +117,7 @@ export default function AddEntryScreen() {
     setFhr(entry.vitals?.fetalHeartRate?.toString() || "");
     setNotes(entry.notes || "");
     setInstructions(entry.recommendations || "");
+    setFollowUpDate(entry.followUpDate ? new Date(entry.followUpDate) : null);
     setEditingEntryId(entry.id);
   };
 
@@ -117,6 +128,7 @@ export default function AddEntryScreen() {
     setFhr("");
     setNotes("");
     setInstructions("");
+    setFollowUpDate(null);
     setEditingEntryId(null);
   };
 
@@ -158,6 +170,33 @@ export default function AddEntryScreen() {
     confirmDateChange(tempDate);
   };
 
+  // Follow-up date picker handlers
+  const handleOpenFollowUpPicker = () => {
+    setTempFollowUpDate(followUpDate || new Date());
+    setShowFollowUpPicker(true);
+  };
+
+  const handleFollowUpDateChange = (_event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShowFollowUpPicker(false);
+      if (selectedDate) {
+        setFollowUpDate(selectedDate);
+      }
+    } else if (selectedDate) {
+      setTempFollowUpDate(selectedDate);
+    }
+  };
+
+  const handleFollowUpPickerDone = () => {
+    setShowFollowUpPicker(false);
+    setFollowUpDate(tempFollowUpDate);
+  };
+
+  const clearFollowUpDate = () => {
+    setFollowUpDate(null);
+    setShowFollowUpPicker(false);
+  };
+
   // Handle modal close with confirmation
   const handleClose = () => {
     if (hasUnsavedChanges() && !isEdit) {
@@ -194,7 +233,7 @@ export default function AddEntryScreen() {
       if (bpValue) entryVitals.bloodPressure = bpValue;
       if (weight) entryVitals.weight = parseFloat(weight);
       if (fhr) entryVitals.fetalHeartRate = parseInt(fhr);
-      if (computedAOG) entryVitals.aog = computedAOG;
+      if (aogWeeks) entryVitals.aog = aogWeeks;
 
       if (isEdit && editingEntryId) {
         // Update existing entry
@@ -205,6 +244,7 @@ export default function AddEntryScreen() {
             notes,
             recommendations: instructions || undefined,
             vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
+            followUpDate: followUpDate ? followUpDate.getTime() : undefined,
           },
         });
       } else {
@@ -217,6 +257,7 @@ export default function AddEntryScreen() {
           notes,
           recommendations: instructions || undefined,
           vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
+          followUpDate: followUpDate ? followUpDate.getTime() : undefined,
         });
       }
 
@@ -388,12 +429,12 @@ export default function AddEntryScreen() {
               keyboardType="numeric"
             />
           </View>
-          {/* AOG Display (computed, not editable) */}
+          {/* AOG Display (computed from today's date, not editable) */}
           <View style={styles.vitalItem}>
             <Text style={styles.inputLabel}>AOG (weeks)</Text>
             <View style={styles.aogDisplay}>
               <Calendar size={20} color="#a78bfa" strokeWidth={1.5} />
-              <Text style={styles.aogValue}>{computedAOG || "—"}</Text>
+              <Text style={styles.aogValue}>{aogWeeks || "—"}</Text>
             </View>
           </View>
         </View>
@@ -428,6 +469,67 @@ export default function AddEntryScreen() {
           numberOfLines={4}
           textAlignVertical="top"
         />
+
+        {/* Next Visitation Section */}
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
+          NEXT VISITATION (OPTIONAL)
+        </Text>
+        <View style={styles.followUpContainer}>
+          <TouchableOpacity
+            onPress={handleOpenFollowUpPicker}
+            style={[
+              styles.datePickerButton,
+              followUpDate && styles.datePickerButtonSelected,
+            ]}
+            activeOpacity={0.7}
+          >
+            <CalendarClock
+              size={20}
+              color={followUpDate ? "#10b981" : "#6b7280"}
+              strokeWidth={1.5}
+            />
+            <Text
+              style={[
+                styles.datePickerText,
+                !followUpDate && styles.datePickerPlaceholder,
+              ]}
+            >
+              {followUpDate
+                ? formatDate(followUpDate, "long")
+                : "Select next visit date"}
+            </Text>
+          </TouchableOpacity>
+          {followUpDate && (
+            <TouchableOpacity
+              onPress={clearFollowUpDate}
+              style={styles.clearButton}
+              activeOpacity={0.7}
+            >
+              <X size={18} color="#94a3b8" strokeWidth={2} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {showFollowUpPicker && (
+          <View style={styles.datePickerContainer}>
+            <DateTimePicker
+              value={tempFollowUpDate}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              minimumDate={new Date()}
+              onChange={handleFollowUpDateChange}
+              themeVariant="dark"
+            />
+            {Platform.OS === "ios" && (
+              <TouchableOpacity
+                onPress={handleFollowUpPickerDone}
+                style={styles.datePickerDoneButton}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.datePickerDoneText}>Done</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Bottom spacing */}
         <View style={{ height: insets.bottom + 40 }} />
@@ -637,5 +739,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#3b82f6",
+  },
+  followUpContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  datePickerButtonSelected: {
+    borderColor: "#10b981",
+  },
+  datePickerPlaceholder: {
+    color: "#6b7280",
+  },
+  clearButton: {
+    width: 40,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#192433",
+    borderWidth: 1,
+    borderColor: "#324867",
+    borderRadius: 12,
   },
 });

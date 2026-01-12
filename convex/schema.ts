@@ -20,6 +20,9 @@ export default defineSchema({
     specialization: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     contactNumber: v.string(), // Personal contact number
+    // Deprecated fields (kept for backwards compatibility with existing data)
+    clinicName: v.optional(v.string()),
+    clinicAddress: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_prc", ["prcNumber"]),
