@@ -30,6 +30,11 @@ export { CollapsibleSectionHeader } from "./CollapsibleSectionHeader";
 export { DatePickerButton } from "./DatePickerButton";
 export { PageHeader } from "./PageHeader";
 
+// Dashboard components
+export { DashboardHeader } from "./DashboardHeader";
+export { CurrentPregnancyCard } from "./CurrentPregnancyCard";
+export { MedicationDoseCard } from "./MedicationDoseCard";
+
 // Skeleton components
 export {
   SkeletonProvider,

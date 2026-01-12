@@ -8,6 +8,7 @@ export interface MotherBooklet {
   label: string;
   status: BookletStatus;
   createdAt: Date;
+  lastMenstrualPeriod?: Date;
   expectedDueDate?: Date;
   actualDeliveryDate?: Date;
   notes?: string;

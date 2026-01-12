@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { X, Calendar } from "lucide-react-native";
 import { useThemeStore } from "@/stores";
 import { useCurrentUser, useCreateBooklet } from "@/hooks";
 import { ButtonPressable } from "@/components/ui";
-import { formatDate } from "@/utils";
+import { formatDate, calculateDueDate } from "@/utils";
 
 export default function NewBookletScreen() {
   const router = useRouter();
@@ -31,16 +31,22 @@ export default function NewBookletScreen() {
 
   const [label, setLabel] = useState("");
   const [notes, setNotes] = useState("");
-  const [expectedDueDate, setExpectedDueDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [lastMenstrualPeriod, setLastMenstrualPeriod] = useState<Date | null>(null);
+  const [showLMPPicker, setShowLMPPicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleDateChange = (_event: any, selectedDate?: Date) => {
+  // Auto-calculate due date from LMP
+  const calculatedDueDate = useMemo(() => {
+    if (!lastMenstrualPeriod) return null;
+    return calculateDueDate(lastMenstrualPeriod);
+  }, [lastMenstrualPeriod]);
+
+  const handleLMPChange = (_event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
-      setShowDatePicker(false);
+      setShowLMPPicker(false);
     }
     if (selectedDate) {
-      setExpectedDueDate(selectedDate);
+      setLastMenstrualPeriod(selectedDate);
     }
   };
 
@@ -62,7 +68,8 @@ export default function NewBookletScreen() {
         motherId: motherProfile._id,
         label: label.trim(),
         status: "active",
-        expectedDueDate: expectedDueDate?.getTime(),
+        lastMenstrualPeriod: lastMenstrualPeriod?.getTime(),
+        expectedDueDate: calculatedDueDate?.getTime(),
         notes: notes.trim() || undefined,
       });
 
@@ -122,25 +129,25 @@ export default function NewBookletScreen() {
           </Text>
         </View>
 
-        {/* Expected Due Date Field */}
+        {/* Last Menstrual Period Field */}
         <View className="mb-6">
           <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Expected Due Date
+            Last Menstrual Period (LMP)
           </Text>
           <Pressable
-            onPress={() => setShowDatePicker(true)}
+            onPress={() => setShowLMPPicker(true)}
             className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 flex-row items-center justify-between bg-white dark:bg-gray-800"
             disabled={isSubmitting}
           >
             <Text
               className={
-                expectedDueDate
+                lastMenstrualPeriod
                   ? "text-base text-gray-900 dark:text-white"
                   : "text-base text-gray-400 dark:text-gray-500"
               }
             >
-              {expectedDueDate
-                ? formatDate(expectedDueDate)
+              {lastMenstrualPeriod
+                ? formatDate(lastMenstrualPeriod)
                 : "Select date (optional)"}
             </Text>
             <Calendar
@@ -149,9 +156,9 @@ export default function NewBookletScreen() {
               strokeWidth={1.5}
             />
           </Pressable>
-          {expectedDueDate && (
+          {lastMenstrualPeriod && (
             <Pressable
-              onPress={() => setExpectedDueDate(null)}
+              onPress={() => setLastMenstrualPeriod(null)}
               className="mt-2"
             >
               <Text className="text-sm text-pink-600 dark:text-pink-400">
@@ -159,7 +166,25 @@ export default function NewBookletScreen() {
               </Text>
             </Pressable>
           )}
+          <Text className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            Used to calculate your Age of Gestation (AOG)
+          </Text>
         </View>
+
+        {/* Auto-calculated Due Date Display */}
+        {calculatedDueDate && (
+          <View className="mb-6 bg-pink-50 dark:bg-pink-900/20 p-4 rounded-lg border border-pink-100 dark:border-pink-800">
+            <Text className="text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">
+              Estimated Due Date
+            </Text>
+            <Text className="text-lg font-bold text-pink-600 dark:text-pink-400">
+              {formatDate(calculatedDueDate)}
+            </Text>
+            <Text className="text-xs text-pink-500 dark:text-pink-400 mt-1">
+              Calculated from LMP (Naegele's rule)
+            </Text>
+          </View>
+        )}
 
         {/* Notes Field */}
         <View className="mb-8">
@@ -192,13 +217,13 @@ export default function NewBookletScreen() {
         </ButtonPressable>
       </ScrollView>
 
-      {/* Date Picker Modal */}
-      {showDatePicker && (
+      {/* LMP Date Picker Modal */}
+      {showLMPPicker && (
         <View>
           {Platform.OS === "ios" && (
             <View className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
               <View className="flex-row justify-end px-4 py-2">
-                <Pressable onPress={() => setShowDatePicker(false)}>
+                <Pressable onPress={() => setShowLMPPicker(false)}>
                   <Text className="text-pink-600 dark:text-pink-400 font-medium">
                     Done
                   </Text>
@@ -207,11 +232,11 @@ export default function NewBookletScreen() {
             </View>
           )}
           <DateTimePicker
-            value={expectedDueDate || new Date()}
+            value={lastMenstrualPeriod || new Date()}
             mode="date"
             display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={handleDateChange}
-            minimumDate={new Date()}
+            onChange={handleLMPChange}
+            maximumDate={new Date()} // LMP can't be in the future
             themeVariant={isDark ? "dark" : "light"}
           />
         </View>

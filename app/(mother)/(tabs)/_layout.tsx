@@ -4,7 +4,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { Home, Pill, Stethoscope, User } from "lucide-react-native";
+import { Home, BookOpen, User } from "lucide-react-native";
 import { useThemeStore } from "../../../src/stores";
 
 const HEADER_BASE_HEIGHT = 60;
@@ -57,35 +57,21 @@ export default function MotherTabsLayout() {
           name="index"
           options={{
             title: "Home",
-            headerTitle: () => (
-              <HeaderTitle title="Home" subtitle="Your dashboard" />
-            ),
+            headerShown: false, // Hide header - we have a custom header
             tabBarIcon: ({ color, size }) => (
               <Home size={size} color={color} strokeWidth={1.5} />
             ),
           }}
         />
         <Tabs.Screen
-          name="medications"
+          name="booklets"
           options={{
-            title: "Medications",
+            title: "Booklet",
             headerTitle: () => (
-              <HeaderTitle title="Medications" subtitle="Track your intake" />
+              <HeaderTitle title="Booklets" subtitle="Your pregnancy records" />
             ),
             tabBarIcon: ({ color, size }) => (
-              <Pill size={size} color={color} strokeWidth={1.5} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="doctors"
-          options={{
-            title: "Doctors",
-            headerTitle: () => (
-              <HeaderTitle title="Doctors" subtitle="Find OB-GYNs" />
-            ),
-            tabBarIcon: ({ color, size }) => (
-              <Stethoscope size={size} color={color} strokeWidth={1.5} />
+              <BookOpen size={size} color={color} strokeWidth={1.5} />
             ),
           }}
         />
@@ -99,6 +85,19 @@ export default function MotherTabsLayout() {
             tabBarIcon: ({ color, size }) => (
               <User size={size} color={color} strokeWidth={1.5} />
             ),
+          }}
+        />
+        {/* Hide old tabs from tab bar */}
+        <Tabs.Screen
+          name="medications"
+          options={{
+            href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="doctors"
+          options={{
+            href: null, // Hide from tab bar
           }}
         />
       </Tabs>
