@@ -90,7 +90,7 @@ export const getDoctors = query({
     // Filter for active access
     const activeAccess = accessRecords.filter((a) => !a.revokedAt);
 
-    // Fetch doctor profiles with user info
+    // Fetch doctor profiles with user info and primary clinic
     const doctors = await Promise.all(
       activeAccess.map(async (access) => {
         const doctorProfile = await ctx.db.get(access.doctorId);
@@ -98,9 +98,18 @@ export const getDoctors = query({
 
         const user = await ctx.db.get(doctorProfile.userId);
 
+        // Get primary clinic for this doctor
+        const clinics = await ctx.db
+          .query("doctorClinics")
+          .withIndex("by_doctor", (q) => q.eq("doctorId", doctorProfile._id))
+          .collect();
+        const primaryClinic = clinics.find((c) => c.isPrimary) || clinics[0];
+
         return {
           ...doctorProfile,
           fullName: user?.fullName || "Unknown",
+          // Include primary clinic name for backward compatibility
+          clinicName: primaryClinic?.name || "",
         };
       })
     );

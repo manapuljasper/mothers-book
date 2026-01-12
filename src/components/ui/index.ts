@@ -29,6 +29,9 @@ export { ModalHeader } from "./ModalHeader";
 export { CollapsibleSectionHeader } from "./CollapsibleSectionHeader";
 export { DatePickerButton } from "./DatePickerButton";
 export { PageHeader } from "./PageHeader";
+export { ScheduleEditor } from "./ScheduleEditor";
+export type { ScheduleItem } from "./ScheduleEditor";
+export { ClinicCard } from "./ClinicCard";
 
 // Skeleton components
 export {

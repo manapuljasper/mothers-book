@@ -60,8 +60,6 @@ export const createDoctorProfile = mutation({
     return await ctx.db.insert("doctorProfiles", {
       userId,
       prcNumber: "",
-      clinicName: "",
-      clinicAddress: "",
       contactNumber: "",
     });
   },
@@ -92,20 +90,15 @@ export const createMotherProfile = mutation({
 // PROFILE UPDATES
 // ============================================================================
 
-// Update doctor profile
+// Update doctor profile (personal info only, clinics are managed separately)
 export const updateDoctorProfile = mutation({
   args: {
     doctorId: v.id("doctorProfiles"),
     fullName: v.optional(v.string()),
     prcNumber: v.optional(v.string()),
-    clinicName: v.optional(v.string()),
-    clinicAddress: v.optional(v.string()),
     contactNumber: v.optional(v.string()),
     specialization: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
-    clinicSchedule: v.optional(v.string()),
-    latitude: v.optional(v.number()),
-    longitude: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);

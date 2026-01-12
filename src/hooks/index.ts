@@ -58,3 +58,14 @@ export { useAllDoctors, useDoctorById, useSearchDoctors } from "./doctors";
 
 // Profile hooks
 export { useUpdateDoctorProfile, useUpdateMotherProfile } from "./profile";
+
+// Clinic hooks
+export {
+  useClinicsByDoctor,
+  usePrimaryClinic,
+  useClinic,
+  useCreateClinic,
+  useUpdateClinic,
+  useDeleteClinic,
+  useSetPrimaryClinic,
+} from "./clinics";

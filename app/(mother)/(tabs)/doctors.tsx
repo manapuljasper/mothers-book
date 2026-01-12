@@ -1,10 +1,25 @@
 import { View, Text, ScrollView, TextInput, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { Building2, Clock, Phone } from "lucide-react-native";
+import { Building2, Clock, Phone, Star } from "lucide-react-native";
 import { useThemeStore } from "../../../src/stores";
 import { useAllDoctors, useSearchDoctors } from "../../../src/hooks";
 import { CardPressable } from "../../../src/components/ui";
+
+interface ScheduleItem {
+  days: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface Clinic {
+  _id: string;
+  name: string;
+  address: string;
+  contactNumber?: string;
+  schedule?: ScheduleItem[];
+  isPrimary: boolean;
+}
 
 export default function DoctorsScreen() {
   const router = useRouter();
@@ -53,76 +68,101 @@ export default function DoctorsScreen() {
       );
     }
 
-    return doctors.map((doctor) => (
-      <CardPressable
-        key={doctor.id}
-        onPress={() => router.push(`/(mother)/view-doctor/${doctor.id}`)}
-        className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700"
-      >
-        {/* Doctor Header */}
-        <View className="flex-row">
-          <View className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full items-center justify-center mr-4">
-            <Text className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {getInitials(doctor.fullName)}
-            </Text>
-          </View>
-          <View className="flex-1">
-            <Text className="font-semibold text-gray-900 dark:text-white text-lg">
-              {doctor.fullName}
-            </Text>
-            {doctor.specialization && (
-              <Text className="text-blue-600 dark:text-blue-400">
-                {doctor.specialization}
-              </Text>
-            )}
-            <Text className="text-gray-500 dark:text-gray-400 text-sm">
-              PRC: {doctor.prcNumber}
-            </Text>
-          </View>
-        </View>
+    return doctors.map((doctor) => {
+      // Get clinics from the new structure
+      const clinics = (doctor as { clinics?: Clinic[] }).clinics || [];
+      const primaryClinic = clinics.find((c) => c.isPrimary) || clinics[0];
+      const clinicsCount = clinics.length;
 
-        {/* Clinic Info */}
-        <View className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <View className="flex-row items-start mb-2">
-            <View className="mr-2 mt-0.5">
-              <Building2 size={16} color="#9ca3af" strokeWidth={1.5} />
+      return (
+        <CardPressable
+          key={doctor.id}
+          onPress={() => router.push(`/(mother)/view-doctor/${doctor.id}`)}
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700"
+        >
+          {/* Doctor Header */}
+          <View className="flex-row">
+            <View className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full items-center justify-center mr-4">
+              <Text className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {getInitials(doctor.fullName)}
+              </Text>
             </View>
             <View className="flex-1">
-              <Text className="text-gray-900 dark:text-white font-medium">
-                {doctor.clinicName}
+              <Text className="font-semibold text-gray-900 dark:text-white text-lg">
+                {doctor.fullName}
               </Text>
-              {doctor.clinicAddress && (
-                <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                  {doctor.clinicAddress}
+              {doctor.specialization && (
+                <Text className="text-blue-600 dark:text-blue-400">
+                  {doctor.specialization}
+                </Text>
+              )}
+              <Text className="text-gray-500 dark:text-gray-400 text-sm">
+                PRC: {doctor.prcNumber}
+              </Text>
+            </View>
+          </View>
+
+          {/* Primary Clinic Info (or first clinic) */}
+          {primaryClinic && (
+            <View className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <View className="flex-row items-start mb-2">
+                <View className="mr-2 mt-0.5">
+                  <Building2 size={16} color="#9ca3af" strokeWidth={1.5} />
+                </View>
+                <View className="flex-1">
+                  <View className="flex-row items-center">
+                    <Text className="text-gray-900 dark:text-white font-medium">
+                      {primaryClinic.name}
+                    </Text>
+                    {primaryClinic.isPrimary && clinicsCount > 1 && (
+                      <View className="flex-row items-center bg-amber-100 dark:bg-amber-500/20 px-1.5 py-0.5 rounded-full ml-2">
+                        <Star size={10} color="#f59e0b" fill="#f59e0b" />
+                        <Text className="text-amber-700 dark:text-amber-400 text-[10px] font-medium ml-0.5">
+                          Primary
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text className="text-gray-500 dark:text-gray-400 text-sm">
+                    {primaryClinic.address}
+                  </Text>
+                </View>
+              </View>
+
+              {primaryClinic.schedule && primaryClinic.schedule.length > 0 && (
+                <View className="flex-row items-start mb-2">
+                  <View className="mr-2 mt-0.5">
+                    <Clock size={16} color="#9ca3af" strokeWidth={1.5} />
+                  </View>
+                  <Text className="text-gray-600 dark:text-gray-300 text-sm flex-1">
+                    {primaryClinic.schedule
+                      .map((s) => `${s.days}: ${s.startTime} - ${s.endTime}`)
+                      .join(", ")}
+                  </Text>
+                </View>
+              )}
+
+              {(primaryClinic.contactNumber || doctor.contactNumber) && (
+                <View className="flex-row items-start">
+                  <View className="mr-2 mt-0.5">
+                    <Phone size={16} color="#9ca3af" strokeWidth={1.5} />
+                  </View>
+                  <Text className="text-gray-600 dark:text-gray-300 text-sm">
+                    {primaryClinic.contactNumber || doctor.contactNumber}
+                  </Text>
+                </View>
+              )}
+
+              {clinicsCount > 1 && (
+                <Text className="text-blue-600 dark:text-blue-400 text-xs mt-2">
+                  +{clinicsCount - 1} more clinic{clinicsCount > 2 ? "s" : ""}
                 </Text>
               )}
             </View>
-          </View>
-
-          {doctor.clinicSchedule && (
-            <View className="flex-row items-start mb-2">
-              <View className="mr-2 mt-0.5">
-                <Clock size={16} color="#9ca3af" strokeWidth={1.5} />
-              </View>
-              <Text className="text-gray-600 dark:text-gray-300 text-sm flex-1">
-                {doctor.clinicSchedule}
-              </Text>
-            </View>
           )}
-
-          {doctor.contactNumber && (
-            <View className="flex-row items-start">
-              <View className="mr-2 mt-0.5">
-                <Phone size={16} color="#9ca3af" strokeWidth={1.5} />
-              </View>
-              <Text className="text-gray-600 dark:text-gray-300 text-sm">
-                {doctor.contactNumber}
-              </Text>
-            </View>
-          )}
-        </View>
-      </CardPressable>
-    ));
+        </CardPressable>
+      );
+    });
   }
 
   return (

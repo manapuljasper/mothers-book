@@ -11,8 +11,8 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 
 /**
- * Hook to update doctor profile
- * Returns an async function to call directly
+ * Hook to update doctor profile (personal info only)
+ * Clinics are managed separately via clinic hooks
  */
 export function useUpdateDoctorProfile() {
   const mutation = useMutation(api.users.updateDoctorProfile);
@@ -21,14 +21,9 @@ export function useUpdateDoctorProfile() {
     doctorId: string;
     fullName?: string;
     prcNumber?: string;
-    clinicName?: string;
-    clinicAddress?: string;
     contactNumber?: string;
     specialization?: string;
     avatarUrl?: string;
-    clinicSchedule?: string;
-    latitude?: number;
-    longitude?: number;
   }) => {
     return await mutation({
       ...args,
