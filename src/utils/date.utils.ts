@@ -14,7 +14,13 @@ dayjs.extend(isTomorrowPlugin);
 type DateInput = Date | string | number;
 
 // Format date for display
-export function formatDate(date: DateInput): string {
+export function formatDate(date: DateInput, variant: 'default' | 'short' | 'long' = 'default'): string {
+  if (variant === 'short') {
+    return dayjs(date).format('MMM D');
+  }
+  if (variant === 'long') {
+    return dayjs(date).format('MMMM D, YYYY');
+  }
   return dayjs(date).format('MMM D, YYYY');
 }
 

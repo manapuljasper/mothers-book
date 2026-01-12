@@ -8,7 +8,9 @@ import {
   type LabRequest,
 } from "@/types";
 import { AnimatedCollapsible, CollapsibleSectionHeader } from "@/components/ui";
-import { VitalsDisplay, MedicationCard, LabRequestCard } from "@/components";
+import { VitalsDisplay } from "@/components/VitalsDisplay";
+import { MedicationCard } from "@/components/MedicationCard";
+import { LabRequestCard } from "@/components/LabRequestCard";
 
 interface EntryCardProps {
   entry: MedicalEntryWithDoctor;

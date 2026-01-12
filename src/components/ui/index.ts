@@ -20,7 +20,6 @@ export { BookletCard } from "./BookletCard";
 // New form primitives
 export { Button } from "./Button";
 export { TextField } from "./TextField";
-export { OptionButtonGroup } from "./OptionButtonGroup";
 
 // New display components
 export { StatusBadge } from "./StatusBadge";
@@ -32,6 +31,17 @@ export { PageHeader } from "./PageHeader";
 export { ScheduleEditor } from "./ScheduleEditor";
 export type { ScheduleItem } from "./ScheduleEditor";
 export { ClinicCard } from "./ClinicCard";
+
+// Timeline components
+export { TimelineDateBadge } from "./TimelineDateBadge";
+export { TimelineEntryCard } from "./TimelineEntryCard";
+export { BookletTabBar, type BookletTab } from "./BookletTabBar";
+export { AOGBadge } from "./AOGBadge";
+
+// Entry detail components
+export { VitalCard } from "./VitalCard";
+export { VitalInput } from "./VitalInput";
+export { InstructionsCard } from "./InstructionsCard";
 
 // Skeleton components
 export {
