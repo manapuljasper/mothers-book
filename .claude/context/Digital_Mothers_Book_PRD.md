@@ -1,15 +1,15 @@
 # Product Requirements Document (PRD)
 ## Digital Mother's Book
 
-**Status:** PRD v1.1 – Ready for Design & Engineering  
-**Last Updated:** January 2026  
-**Platform:** Mobile (iOS & Android) | React Native  
+**Status:** PRD v1.2 – In Active Development
+**Last Updated:** January 2026
+**Platform:** Mobile (iOS & Android) | React Native + Expo
 **Geography:** Philippines
 
-> **⚠️ PHASE 1 IMPLEMENTATION NOTE**  
-> **The initial MVP will use sample/mock data stored locally (AsyncStorage) and will NOT connect to a server.**  
-> This approach enables rapid UI/UX development, user testing, and validation of core flows without backend dependencies.  
-> Server integration (PostgreSQL + REST API) is planned for Phase 2. See [Section 8](#8-mvp-definition) and [Section 15](#15-technical-architecture) for details.
+> **✅ IMPLEMENTATION STATUS**
+> **The application uses Convex as the backend-as-a-service platform, providing real-time database, authentication, and serverless functions.**
+> This approach provides real-time data synchronization, type-safe database operations, and eliminates the need for separate backend infrastructure.
+> See [Section 15](#15-technical-architecture) for technical details.
 
 ---
 
@@ -91,10 +91,15 @@ To streamline and digitalize maternal health record-keeping, making it easier fo
 ## 4. Platform & Scope
 
 - **Platform:** Mobile (iOS & Android)
-- **Framework:** React Native
+- **Framework:** React Native with Expo SDK 54 (New Architecture enabled)
+- **Routing:** Expo Router (file-based navigation)
+- **Styling:** NativeWind v4 (Tailwind CSS for React Native)
 - **Geography:** Philippines (PH)
 - **Architecture:** Single app, role-based navigation
-- **Database:** PostgreSQL
+- **Backend:** Convex (real-time database, authentication, serverless functions)
+- **Authentication:** Convex Auth with email/password
+- **State Management:** Zustand (auth state), Convex hooks (data)
+- **Local Storage:** MMKV (theme preferences)
 
 ---
 
