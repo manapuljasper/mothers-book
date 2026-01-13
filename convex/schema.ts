@@ -131,6 +131,7 @@ export default defineSchema({
   labRequests: defineTable({
     bookletId: v.id("booklets"),
     medicalEntryId: v.optional(v.id("medicalEntries")),
+    requestedByDoctorId: v.optional(v.id("doctorProfiles")),
     description: v.string(),
     status: v.union(
       v.literal("pending"),

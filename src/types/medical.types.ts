@@ -40,6 +40,7 @@ export interface LabRequest {
   id: string;
   bookletId: string;
   medicalEntryId?: string; // Optional - for historical context
+  requestedByDoctorId?: string; // Doctor who requested the lab
   description: string;
   status: LabStatus;
   requestedDate: Date;
@@ -48,6 +49,11 @@ export interface LabRequest {
   notes?: string;
   createdAt: Date;
   updatedAt?: Date;
+}
+
+export interface LabRequestWithDoctor extends LabRequest {
+  doctorName?: string;
+  doctorSpecialty?: string;
 }
 
 export interface MedicalEntryWithDoctor extends MedicalEntry {

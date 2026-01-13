@@ -123,15 +123,40 @@ export const updateEntry = mutation({
 
 // ========== Lab Requests ==========
 
-// List labs by booklet
+// List labs by booklet with doctor info
 export const listLabsByBooklet = query({
   args: { bookletId: v.id("booklets") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const labs = await ctx.db
       .query("labRequests")
       .withIndex("by_booklet", (q) => q.eq("bookletId", args.bookletId))
       .order("desc")
       .collect();
+
+    // Fetch doctor info for each lab
+    const labsWithDoctor = await Promise.all(
+      labs.map(async (lab) => {
+        let doctorName: string | undefined;
+        let doctorSpecialty: string | undefined;
+
+        if (lab.requestedByDoctorId) {
+          const doctorProfile = await ctx.db.get(lab.requestedByDoctorId);
+          if (doctorProfile) {
+            const user = await ctx.db.get(doctorProfile.userId);
+            doctorName = user?.fullName || "Unknown";
+            doctorSpecialty = doctorProfile.specialization;
+          }
+        }
+
+        return {
+          ...lab,
+          doctorName,
+          doctorSpecialty,
+        };
+      })
+    );
+
+    return labsWithDoctor;
   },
 });
 
@@ -178,6 +203,7 @@ export const createLab = mutation({
   args: {
     bookletId: v.id("booklets"),
     medicalEntryId: v.optional(v.id("medicalEntries")),
+    requestedByDoctorId: v.optional(v.id("doctorProfiles")),
     description: v.string(),
     status: labStatusValidator,
     requestedDate: v.number(),
@@ -194,6 +220,7 @@ export const createLab = mutation({
     const labId = await ctx.db.insert("labRequests", {
       bookletId: args.bookletId,
       medicalEntryId: args.medicalEntryId,
+      requestedByDoctorId: args.requestedByDoctorId,
       description: args.description,
       status: args.status,
       requestedDate: args.requestedDate,

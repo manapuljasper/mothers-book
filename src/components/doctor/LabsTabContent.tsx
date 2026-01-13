@@ -1,19 +1,51 @@
-import { View, Text, StyleSheet } from "react-native";
-import { formatDate } from "@/utils";
-import type { LabRequest } from "@/types";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Clock, Eye, Check, FlaskConical } from "lucide-react-native";
+import { TimelineDateBadge } from "@/components/ui";
+import { formatDate, formatTime } from "@/utils";
+import type { LabRequestWithDoctor } from "@/types";
 
 interface LabsTabContentProps {
-  labs: LabRequest[];
+  labs: LabRequestWithDoctor[];
+  onViewResults?: (lab: LabRequestWithDoctor) => void;
 }
 
-export function LabsTabContent({ labs }: LabsTabContentProps) {
-  const pendingLabs = labs.filter((l) => l.status === "pending");
-  const completedLabs = labs.filter((l) => l.status === "completed");
-  const cancelledLabs = labs.filter((l) => l.status === "cancelled");
+// Group labs by requested date
+interface LabDateGroup {
+  date: Date;
+  labs: LabRequestWithDoctor[];
+}
 
+function groupLabsByRequestedDate(labs: LabRequestWithDoctor[]): LabDateGroup[] {
+  // Sort by requestedDate descending (most recent first)
+  const sorted = [...labs].sort(
+    (a, b) => new Date(b.requestedDate).getTime() - new Date(a.requestedDate).getTime()
+  );
+
+  const groups: LabDateGroup[] = [];
+  let currentGroup: LabDateGroup | null = null;
+
+  for (const lab of sorted) {
+    const labDate = new Date(lab.requestedDate);
+    const dateKey = labDate.toDateString();
+
+    if (!currentGroup || currentGroup.date.toDateString() !== dateKey) {
+      currentGroup = { date: labDate, labs: [] };
+      groups.push(currentGroup);
+    }
+
+    currentGroup.labs.push(lab);
+  }
+
+  return groups;
+}
+
+export function LabsTabContent({ labs, onViewResults }: LabsTabContentProps) {
   if (labs.length === 0) {
     return (
       <View style={styles.emptyContainer}>
+        <View style={styles.emptyIconContainer}>
+          <FlaskConical size={32} color="#64748b" strokeWidth={1.5} />
+        </View>
         <Text style={styles.emptyText}>No lab requests yet</Text>
         <Text style={styles.emptySubtext}>
           Add lab requests when creating an entry
@@ -22,132 +54,362 @@ export function LabsTabContent({ labs }: LabsTabContentProps) {
     );
   }
 
+  const groupedLabs = groupLabsByRequestedDate(labs);
+
   return (
-    <View>
-      {/* Pending Labs */}
-      {pendingLabs.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.pendingTitle}>
-            Pending ({pendingLabs.length})
-          </Text>
-          {pendingLabs.map((lab) => (
-            <View key={lab.id} style={styles.pendingCard}>
-              <Text style={styles.labDescription}>{lab.description}</Text>
-              <Text style={styles.labDate}>
-                Requested: {formatDate(lab.requestedDate)}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
+    <View style={styles.container}>
+      {/* Vertical Timeline Line */}
+      <View style={styles.timelineLine} />
 
-      {/* Completed Labs */}
-      {completedLabs.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.completedTitle}>
-            Completed ({completedLabs.length})
+      {/* Labs grouped by date */}
+      {groupedLabs.map((group, groupIndex) => (
+        <View key={group.date.toISOString()} style={styles.dateGroup}>
+          {/* First lab in group gets the date badge */}
+          <View style={styles.entryRow}>
+            <View style={styles.dateBadgeContainer}>
+              <TimelineDateBadge
+                date={group.date}
+                isActive={groupIndex === 0}
+              />
+            </View>
+
+            <View style={styles.labCardsContainer}>
+              {group.labs.map((lab, labIndex) => (
+                <TimelineLabCard
+                  key={lab.id}
+                  lab={lab}
+                  onViewResults={onViewResults}
+                  isFirst={labIndex === 0}
+                />
+              ))}
+            </View>
+          </View>
+        </View>
+      ))}
+
+      {/* End of records */}
+      <View style={styles.endOfRecords}>
+        <Text style={styles.endOfRecordsText}>End of records</Text>
+      </View>
+    </View>
+  );
+}
+
+// Timeline Lab Card Component
+interface TimelineLabCardProps {
+  lab: LabRequestWithDoctor;
+  onViewResults?: (lab: LabRequestWithDoctor) => void;
+  isFirst?: boolean;
+}
+
+function TimelineLabCard({ lab, onViewResults, isFirst }: TimelineLabCardProps) {
+  const isPending = lab.status === "pending";
+  const isCompleted = lab.status === "completed";
+  const isCancelled = lab.status === "cancelled";
+
+  // Generate reference number from id
+  const refNumber = `#${lab.id.slice(-6).toUpperCase()}`;
+
+  return (
+    <View
+      style={[
+        styles.labCard,
+        isCancelled && styles.labCardCancelled,
+        !isFirst && styles.labCardSubsequent,
+      ]}
+    >
+      {/* Header */}
+      <View style={styles.labCardHeader}>
+        <View style={styles.labCardTitleContainer}>
+          <Text
+            style={[styles.labName, isCancelled && styles.labNameCancelled]}
+          >
+            {lab.description}
           </Text>
-          {completedLabs.map((lab) => (
-            <View key={lab.id} style={styles.completedCard}>
-              <Text style={styles.labDescription}>{lab.description}</Text>
-              {lab.results && (
-                <Text style={styles.labResults}>{lab.results}</Text>
+          {lab.doctorName && (
+            <Text style={styles.labDoctor}>
+              {lab.doctorName}
+              {lab.doctorSpecialty && ` • ${lab.doctorSpecialty}`}
+            </Text>
+          )}
+        </View>
+
+        {/* Status Badge */}
+        {isPending && (
+          <View style={styles.pendingBadge}>
+            <View style={styles.pendingDot} />
+            <Text style={styles.pendingBadgeText}>PENDING</Text>
+          </View>
+        )}
+        {isCompleted && (
+          <View style={styles.completedBadge}>
+            <Check size={10} color="#10b981" strokeWidth={3} />
+            <Text style={styles.completedBadgeText}>COMPLETE</Text>
+          </View>
+        )}
+        {isCancelled && (
+          <View style={styles.cancelledBadge}>
+            <Text style={styles.cancelledBadgeText}>CANCELLED</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Footer */}
+      <View style={styles.labCardFooter}>
+        {isPending && (
+          <View style={styles.timeInfo}>
+            <Clock size={14} color="#64748b" strokeWidth={1.5} />
+            <Text style={styles.timeText}>
+              Requested: {formatTime(lab.requestedDate)}
+            </Text>
+          </View>
+        )}
+
+        {isCompleted && (
+          <>
+            <View style={styles.completedInfo}>
+              <Text style={styles.refText}>Ref: {refNumber}</Text>
+              {lab.completedDate && (
+                <Text style={styles.completedDateText}>
+                  Completed: {formatDate(lab.completedDate, "short")}
+                </Text>
               )}
-              <Text style={styles.labDate}>
-                Completed: {formatDate(lab.completedDate || lab.requestedDate)}
-              </Text>
             </View>
-          ))}
-        </View>
-      )}
+            <TouchableOpacity
+              style={styles.viewResultsButton}
+              onPress={() => onViewResults?.(lab)}
+              activeOpacity={0.7}
+            >
+              <Eye size={16} color="#3b82f6" strokeWidth={1.5} />
+              <Text style={styles.viewResultsText}>View Results</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
-      {/* Cancelled Labs */}
-      {cancelledLabs.length > 0 && (
-        <View>
-          <Text style={styles.cancelledTitle}>
-            Cancelled ({cancelledLabs.length})
+        {isCancelled && (
+          <Text style={styles.cancelledText}>
+            Cancelled on {formatDate(lab.createdAt, "short")}
           </Text>
-          {cancelledLabs.map((lab) => (
-            <View key={lab.id} style={styles.cancelledCard}>
-              <Text style={styles.labDescription}>{lab.description}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Container & Timeline
+  container: {
+    position: "relative",
+  },
+  timelineLine: {
+    position: "absolute",
+    left: 27,
+    top: 16,
+    bottom: 40,
+    width: 2,
+    backgroundColor: "rgba(51, 65, 85, 0.5)",
+    zIndex: 0,
+  },
+
+  // Empty State
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 48,
   },
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(100, 116, 139, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
   emptyText: {
-    color: "#475569", // slate-600
-    fontSize: 14,
+    color: "#94a3b8",
+    fontSize: 16,
+    fontWeight: "600",
   },
   emptySubtext: {
-    color: "#334155", // slate-700
-    fontSize: 12,
+    color: "#64748b",
+    fontSize: 14,
     marginTop: 4,
   },
-  section: {
-    marginBottom: 24,
+
+  // Date Groups
+  dateGroup: {
+    marginBottom: 8,
   },
-  pendingTitle: {
-    color: "#fbbf24", // amber-400
-    fontWeight: "600",
-    marginBottom: 12,
+  entryRow: {
+    position: "relative",
+    paddingBottom: 16,
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
   },
-  completedTitle: {
-    color: "#4ade80", // green-400
-    fontWeight: "600",
-    marginBottom: 12,
+  dateBadgeContainer: {
+    minWidth: 56,
   },
-  cancelledTitle: {
-    color: "#64748b", // slate-500
-    fontWeight: "600",
-    marginBottom: 12,
+  labCardsContainer: {
+    flex: 1,
   },
-  pendingCard: {
-    backgroundColor: "#1e293b", // slate-800
-    borderRadius: 12,
+
+  // Lab Card
+  labCard: {
+    backgroundColor: "#1e293b",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)", // amber-500/30
+    borderColor: "#334155",
+    marginBottom: 8,
   },
-  completedCard: {
-    backgroundColor: "#1e293b", // slate-800
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "rgba(34, 197, 94, 0.3)", // green-500/30
+  labCardSubsequent: {
+    marginTop: 0,
   },
-  cancelledCard: {
-    backgroundColor: "rgba(30, 41, 59, 0.5)", // slate-800/50
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "rgba(51, 65, 85, 0.5)", // slate-700/50
+  labCardCancelled: {
+    backgroundColor: "rgba(30, 41, 59, 0.5)",
+    borderColor: "rgba(51, 65, 85, 0.5)",
     opacity: 0.6,
   },
-  labDescription: {
+  labCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  labCardTitleContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  labName: {
     color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  labNameCancelled: {
+    color: "#94a3b8",
+  },
+  labDoctor: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+
+  // Status Badges
+  pendingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.3)",
+  },
+  pendingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#f59e0b",
+  },
+  pendingBadgeText: {
+    color: "#f59e0b",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  completedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.3)",
+  },
+  completedBadgeText: {
+    color: "#10b981",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  cancelledBadge: {
+    backgroundColor: "rgba(100, 116, 139, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(100, 116, 139, 0.3)",
+  },
+  cancelledBadgeText: {
+    color: "#64748b",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+
+  // Footer
+  labCardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(51, 65, 85, 0.5)",
+  },
+  timeInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  timeText: {
+    color: "#64748b",
+    fontSize: 12,
+  },
+  completedInfo: {
+    flexDirection: "column",
+  },
+  refText: {
+    color: "#64748b",
+    fontSize: 12,
+  },
+  completedDateText: {
+    color: "#4ade80",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  viewResultsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  viewResultsText: {
+    color: "#3b82f6",
+    fontSize: 12,
     fontWeight: "600",
   },
-  labResults: {
-    color: "#cbd5e1", // slate-300
-    fontSize: 14,
-    marginTop: 8,
+  cancelledText: {
+    color: "#475569",
+    fontSize: 11,
   },
-  labDate: {
-    color: "#94a3b8", // slate-400
+
+  // End of Records
+  endOfRecords: {
+    alignItems: "center",
+    marginTop: 8,
+    paddingBottom: 16,
+  },
+  endOfRecordsText: {
     fontSize: 12,
-    marginTop: 4,
+    fontWeight: "500",
+    color: "#475569",
+    backgroundColor: "#0f172a",
+    paddingHorizontal: 8,
   },
 });

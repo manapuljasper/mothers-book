@@ -17,6 +17,7 @@ export type {
   Vitals,
   MedicalEntry,
   LabRequest,
+  LabRequestWithDoctor,
   MedicalEntryWithDoctor,
 } from './medical.types';
 export { ENTRY_TYPE_LABELS, LAB_STATUS_LABELS } from './medical.types';

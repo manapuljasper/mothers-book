@@ -8,7 +8,7 @@ import { useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import type { MedicalEntry, MedicalEntryWithDoctor, LabRequest } from "../../types";
+import type { MedicalEntry, MedicalEntryWithDoctor, LabRequest, LabRequestWithDoctor } from "../../types";
 
 // Transform entry document to app type
 type ConvexEntry = {
@@ -53,19 +53,24 @@ type ConvexLab = {
   _creationTime: number;
   bookletId: Id<"booklets">;
   medicalEntryId?: Id<"medicalEntries">;
+  requestedByDoctorId?: Id<"doctorProfiles">;
   description: string;
   status: LabRequest["status"];
   requestedDate: number;
   completedDate?: number;
   results?: string;
   notes?: string;
+  // Joined fields from listLabsByBooklet
+  doctorName?: string;
+  doctorSpecialty?: string;
 };
 
-function transformLab(doc: ConvexLab): LabRequest {
+function transformLab(doc: ConvexLab): LabRequestWithDoctor {
   return {
     id: doc._id as string,
     bookletId: doc.bookletId as string,
     medicalEntryId: doc.medicalEntryId as string | undefined,
+    requestedByDoctorId: doc.requestedByDoctorId as string | undefined,
     description: doc.description,
     status: doc.status,
     requestedDate: new Date(doc.requestedDate),
@@ -73,6 +78,8 @@ function transformLab(doc: ConvexLab): LabRequest {
     results: doc.results,
     notes: doc.notes,
     createdAt: new Date(doc._creationTime),
+    doctorName: doc.doctorName,
+    doctorSpecialty: doc.doctorSpecialty,
   };
 }
 
@@ -198,6 +205,7 @@ export function useCreateLabRequest() {
   return async (args: {
     bookletId: string;
     medicalEntryId?: string;
+    requestedByDoctorId?: string;
     description: string;
     status: LabRequest["status"];
     requestedDate: Date | number;
@@ -208,6 +216,7 @@ export function useCreateLabRequest() {
     const result = await mutation({
       bookletId: args.bookletId as Id<"booklets">,
       medicalEntryId: args.medicalEntryId as Id<"medicalEntries"> | undefined,
+      requestedByDoctorId: args.requestedByDoctorId as Id<"doctorProfiles"> | undefined,
       description: args.description,
       status: args.status,
       requestedDate: args.requestedDate instanceof Date ? args.requestedDate.getTime() : args.requestedDate,
