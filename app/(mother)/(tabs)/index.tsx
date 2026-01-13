@@ -60,6 +60,17 @@ export default function MotherHomeScreen() {
     0
   );
 
+  // Calculate days until due date
+  const daysUntilDue = primaryBooklet?.expectedDueDate
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(primaryBooklet.expectedDueDate).getTime() - Date.now()) /
+            (1000 * 60 * 60 * 24)
+        )
+      )
+    : null;
+
   // Get mother's name and user ID
   const motherName = currentUser?.user?.fullName || "there";
   const userId = currentUser?.user?._id;
@@ -103,8 +114,9 @@ export default function MotherHomeScreen() {
         {/* Stats Cards - slightly overlapping header */}
         <View className="flex-row px-4 -mt-4 gap-2">
           <StatCard
-            value={activeBooklets.length}
-            label="Active Booklets"
+            value={daysUntilDue ?? "—"}
+            label="Until Due Date"
+            suffix="Days"
             color="pink"
           />
           <StatCard

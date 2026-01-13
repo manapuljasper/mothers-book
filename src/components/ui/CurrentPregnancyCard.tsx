@@ -1,5 +1,5 @@
-import { View, Text, Pressable } from "react-native";
-import { Baby, Calendar, CalendarDays, Stethoscope, ChevronRight } from "lucide-react-native";
+import { View, Text } from "react-native";
+import { Baby, Calendar, CalendarDays, Stethoscope, ChevronRight, Flower2 } from "lucide-react-native";
 import type { MotherBooklet } from "../../types";
 import { calculateAOGParts, formatDate } from "../../utils";
 import { ButtonPressable } from "./AnimatedPressable";
@@ -29,9 +29,14 @@ export function CurrentPregnancyCard({
     : null;
 
   return (
-    <View className="bg-white dark:bg-gray-800 mx-5 mt-6 p-5 rounded-3xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <View className="bg-white dark:bg-gray-800 mx-5 p-5 rounded-3xl border border-gray-100 dark:border-gray-700 overflow-hidden relative">
+      {/* Decorative flower background */}
+      <View className="absolute -right-8 -top-8 opacity-[0.04] dark:opacity-[0.06]">
+        <Flower2 size={180} color="#9ca3af" strokeWidth={1} />
+      </View>
+
       {/* Header with icon and title */}
-      <View className="flex-row items-start gap-4 mb-6">
+      <View className="flex-row items-start gap-4 mb-6 relative z-10">
         <View className="w-16 h-16 rounded-2xl bg-pink-100 dark:bg-pink-900/20 items-center justify-center">
           <Baby size={32} color="#ec4899" strokeWidth={1.5} />
         </View>
@@ -49,7 +54,7 @@ export function CurrentPregnancyCard({
       </View>
 
       {/* AOG and Due Date Cards */}
-      <View className="flex-row gap-3 mb-4">
+      <View className="flex-row gap-3 mb-4 relative z-10">
         {/* Current AOG */}
         <View className="flex-1 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50">
           <View className="flex-row items-center gap-2 mb-2">
@@ -105,7 +110,7 @@ export function CurrentPregnancyCard({
       </View>
 
       {/* Assigned OB-GYN */}
-      <View className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 mb-5 flex-row items-center gap-4">
+      <View className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/50 mb-5 flex-row items-center gap-4 relative z-10">
         <View className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 items-center justify-center">
           <Stethoscope size={20} color="#6366f1" strokeWidth={1.5} />
         </View>
@@ -122,7 +127,7 @@ export function CurrentPregnancyCard({
       {/* View Full Records Button */}
       <ButtonPressable
         onPress={onViewRecords}
-        className="w-full py-3.5 bg-pink-500 dark:bg-pink-600 rounded-xl flex-row items-center justify-center gap-2"
+        className="w-full py-3.5 bg-pink-500 dark:bg-pink-600 rounded-xl flex-row items-center justify-center gap-2 relative z-10"
       >
         <Text className="text-white font-semibold">View Full Records</Text>
         <ChevronRight size={16} color="white" strokeWidth={2} />

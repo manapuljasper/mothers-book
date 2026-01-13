@@ -4,6 +4,7 @@ import { CardPressable } from "./AnimatedPressable";
 interface StatCardProps {
   value: number | string;
   label: string;
+  suffix?: string;
   color?: "pink" | "blue" | "amber" | "green" | "purple";
   size?: "sm" | "md";
   onPress?: () => void;
@@ -20,6 +21,7 @@ const colorClasses = {
 export function StatCard({
   value,
   label,
+  suffix,
   color = "pink",
   size = "md",
   onPress,
@@ -29,10 +31,17 @@ export function StatCard({
 
   const content = (
     <>
-      <Text className={`${valueSize} font-bold ${colorClasses[color]}`}>
-        {value}
-      </Text>
-      <Text className={`text-gray-400 ${labelSize}`}>{label}</Text>
+      <View className="flex-row items-baseline gap-1.5 mb-1">
+        <Text className={`${valueSize} font-bold ${colorClasses[color]}`}>
+          {value}
+        </Text>
+        {suffix && (
+          <Text className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+            {suffix}
+          </Text>
+        )}
+      </View>
+      <Text className={`text-gray-500 dark:text-gray-400 ${labelSize}`}>{label}</Text>
     </>
   );
 
