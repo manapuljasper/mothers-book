@@ -1,14 +1,16 @@
 import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { QrCode, Calendar, Users } from "lucide-react-native";
-import { useCurrentUser, useBookletsByDoctor } from "../../../src/hooks";
+import { useCurrentUser, useBookletsByDoctor, useResponsive } from "../../../src/hooks";
 import { formatRelativeDate } from "../../../src/utils";
 import { CardPressable, EmptyState, DoctorDashboardSkeleton } from "../../../src/components/ui";
+import { ResponsiveGrid } from "../../../src/components/layout";
 
 export default function DoctorDashboard() {
   const router = useRouter();
   const currentUser = useCurrentUser();
   const doctorProfile = currentUser?.doctorProfile;
+  const { isTablet, select } = useResponsive();
 
   const patientBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
 
@@ -29,10 +31,16 @@ export default function DoctorDashboard() {
     return <DoctorDashboardSkeleton />;
   }
 
+  // Responsive padding
+  const screenPadding = select({ phone: 16, tablet: 32 });
+
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <ScrollView
+      className="flex-1 bg-gray-50 dark:bg-gray-900"
+      contentContainerStyle={{ paddingHorizontal: screenPadding }}
+    >
       {/* Stats */}
-      <View className="flex-row px-4 pt-4">
+      <View className="flex-row pt-4">
         <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 mx-2 border border-gray-100 dark:border-gray-700">
           <Text className="text-3xl font-bold text-blue-500">
             {patientBooklets.length}
@@ -43,7 +51,7 @@ export default function DoctorDashboard() {
 
       {/* Welcome Empty State - when no patients */}
       {hasNoPatients ? (
-        <View className="px-6 mt-8 mb-8">
+        <View className="mt-8 mb-8">
           <EmptyState
             icon={QrCode}
             iconColor="#3b82f6"
@@ -59,7 +67,7 @@ export default function DoctorDashboard() {
       ) : (
         <>
           {/* Upcoming Appointments */}
-          <View className="px-6 mt-8">
+          <View className="mt-8">
             <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Upcoming Appointments
             </Text>
@@ -71,32 +79,34 @@ export default function DoctorDashboard() {
                 size="small"
               />
             ) : (
-              upcomingAppointments.map((booklet) => (
-                <CardPressable
-                  key={booklet.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
-                  onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1">
-                      <Text className="font-semibold text-gray-900 dark:text-white">
-                        {booklet.motherName}
-                      </Text>
-                      <Text className="text-gray-400 text-sm">{booklet.label}</Text>
+              <ResponsiveGrid columns={{ phone: 1, tablet: 2 }} gap={12}>
+                {upcomingAppointments.map((booklet) => (
+                  <CardPressable
+                    key={booklet.id}
+                    className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700"
+                    onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
+                  >
+                    <View className="flex-row justify-between items-start">
+                      <View className="flex-1">
+                        <Text className="font-semibold text-gray-900 dark:text-white">
+                          {booklet.motherName}
+                        </Text>
+                        <Text className="text-gray-400 text-sm">{booklet.label}</Text>
+                      </View>
+                      <View className="border border-blue-300 dark:border-blue-500 px-3 py-1 rounded-full">
+                        <Text className="text-blue-500 text-sm font-medium">
+                          {formatRelativeDate(booklet.nextAppointment!)}
+                        </Text>
+                      </View>
                     </View>
-                    <View className="border border-blue-300 dark:border-blue-500 px-3 py-1 rounded-full">
-                      <Text className="text-blue-500 text-sm font-medium">
-                        {formatRelativeDate(booklet.nextAppointment!)}
-                      </Text>
-                    </View>
-                  </View>
-                </CardPressable>
-              ))
+                  </CardPressable>
+                ))}
+              </ResponsiveGrid>
             )}
           </View>
 
           {/* Recent Patients */}
-          <View className="px-6 mt-8 mb-8">
+          <View className="mt-8 mb-8">
             <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Recent Patients
             </Text>
@@ -108,23 +118,25 @@ export default function DoctorDashboard() {
                 size="small"
               />
             ) : (
-              patientBooklets.slice(0, 5).map((booklet) => (
-                <CardPressable
-                  key={booklet.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
-                  onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
-                >
-                  <Text className="font-semibold text-gray-900 dark:text-white">
-                    {booklet.motherName}
-                  </Text>
-                  <Text className="text-gray-400 text-sm">{booklet.label}</Text>
-                  {booklet.lastVisitDate && (
-                    <Text className="text-gray-400 text-xs mt-1">
-                      Last visit: {formatRelativeDate(booklet.lastVisitDate)}
+              <ResponsiveGrid columns={{ phone: 1, tablet: 2 }} gap={12}>
+                {patientBooklets.slice(0, 6).map((booklet) => (
+                  <CardPressable
+                    key={booklet.id}
+                    className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700"
+                    onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
+                  >
+                    <Text className="font-semibold text-gray-900 dark:text-white">
+                      {booklet.motherName}
                     </Text>
-                  )}
-                </CardPressable>
-              ))
+                    <Text className="text-gray-400 text-sm">{booklet.label}</Text>
+                    {booklet.lastVisitDate && (
+                      <Text className="text-gray-400 text-xs mt-1">
+                        Last visit: {formatRelativeDate(booklet.lastVisitDate)}
+                      </Text>
+                    )}
+                  </CardPressable>
+                ))}
+              </ResponsiveGrid>
             )}
           </View>
         </>

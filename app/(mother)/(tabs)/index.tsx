@@ -8,6 +8,7 @@ import {
   useBookletDoctors,
   useActiveMedications,
   useLogIntake,
+  useResponsive,
 } from "@/hooks";
 import {
   StatCard,
@@ -17,11 +18,13 @@ import {
   CurrentPregnancyCard,
   MedicationDoseCard,
 } from "@/components/ui";
+import { ResponsiveGrid } from "@/components/layout";
 
 export default function MotherHomeScreen() {
   const router = useRouter();
   const currentUser = useCurrentUser();
   const motherProfile = currentUser?.motherProfile;
+  const { isTablet, select } = useResponsive();
 
   const booklets = useBookletsByMother(motherProfile?._id) ?? [];
   const allActiveMedications = useActiveMedications() ?? [];
@@ -128,8 +131,11 @@ export default function MotherHomeScreen() {
 
         {/* Current Pregnancy Card */}
         {primaryBooklet && (
-          <View className="mt-6">
-            <Text className="text-lg font-semibold text-gray-900 dark:text-white px-6 mb-2">
+          <View className="mt-6" style={{ paddingHorizontal: select({ phone: 0, tablet: 16 }) }}>
+            <Text
+              className="text-lg font-semibold text-gray-900 dark:text-white mb-2"
+              style={{ paddingHorizontal: select({ phone: 24, tablet: 16 }) }}
+            >
               Current Pregnancy
             </Text>
             <CurrentPregnancyCard
@@ -141,7 +147,7 @@ export default function MotherHomeScreen() {
         )}
 
         {/* Today's Medications Section */}
-        <View className="px-5 mt-6">
+        <View style={{ paddingHorizontal: select({ phone: 20, tablet: 32 }) }} className="mt-6">
           <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
             Today's Medications
           </Text>
@@ -153,16 +159,18 @@ export default function MotherHomeScreen() {
               description="Prescribed medications will appear here"
             />
           ) : (
-            activeMedications.map((med) => (
-              <MedicationDoseCard
-                key={med.id}
-                medication={med}
-                bookletLabel={getBookletLabel(med.bookletId)}
-                onToggleDose={(doseIndex, currentlyTaken) =>
-                  handleToggleDose(med.id, doseIndex, currentlyTaken)
-                }
-              />
-            ))
+            <ResponsiveGrid columns={{ phone: 1, tablet: 2 }} gap={12}>
+              {activeMedications.map((med) => (
+                <MedicationDoseCard
+                  key={med.id}
+                  medication={med}
+                  bookletLabel={getBookletLabel(med.bookletId)}
+                  onToggleDose={(doseIndex, currentlyTaken) =>
+                    handleToggleDose(med.id, doseIndex, currentlyTaken)
+                  }
+                />
+              ))}
+            </ResponsiveGrid>
           )}
         </View>
       </ScrollView>

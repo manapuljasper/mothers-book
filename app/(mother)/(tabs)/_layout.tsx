@@ -1,11 +1,13 @@
 import { View, Text } from "react-native";
-import { Tabs } from "expo-router";
+import { Tabs, Slot } from "expo-router";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Home, BookOpen, User } from "lucide-react-native";
 import { useThemeStore } from "../../../src/stores";
+import { useResponsive } from "../../../src/hooks";
+import { ResponsiveTabLayout } from "../../../src/components/layout";
 
 const HEADER_BASE_HEIGHT = 60;
 
@@ -23,7 +25,18 @@ export default function MotherTabsLayout() {
   const headerHeight = HEADER_BASE_HEIGHT + insets.top;
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
+  const { isTablet } = useResponsive();
 
+  // On tablet, use sidebar navigation instead of bottom tabs
+  if (isTablet) {
+    return (
+      <ResponsiveTabLayout role="mother">
+        <Slot />
+      </ResponsiveTabLayout>
+    );
+  }
+
+  // On phone, use standard bottom tabs
   return (
     <SafeAreaView
       className="flex-1 bg-gray-50 dark:bg-gray-900"

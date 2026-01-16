@@ -3,8 +3,10 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Search, Users, QrCode } from "lucide-react-native";
 import { useThemeStore } from "@/stores";
-import { useCurrentUser, useBookletsByDoctor } from "@/hooks";
+import { useCurrentUser, useBookletsByDoctor, useResponsive } from "@/hooks";
 import { CardPressable, EmptyState, BookletCard, PatientListSkeleton } from "@/components/ui";
+import { MasterDetail } from "@/components/layout";
+import { BookletDetailContent } from "@/components/doctor";
 
 export default function PatientsScreen() {
   const router = useRouter();
@@ -12,7 +14,9 @@ export default function PatientsScreen() {
   const doctorProfile = currentUser?.doctorProfile;
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
+  const { isTablet } = useResponsive();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBookletId, setSelectedBookletId] = useState<string | null>(null);
 
   const patientBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
 
@@ -27,7 +31,17 @@ export default function PatientsScreen() {
     return <PatientListSkeleton />;
   }
 
-  return (
+  // Handle booklet selection
+  const handleBookletPress = (bookletId: string) => {
+    if (isTablet) {
+      setSelectedBookletId(bookletId);
+    } else {
+      router.push(`/(doctor)/booklet/${bookletId}`);
+    }
+  };
+
+  // Patient list component (used as master in split view)
+  const patientList = (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Search */}
       <View className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
@@ -73,12 +87,41 @@ export default function PatientsScreen() {
             <BookletCard
               key={booklet.id}
               booklet={booklet}
-              onPress={() => router.push(`/(doctor)/booklet/${booklet.id}`)}
+              onPress={() => handleBookletPress(booklet.id)}
               variant="doctor"
+              selected={isTablet && selectedBookletId === booklet.id}
             />
           ))
         )}
       </ScrollView>
     </View>
   );
+
+  // On tablet, use master-detail layout
+  if (isTablet) {
+    return (
+      <MasterDetail
+        master={patientList}
+        detail={
+          selectedBookletId ? (
+            <BookletDetailContent bookletId={selectedBookletId} embedded />
+          ) : null
+        }
+        emptyDetail={
+          <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <EmptyState
+              icon={Users}
+              iconColor="#3b82f6"
+              iconBgClassName="bg-blue-50 dark:bg-blue-900/30"
+              title="Select a patient"
+              description="Choose a patient from the list to view their booklet"
+            />
+          </View>
+        }
+      />
+    );
+  }
+
+  // On phone, just show the list
+  return patientList;
 }

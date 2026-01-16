@@ -70,3 +70,6 @@ export {
   useDeleteClinic,
   useSetPrimaryClinic,
 } from "./clinics";
+
+// Responsive hooks
+export { useResponsive, type ResponsiveValues, type DeviceType } from "./useResponsive";
