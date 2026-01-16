@@ -8,3 +8,9 @@ export { VitalsDisplay } from "./VitalsDisplay";
 
 // Doctor-specific components
 export * from "./doctor";
+
+// Navigation components
+export * from "./navigation";
+
+// Layout components
+export * from "./layout";

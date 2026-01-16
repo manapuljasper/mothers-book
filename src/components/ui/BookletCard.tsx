@@ -7,6 +7,8 @@ interface BookletCardProps {
   booklet: MotherBooklet | BookletWithMother;
   onPress: () => void;
   variant?: "mother" | "doctor";
+  /** Whether this card is selected (for master-detail pattern) */
+  selected?: boolean;
 }
 
 const statusColors = {
@@ -28,14 +30,23 @@ export function BookletCard({
   booklet,
   onPress,
   variant = "mother",
+  selected = false,
 }: BookletCardProps) {
   const colors = statusColors[booklet.status] || statusColors.active;
   const isDoctor = variant === "doctor";
   const hasMotherName = "motherName" in booklet;
 
+  // Selected state styling (for master-detail)
+  const selectedBorder = selected
+    ? "border-blue-500 dark:border-blue-400"
+    : "border-gray-100 dark:border-gray-700";
+  const selectedBg = selected
+    ? "bg-blue-50 dark:bg-blue-900/20"
+    : "bg-white dark:bg-gray-800";
+
   return (
     <CardPressable
-      className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-3 border border-gray-100 dark:border-gray-700"
+      className={`${selectedBg} rounded-xl p-5 mb-3 border ${selectedBorder}`}
       onPress={onPress}
     >
       <View className="flex-row justify-between items-start">

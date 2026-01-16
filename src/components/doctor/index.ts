@@ -6,3 +6,6 @@ export { EditMedicationModal } from "./EditMedicationModal";
 export { HistoryTabContent } from "./HistoryTabContent";
 export { MedsTabContent } from "./MedsTabContent";
 export { LabsTabContent } from "./LabsTabContent";
+
+// Reusable booklet detail content
+export { BookletDetailContent } from "./BookletDetailContent";
