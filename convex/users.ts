@@ -7,7 +7,7 @@ import { Doc } from "./_generated/dataModel";
 // QUERIES
 // ============================================================================
 
-// Get current authenticated user with both profiles
+// Get current authenticated user with all profiles
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
@@ -17,17 +17,22 @@ export const getCurrentUser = query({
     const user = await ctx.db.get(userId);
     if (!user) return null;
 
-    const doctorProfile = await ctx.db
-      .query("doctorProfiles")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
+    const [doctorProfile, motherProfile, superAdminProfile] = await Promise.all([
+      ctx.db
+        .query("doctorProfiles")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .first(),
+      ctx.db
+        .query("motherProfiles")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .first(),
+      ctx.db
+        .query("superAdminProfiles")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .first(),
+    ]);
 
-    const motherProfile = await ctx.db
-      .query("motherProfiles")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    return { user, doctorProfile, motherProfile };
+    return { user, doctorProfile, motherProfile, superAdminProfile };
   },
 });
 

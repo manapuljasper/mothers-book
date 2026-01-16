@@ -121,6 +121,51 @@ export const updateEntry = mutation({
   },
 });
 
+// List entries by doctor created today (for dashboard)
+export const listEntriesByDoctorToday = query({
+  args: { doctorId: v.id("doctorProfiles") },
+  handler: async (ctx, args) => {
+    // Get start and end of today in UTC
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+
+    // Get all entries by this doctor
+    const allEntries = await ctx.db
+      .query("medicalEntries")
+      .withIndex("by_doctor", (q) => q.eq("doctorId", args.doctorId))
+      .order("desc")
+      .collect();
+
+    // Filter to entries created today
+    const todayEntries = allEntries.filter(
+      (entry) => entry._creationTime >= startOfDay && entry._creationTime < endOfDay
+    );
+
+    // Join with booklet and mother info
+    const entriesWithDetails = await Promise.all(
+      todayEntries.map(async (entry) => {
+        const booklet = await ctx.db.get(entry.bookletId);
+        if (!booklet) return null;
+
+        const motherProfile = await ctx.db.get(booklet.motherId);
+        if (!motherProfile) return null;
+
+        const motherUser = await ctx.db.get(motherProfile.userId);
+
+        return {
+          ...entry,
+          bookletLabel: booklet.label,
+          motherName: motherUser?.fullName || "Unknown",
+          lastMenstrualPeriod: booklet.lastMenstrualPeriod,
+        };
+      })
+    );
+
+    return entriesWithDetails.filter((e) => e !== null);
+  },
+});
+
 // ========== Lab Requests ==========
 
 // List labs by booklet with doctor info

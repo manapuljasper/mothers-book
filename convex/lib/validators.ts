@@ -48,7 +48,8 @@ export type BookletStatus = Infer<typeof bookletStatusValidator>;
 // User role validator
 export const userRoleValidator = v.union(
   v.literal("doctor"),
-  v.literal("mother")
+  v.literal("mother"),
+  v.literal("super_admin")
 );
 
 export type UserRole = Infer<typeof userRoleValidator>;
@@ -112,3 +113,68 @@ export const DEFAULT_TIMES_BY_FREQUENCY: Record<MedicationFrequency, string[]> =
 
 // QR token expiry in minutes
 export const QR_EXPIRY_MINUTES = 10;
+
+// Medication category validator
+export const medicationCategoryValidator = v.union(
+  v.literal("prenatal_vitamins"),
+  v.literal("iron_supplements"),
+  v.literal("calcium_supplements"),
+  v.literal("folic_acid"),
+  v.literal("antibiotics"),
+  v.literal("pain_relief"),
+  v.literal("anti_nausea"),
+  v.literal("blood_pressure"),
+  v.literal("hormones"),
+  v.literal("other")
+);
+
+export type MedicationCategory = Infer<typeof medicationCategoryValidator>;
+
+export const MEDICATION_CATEGORY_LABELS: Record<MedicationCategory, string> = {
+  prenatal_vitamins: "Prenatal Vitamins",
+  iron_supplements: "Iron Supplements",
+  calcium_supplements: "Calcium Supplements",
+  folic_acid: "Folic Acid",
+  antibiotics: "Antibiotics",
+  pain_relief: "Pain Relief",
+  anti_nausea: "Anti-Nausea",
+  blood_pressure: "Blood Pressure",
+  hormones: "Hormones",
+  other: "Other",
+};
+
+// Lab test category validator
+export const labCategoryValidator = v.union(
+  v.literal("blood_tests"),
+  v.literal("urinalysis"),
+  v.literal("imaging"),
+  v.literal("prenatal_screening"),
+  v.literal("glucose_tests"),
+  v.literal("infection_screening"),
+  v.literal("genetic_tests"),
+  v.literal("other")
+);
+
+export type LabCategory = Infer<typeof labCategoryValidator>;
+
+export const LAB_CATEGORY_LABELS: Record<LabCategory, string> = {
+  blood_tests: "Blood Tests",
+  urinalysis: "Urinalysis",
+  imaging: "Imaging",
+  prenatal_screening: "Prenatal Screening",
+  glucose_tests: "Glucose Tests",
+  infection_screening: "Infection Screening",
+  genetic_tests: "Genetic Tests",
+  other: "Other",
+};
+
+// Super admin permissions
+export const ADMIN_PERMISSIONS = [
+  "users:read",
+  "users:write",
+  "catalog:read",
+  "catalog:write",
+  "analytics:read",
+] as const;
+
+export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number];

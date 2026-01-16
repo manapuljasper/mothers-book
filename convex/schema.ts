@@ -196,4 +196,52 @@ export default defineSchema({
   })
     .index("by_booklet", ["bookletId"])
     .index("by_expires", ["expiresAt"]),
+
+  // Super Admin profiles (web-only)
+  superAdminProfiles: defineTable({
+    userId: v.id("users"),
+    permissions: v.array(v.string()),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Medication Catalog (CMS for standard medications)
+  medicationCatalog: defineTable({
+    name: v.string(),
+    genericName: v.string(),
+    category: v.string(),
+    defaultDosage: v.optional(v.string()),
+    dosageUnits: v.optional(v.array(v.string())),
+    instructions: v.optional(v.string()),
+    warnings: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    updatedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_name", ["name"])
+    .index("by_category", ["category"])
+    .index("by_active", ["isActive"])
+    .searchIndex("search_name", { searchField: "name" }),
+
+  // Lab Test Catalog (CMS for standard lab tests)
+  labCatalog: defineTable({
+    name: v.string(),
+    code: v.optional(v.string()),
+    category: v.string(),
+    description: v.optional(v.string()),
+    normalRange: v.optional(v.string()),
+    units: v.optional(v.string()),
+    preparation: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    updatedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_name", ["name"])
+    .index("by_code", ["code"])
+    .index("by_category", ["category"])
+    .index("by_active", ["isActive"])
+    .searchIndex("search_name", { searchField: "name" }),
 });

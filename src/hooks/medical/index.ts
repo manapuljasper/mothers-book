@@ -252,3 +252,37 @@ export function useDeleteLabRequest() {
     return await mutation({ id: id as Id<"labRequests"> });
   };
 }
+
+// Today's entries by doctor hooks
+
+type ConvexEntryWithDetails = ConvexEntry & {
+  bookletLabel: string;
+  motherName: string;
+  lastMenstrualPeriod?: number;
+};
+
+export interface EntryWithPatientDetails extends MedicalEntryWithDoctor {
+  bookletLabel: string;
+  motherName: string;
+  lastMenstrualPeriod?: Date;
+}
+
+function transformEntryWithDetails(doc: ConvexEntryWithDetails): EntryWithPatientDetails {
+  return {
+    ...transformEntry(doc),
+    bookletLabel: doc.bookletLabel,
+    motherName: doc.motherName,
+    lastMenstrualPeriod: doc.lastMenstrualPeriod ? new Date(doc.lastMenstrualPeriod) : undefined,
+  };
+}
+
+export function useEntriesByDoctorToday(doctorId: Id<"doctorProfiles"> | undefined) {
+  const result = useQuery(
+    api.medical.listEntriesByDoctorToday,
+    doctorId ? { doctorId } : "skip"
+  );
+  return useMemo(() => {
+    if (result === undefined) return undefined;
+    return result.map((doc) => transformEntryWithDetails(doc as ConvexEntryWithDetails));
+  }, [result]);
+}

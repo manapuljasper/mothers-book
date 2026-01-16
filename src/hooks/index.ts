@@ -37,7 +37,9 @@ export {
   useCreateLabRequest,
   useUpdateLabStatus,
   useDeleteLabRequest,
+  useEntriesByDoctorToday,
 } from "./medical";
+export type { EntryWithPatientDetails } from "./medical";
 
 // Medication hooks
 export {
