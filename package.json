@@ -12,6 +12,7 @@
     "@auth/core": "~0.37.0",
     "@convex-dev/auth": "^0.0.90",
     "@react-native-community/datetimepicker": "^8.6.0",
+    "@react-native-community/netinfo": "^11.4.1",
     "convex": "1.30.0",
     "dayjs": "^1.11.19",
     "expo": "~54.0.31",

@@ -70,3 +70,36 @@ export {
   useDeleteClinic,
   useSetPrimaryClinic,
 } from "./clinics";
+
+// Offline hooks - core
+export {
+  useOfflineQuery,
+  useOfflineMutation,
+  useSyncProcessor,
+  useNetworkListener,
+} from "./offline";
+export type {
+  UseOfflineQueryOptions,
+  UseOfflineQueryResult,
+  UseOfflineMutationOptions,
+  UseOfflineMutationResult,
+} from "./offline";
+
+// Offline hooks - pre-configured wrappers
+export {
+  useBookletsByMotherOffline,
+  useBookletsByDoctorOffline,
+  useCreateBookletOffline,
+  useEntriesByBookletOffline,
+  useCreateEntryOffline,
+  useUpdateEntryOffline,
+  useLabsByBookletOffline,
+  useCreateLabOffline,
+  useUpdateLabStatusOffline,
+  useMedicationsByBookletOffline,
+  useActiveMedicationsOffline,
+  useCreateMedicationOffline,
+  useUpdateMedicationOffline,
+  useLogIntakeOffline,
+  useAllDoctorsOffline,
+} from "./offline";
