@@ -55,3 +55,13 @@ export {
   MEDICATION_CATEGORY_LABELS,
   LAB_CATEGORY_LABELS,
 } from './catalog.types';
+
+// Entry form types
+export type {
+  LabPriority,
+  PendingMedication,
+  PendingLabRequest,
+  EntryFormData,
+  DoctorFavorite,
+} from './entry-form.types';
+export { LAB_PRIORITY_LABELS } from './entry-form.types';

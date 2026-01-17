@@ -8,7 +8,15 @@ import { useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
-import type { MedicalEntry, MedicalEntryWithDoctor, LabRequest, LabRequestWithDoctor } from "../../types";
+import type {
+  MedicalEntry,
+  MedicalEntryWithDoctor,
+  LabRequest,
+  LabRequestWithDoctor,
+  PendingMedication,
+  PendingLabRequest,
+  MedicationFrequency,
+} from "../../types";
 
 // Transform entry document to app type
 type ConvexEntry = {
@@ -56,6 +64,8 @@ type ConvexLab = {
   requestedByDoctorId?: Id<"doctorProfiles">;
   description: string;
   status: LabRequest["status"];
+  priority?: "routine" | "urgent" | "stat";
+  dueDate?: number;
   requestedDate: number;
   completedDate?: number;
   results?: string;
@@ -73,6 +83,8 @@ function transformLab(doc: ConvexLab): LabRequestWithDoctor {
     requestedByDoctorId: doc.requestedByDoctorId as string | undefined,
     description: doc.description,
     status: doc.status,
+    priority: doc.priority,
+    dueDate: doc.dueDate ? new Date(doc.dueDate) : undefined,
     requestedDate: new Date(doc.requestedDate),
     completedDate: doc.completedDate ? new Date(doc.completedDate) : undefined,
     results: doc.results,
@@ -296,4 +308,118 @@ export function useEntriesByDoctorToday(doctorId: Id<"doctorProfiles"> | undefin
     if (result === undefined) return undefined;
     return result.map((doc) => transformEntryWithDetails(doc as ConvexEntryWithDetails));
   }, [result]);
+}
+
+// ========== Create/Update Entry With Items ==========
+
+/**
+ * Create a medical entry with linked medications and lab requests atomically
+ */
+export function useCreateEntryWithItems() {
+  const mutation = useMutation(api.medical.createEntryWithItems);
+
+  return async (args: {
+    bookletId: string;
+    doctorId: Id<"doctorProfiles">;
+    entryType: MedicalEntry["entryType"];
+    visitDate: Date | number;
+    notes: string;
+    vitals?: MedicalEntry["vitals"];
+    diagnosis?: string;
+    recommendations?: string;
+    followUpDate?: Date | number;
+    attachments?: string[];
+    medications?: PendingMedication[];
+    labRequests?: PendingLabRequest[];
+  }) => {
+    // Transform pending medications to the format expected by the mutation
+    const medications = args.medications?.map((med) => ({
+      name: med.name,
+      dosageAmount: med.dosageAmount,
+      dosageUnit: med.dosageUnit,
+      instructions: med.instructions || undefined,
+      frequencyPerDay: med.frequencyPerDay,
+      endDate: med.endDate ? med.endDate.getTime() : undefined,
+    }));
+
+    // Transform pending lab requests
+    const labRequests = args.labRequests?.map((lab) => ({
+      name: lab.name,
+      notes: lab.notes,
+      priority: lab.priority,
+      dueDate: lab.dueDate ? lab.dueDate.getTime() : undefined,
+    }));
+
+    return await mutation({
+      bookletId: args.bookletId as Id<"booklets">,
+      doctorId: args.doctorId,
+      entryType: args.entryType,
+      visitDate: args.visitDate instanceof Date ? args.visitDate.getTime() : args.visitDate,
+      notes: args.notes,
+      vitals: args.vitals,
+      diagnosis: args.diagnosis,
+      recommendations: args.recommendations,
+      followUpDate: args.followUpDate instanceof Date ? args.followUpDate.getTime() : args.followUpDate,
+      attachments: args.attachments,
+      medications,
+      labRequests,
+    });
+  };
+}
+
+/**
+ * Update a medical entry with new/removed medications and lab requests
+ */
+export function useUpdateEntryWithItems() {
+  const mutation = useMutation(api.medical.updateEntryWithItems);
+
+  return async (args: {
+    entryId: string;
+    entryType?: MedicalEntry["entryType"];
+    visitDate?: Date | number;
+    notes?: string;
+    vitals?: MedicalEntry["vitals"];
+    diagnosis?: string;
+    recommendations?: string;
+    followUpDate?: Date | number;
+    attachments?: string[];
+    newMedications?: PendingMedication[];
+    newLabRequests?: PendingLabRequest[];
+    removeMedicationIds?: string[];
+    removeLabRequestIds?: string[];
+  }) => {
+    // Transform new medications
+    const newMedications = args.newMedications?.map((med) => ({
+      name: med.name,
+      dosageAmount: med.dosageAmount,
+      dosageUnit: med.dosageUnit,
+      instructions: med.instructions || undefined,
+      frequencyPerDay: med.frequencyPerDay,
+      endDate: med.endDate ? med.endDate.getTime() : undefined,
+    }));
+
+    // Transform new lab requests
+    const newLabRequests = args.newLabRequests?.map((lab) => ({
+      name: lab.name,
+      notes: lab.notes,
+      priority: lab.priority,
+      dueDate: lab.dueDate ? lab.dueDate.getTime() : undefined,
+    }));
+
+    return await mutation({
+      entryId: args.entryId as Id<"medicalEntries">,
+      entryType: args.entryType,
+      visitDate: args.visitDate instanceof Date ? args.visitDate.getTime() : args.visitDate,
+      notes: args.notes,
+      vitals: args.vitals,
+      diagnosis: args.diagnosis,
+      recommendations: args.recommendations,
+      followUpDate: args.followUpDate instanceof Date ? args.followUpDate.getTime() : args.followUpDate,
+      attachments: args.attachments,
+      newMedications,
+      newLabRequests,
+      removeMedicationIds: args.removeMedicationIds?.map((id) => id as Id<"medications">),
+      removeLabRequestIds: args.removeLabRequestIds?.map((id) => id as Id<"labRequests">),
+    });
+  };
 }

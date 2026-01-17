@@ -21,17 +21,24 @@ import {
   CalendarDays,
   CalendarClock,
   X,
+  Pill,
+  FlaskConical,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react-native";
 import {
   useCurrentUser,
   useBookletByIdWithMother,
   useEntriesByBooklet,
-  useCreateEntry,
+  useCreateEntryWithItems,
   useUpdateEntry,
+  useIncrementUsageByName,
 } from "@/hooks";
-import { computeAOG, formatDate, getDateString } from "@/utils";
-import { VitalInput, LoadingScreen } from "@/components/ui";
-import type { MedicalEntryWithDoctor } from "@/types";
+import { computeAOG, formatDate, getDateString, generateId } from "@/utils";
+import { VitalInput, LoadingScreen, AnimatedCollapsible } from "@/components/ui";
+import { MedicationForm, hasUnfinishedMedicationForm } from "@/components/doctor/MedicationForm";
+import { LabRequestForm, hasUnfinishedLabForm } from "@/components/doctor/LabRequestForm";
+import type { MedicalEntryWithDoctor, PendingMedication, PendingLabRequest } from "@/types";
 
 export default function AddEntryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
@@ -45,8 +52,9 @@ export default function AddEntryScreen() {
   const entries = useEntriesByBooklet(bookletId);
 
   // Mutations
-  const createEntry = useCreateEntry();
+  const createEntryWithItems = useCreateEntryWithItems();
   const updateEntry = useUpdateEntry();
+  const incrementUsage = useIncrementUsageByName();
 
   // Form state
   const [entryDate, setEntryDate] = useState(new Date());
@@ -61,6 +69,12 @@ export default function AddEntryScreen() {
   const [tempFollowUpDate, setTempFollowUpDate] = useState(new Date());
   const [showFollowUpPicker, setShowFollowUpPicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Medications and Lab Requests state
+  const [pendingMedications, setPendingMedications] = useState<PendingMedication[]>([]);
+  const [pendingLabRequests, setPendingLabRequests] = useState<PendingLabRequest[]>([]);
+  const [medicationsExpanded, setMedicationsExpanded] = useState(false);
+  const [labsExpanded, setLabsExpanded] = useState(false);
 
   // Track the entry being edited (if any)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
@@ -106,8 +120,36 @@ export default function AddEntryScreen() {
       bpValue !== "" ||
       weight !== "" ||
       fhr !== "" ||
-      followUpDate !== null
+      followUpDate !== null ||
+      pendingMedications.length > 0 ||
+      pendingLabRequests.length > 0
     );
+  };
+
+  // Medication handlers
+  const handleAddMedication = (med: Omit<PendingMedication, "id">) => {
+    const newMed: PendingMedication = {
+      ...med,
+      id: generateId(),
+    };
+    setPendingMedications((prev) => [...prev, newMed]);
+  };
+
+  const handleRemoveMedication = (id: string) => {
+    setPendingMedications((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  // Lab request handlers
+  const handleAddLabRequest = (lab: Omit<PendingLabRequest, "id">) => {
+    const newLab: PendingLabRequest = {
+      ...lab,
+      id: generateId(),
+    };
+    setPendingLabRequests((prev) => [...prev, newLab]);
+  };
+
+  const handleRemoveLabRequest = (id: string) => {
+    setPendingLabRequests((prev) => prev.filter((l) => l.id !== id));
   };
 
   // Prefill form with entry data
@@ -130,6 +172,8 @@ export default function AddEntryScreen() {
     setInstructions("");
     setFollowUpDate(null);
     setEditingEntryId(null);
+    setPendingMedications([]);
+    setPendingLabRequests([]);
   };
 
   // Handle date picker open
@@ -236,7 +280,7 @@ export default function AddEntryScreen() {
       if (aogWeeks) entryVitals.aog = aogWeeks;
 
       if (isEdit && editingEntryId) {
-        // Update existing entry
+        // Update existing entry (medications/labs not supported in edit mode yet)
         await updateEntry({
           id: editingEntryId,
           updates: {
@@ -248,8 +292,8 @@ export default function AddEntryScreen() {
           },
         });
       } else {
-        // Create new entry
-        await createEntry({
+        // Create new entry with medications and labs
+        await createEntryWithItems({
           bookletId,
           doctorId: doctorProfile._id,
           entryType: "prenatal_checkup",
@@ -258,7 +302,31 @@ export default function AddEntryScreen() {
           recommendations: instructions || undefined,
           vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
           followUpDate: followUpDate ? followUpDate.getTime() : undefined,
+          medications: pendingMedications.length > 0 ? pendingMedications : undefined,
+          labRequests: pendingLabRequests.length > 0 ? pendingLabRequests : undefined,
         });
+
+        // Track usage for favorites (async, don't block)
+        for (const med of pendingMedications) {
+          incrementUsage({
+            doctorId: doctorProfile._id,
+            itemType: "medication",
+            name: med.name,
+            defaultDosage: parseFloat(med.dosageAmount) || undefined,
+            defaultDosageUnit: med.dosageUnit,
+            defaultFrequency: med.frequencyPerDay,
+            defaultInstructions: med.instructions || undefined,
+          }).catch(() => {}); // Ignore errors
+        }
+
+        for (const lab of pendingLabRequests) {
+          incrementUsage({
+            doctorId: doctorProfile._id,
+            itemType: "lab",
+            name: lab.name,
+            defaultPriority: lab.priority,
+          }).catch(() => {}); // Ignore errors
+        }
       }
 
       router.back();
@@ -469,6 +537,68 @@ export default function AddEntryScreen() {
           numberOfLines={4}
           textAlignVertical="top"
         />
+
+        {/* Divider before collapsible sections */}
+        <View style={styles.divider} />
+
+        {/* Medications Section (Collapsible) */}
+        <TouchableOpacity
+          onPress={() => setMedicationsExpanded(!medicationsExpanded)}
+          style={styles.collapsibleHeader}
+          activeOpacity={0.7}
+        >
+          <View style={styles.collapsibleHeaderLeft}>
+            <Pill size={18} color="#22c55e" strokeWidth={1.5} />
+            <Text style={styles.collapsibleHeaderText}>
+              Medications {pendingMedications.length > 0 ? `(${pendingMedications.length})` : "(Optional)"}
+            </Text>
+          </View>
+          {medicationsExpanded ? (
+            <ChevronDown size={20} color="#6b7280" strokeWidth={1.5} />
+          ) : (
+            <ChevronRight size={20} color="#6b7280" strokeWidth={1.5} />
+          )}
+        </TouchableOpacity>
+        <AnimatedCollapsible expanded={medicationsExpanded}>
+          <View style={styles.collapsibleContent}>
+            <MedicationForm
+              doctorId={doctorProfile?._id}
+              pendingMeds={pendingMedications}
+              onAddMedication={handleAddMedication}
+              onRemoveMedication={handleRemoveMedication}
+              defaultEndDate={followUpDate}
+            />
+          </View>
+        </AnimatedCollapsible>
+
+        {/* Lab Requests Section (Collapsible) */}
+        <TouchableOpacity
+          onPress={() => setLabsExpanded(!labsExpanded)}
+          style={[styles.collapsibleHeader, { marginTop: 12 }]}
+          activeOpacity={0.7}
+        >
+          <View style={styles.collapsibleHeaderLeft}>
+            <FlaskConical size={18} color="#3b82f6" strokeWidth={1.5} />
+            <Text style={styles.collapsibleHeaderText}>
+              Lab Requests {pendingLabRequests.length > 0 ? `(${pendingLabRequests.length})` : "(Optional)"}
+            </Text>
+          </View>
+          {labsExpanded ? (
+            <ChevronDown size={20} color="#6b7280" strokeWidth={1.5} />
+          ) : (
+            <ChevronRight size={20} color="#6b7280" strokeWidth={1.5} />
+          )}
+        </TouchableOpacity>
+        <AnimatedCollapsible expanded={labsExpanded}>
+          <View style={styles.collapsibleContent}>
+            <LabRequestForm
+              doctorId={doctorProfile?._id}
+              pendingLabs={pendingLabRequests}
+              onAddLab={handleAddLabRequest}
+              onRemoveLab={handleRemoveLabRequest}
+            />
+          </View>
+        </AnimatedCollapsible>
 
         {/* Next Visitation Section */}
         <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
@@ -760,5 +890,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#324867",
     borderRadius: 12,
+  },
+  collapsibleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#192433",
+    borderWidth: 1,
+    borderColor: "#324867",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  collapsibleHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  collapsibleHeaderText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#ffffff",
+  },
+  collapsibleContent: {
+    marginTop: 8,
   },
 });

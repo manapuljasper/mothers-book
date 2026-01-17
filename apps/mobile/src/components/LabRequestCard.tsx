@@ -21,6 +21,26 @@ interface LabRequestCardProps {
   action?: React.ReactNode;
 }
 
+// Priority badge styling helper
+function getPriorityBadgeClasses(priority: string | undefined) {
+  switch (priority) {
+    case "urgent":
+      return {
+        bg: "bg-amber-100 dark:bg-amber-900/30",
+        border: "border-amber-200 dark:border-amber-700",
+        text: "text-amber-700 dark:text-amber-300",
+      };
+    case "stat":
+      return {
+        bg: "bg-red-100 dark:bg-red-900/30",
+        border: "border-red-200 dark:border-red-700",
+        text: "text-red-700 dark:text-red-300",
+      };
+    default:
+      return null; // Don't show badge for routine
+  }
+}
+
 export function LabRequestCard({
   lab,
   variant = "card",
@@ -40,12 +60,26 @@ export function LabRequestCard({
       ? "pending"
       : "cancelled";
 
+  // Priority badge classes (only for urgent/stat)
+  const priorityClasses = getPriorityBadgeClasses(lab.priority);
+
   return (
     <View className={containerClasses}>
       <View className="flex-row justify-between items-start">
-        <Text className="font-medium text-gray-900 dark:text-white flex-1 mr-2">
-          {lab.description}
-        </Text>
+        <View className="flex-1 mr-2">
+          <View className="flex-row items-center">
+            <Text className="font-medium text-gray-900 dark:text-white">
+              {lab.description}
+            </Text>
+            {priorityClasses && (
+              <View className={`ml-2 px-2 py-0.5 rounded border ${priorityClasses.bg} ${priorityClasses.border}`}>
+                <Text className={`text-xs font-medium ${priorityClasses.text}`}>
+                  {lab.priority?.toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
         <StatusBadge status={badgeStatus} label={LAB_STATUS_LABELS[lab.status]} />
       </View>
 
@@ -54,6 +88,11 @@ export function LabRequestCard({
           <Text className="text-gray-400 text-xs mr-3">
             Requested: {formatDate(lab.requestedDate)}
           </Text>
+          {lab.dueDate && (
+            <Text className="text-blue-500 dark:text-blue-400 text-xs mr-3">
+              Due: {formatDate(lab.dueDate)}
+            </Text>
+          )}
           {lab.completedDate && (
             <Text className="text-gray-400 text-xs">
               Completed: {formatDate(lab.completedDate)}

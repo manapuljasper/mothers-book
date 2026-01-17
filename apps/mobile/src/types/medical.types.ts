@@ -9,6 +9,7 @@ export type EntryType =
   | 'other';
 
 export type LabStatus = 'pending' | 'completed' | 'cancelled';
+export type LabPriorityType = 'routine' | 'urgent' | 'stat';
 
 export interface Vitals {
   bloodPressure?: string;
@@ -43,6 +44,8 @@ export interface LabRequest {
   requestedByDoctorId?: string; // Doctor who requested the lab
   description: string;
   status: LabStatus;
+  priority?: LabPriorityType; // Routine, Urgent, or STAT
+  dueDate?: Date; // When results are needed
   requestedDate: Date;
   completedDate?: Date;
   results?: string;

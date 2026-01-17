@@ -136,6 +136,10 @@ export default defineSchema({
       v.literal("completed"),
       v.literal("cancelled")
     ),
+    priority: v.optional(
+      v.union(v.literal("routine"), v.literal("urgent"), v.literal("stat"))
+    ),
+    dueDate: v.optional(v.number()), // Unix timestamp
     requestedDate: v.number(),
     completedDate: v.optional(v.number()),
     results: v.optional(v.string()),
@@ -202,6 +206,31 @@ export default defineSchema({
     permissions: v.array(v.string()),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  // Doctor favorites (frequently used medications/labs)
+  doctorFavorites: defineTable({
+    doctorId: v.id("doctorProfiles"),
+    itemType: v.union(v.literal("medication"), v.literal("lab")),
+    // Denormalized data (copied, not referenced)
+    name: v.string(),
+    genericName: v.optional(v.string()),
+    // Medication defaults
+    defaultDosage: v.optional(v.number()),
+    defaultDosageUnit: v.optional(v.string()),
+    defaultFrequency: v.optional(v.number()), // 1-4
+    defaultInstructions: v.optional(v.string()),
+    // Lab defaults
+    labCode: v.optional(v.string()),
+    defaultPriority: v.optional(
+      v.union(v.literal("routine"), v.literal("urgent"), v.literal("stat"))
+    ),
+    // Tracking
+    usageCount: v.number(), // Auto-incremented on each use
+    lastUsedAt: v.number(),
+    hasCustomDefaults: v.boolean(), // True if doctor manually saved with custom defaults
+  })
+    .index("by_doctor_type", ["doctorId", "itemType"])
+    .index("by_doctor_usage", ["doctorId", "usageCount"]),
 
   // Medication Catalog (CMS for standard medications)
   medicationCatalog: defineTable({

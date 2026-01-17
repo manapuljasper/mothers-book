@@ -51,8 +51,6 @@ export function useBookletByIdWithMother(id: string | undefined) {
     id ? { id: id as Id<"booklets"> } : "skip"
   );
 
-  console.log("result: ", result);
-
   return useMemo(() => {
     if (result === undefined) return undefined;
     if (result === null) return null;

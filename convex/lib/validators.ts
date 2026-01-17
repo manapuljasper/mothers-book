@@ -91,6 +91,21 @@ export const LAB_STATUS_LABELS: Record<LabStatus, string> = {
   cancelled: "Cancelled",
 };
 
+// Lab priority validator
+export const labPriorityValidator = v.union(
+  v.literal("routine"),
+  v.literal("urgent"),
+  v.literal("stat")
+);
+
+export type LabPriority = Infer<typeof labPriorityValidator>;
+
+export const LAB_PRIORITY_LABELS: Record<LabPriority, string> = {
+  routine: "Routine",
+  urgent: "Urgent",
+  stat: "STAT",
+};
+
 export const FREQUENCY_LABELS: Record<MedicationFrequency, string> = {
   1: "Once daily",
   2: "Twice daily",

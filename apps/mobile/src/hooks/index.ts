@@ -39,8 +39,22 @@ export {
   useUpdateLabStatus,
   useDeleteLabRequest,
   useEntriesByDoctorToday,
+  useCreateEntryWithItems,
+  useUpdateEntryWithItems,
 } from "./medical";
 export type { EntryWithPatientDetails } from "./medical";
+
+// Favorites hooks
+export {
+  useMedicationFavorites,
+  useLabFavorites,
+  useAllFavorites,
+  useAddToFavorites,
+  useIncrementFavoriteUsage,
+  useIncrementUsageByName,
+  useSaveWithCustomDefaults,
+  useRemoveFromFavorites,
+} from "./favorites";
 
 // Medication hooks
 export {

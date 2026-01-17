@@ -4,7 +4,9 @@ import { Id } from "./_generated/dataModel";
 import {
   entryTypeValidator,
   labStatusValidator,
+  labPriorityValidator,
   vitalsValidator,
+  medicationFrequencyValidator,
 } from "./lib/validators";
 
 // ========== Medical Entries ==========
@@ -333,5 +335,225 @@ export const deleteLab = mutation({
     await ctx.db.delete(args.id);
 
     return { success: true };
+  },
+});
+
+// ========== Create Entry With Items ==========
+
+// Medication item validator
+const pendingMedicationValidator = v.object({
+  name: v.string(),
+  dosageAmount: v.string(),
+  dosageUnit: v.string(),
+  instructions: v.optional(v.string()),
+  frequencyPerDay: medicationFrequencyValidator,
+  endDate: v.optional(v.number()),
+});
+
+// Lab request item validator
+const pendingLabValidator = v.object({
+  name: v.string(),
+  notes: v.optional(v.string()),
+  priority: labPriorityValidator,
+  dueDate: v.optional(v.number()),
+});
+
+// Create medical entry with medications and lab requests atomically
+export const createEntryWithItems = mutation({
+  args: {
+    // Entry fields
+    bookletId: v.id("booklets"),
+    doctorId: v.id("doctorProfiles"),
+    entryType: entryTypeValidator,
+    visitDate: v.number(),
+    notes: v.string(),
+    vitals: v.optional(vitalsValidator),
+    diagnosis: v.optional(v.string()),
+    recommendations: v.optional(v.string()),
+    followUpDate: v.optional(v.number()),
+    attachments: v.optional(v.array(v.string())),
+    // Linked items
+    medications: v.optional(v.array(pendingMedicationValidator)),
+    labRequests: v.optional(v.array(pendingLabValidator)),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    // 1. Create the medical entry
+    const entryId = await ctx.db.insert("medicalEntries", {
+      bookletId: args.bookletId,
+      doctorId: args.doctorId,
+      entryType: args.entryType,
+      visitDate: args.visitDate,
+      notes: args.notes,
+      vitals: args.vitals,
+      diagnosis: args.diagnosis,
+      recommendations: args.recommendations,
+      followUpDate: args.followUpDate,
+      attachments: args.attachments,
+    });
+
+    const createdMedications: Id<"medications">[] = [];
+    const createdLabRequests: Id<"labRequests">[] = [];
+
+    // 2. Create linked medications
+    if (args.medications && args.medications.length > 0) {
+      for (const med of args.medications) {
+        const medId = await ctx.db.insert("medications", {
+          bookletId: args.bookletId,
+          medicalEntryId: entryId,
+          name: med.name,
+          dosage: `${med.dosageAmount} ${med.dosageUnit}`,
+          instructions: med.instructions,
+          startDate: args.visitDate,
+          endDate: med.endDate,
+          frequencyPerDay: med.frequencyPerDay,
+          isActive: true,
+        });
+        createdMedications.push(medId);
+      }
+    }
+
+    // 3. Create linked lab requests
+    if (args.labRequests && args.labRequests.length > 0) {
+      for (const lab of args.labRequests) {
+        const labId = await ctx.db.insert("labRequests", {
+          bookletId: args.bookletId,
+          medicalEntryId: entryId,
+          requestedByDoctorId: args.doctorId,
+          description: lab.name,
+          status: "pending",
+          priority: lab.priority,
+          dueDate: lab.dueDate,
+          requestedDate: args.visitDate,
+          notes: lab.notes,
+        });
+        createdLabRequests.push(labId);
+      }
+    }
+
+    return {
+      entryId,
+      medicationIds: createdMedications,
+      labRequestIds: createdLabRequests,
+    };
+  },
+});
+
+// Update entry with items (for editing existing entries)
+export const updateEntryWithItems = mutation({
+  args: {
+    // Entry ID to update
+    entryId: v.id("medicalEntries"),
+    // Entry fields (all optional for updates)
+    entryType: v.optional(entryTypeValidator),
+    visitDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    vitals: v.optional(vitalsValidator),
+    diagnosis: v.optional(v.string()),
+    recommendations: v.optional(v.string()),
+    followUpDate: v.optional(v.number()),
+    attachments: v.optional(v.array(v.string())),
+    // New medications to add
+    newMedications: v.optional(v.array(pendingMedicationValidator)),
+    // New lab requests to add
+    newLabRequests: v.optional(v.array(pendingLabValidator)),
+    // IDs of medications to remove
+    removeMedicationIds: v.optional(v.array(v.id("medications"))),
+    // IDs of lab requests to remove
+    removeLabRequestIds: v.optional(v.array(v.id("labRequests"))),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    const entry = await ctx.db.get(args.entryId);
+    if (!entry) {
+      throw new Error("Entry not found");
+    }
+
+    // 1. Update entry fields
+    const entryUpdates: Record<string, unknown> = {};
+    if (args.entryType !== undefined) entryUpdates.entryType = args.entryType;
+    if (args.visitDate !== undefined) entryUpdates.visitDate = args.visitDate;
+    if (args.notes !== undefined) entryUpdates.notes = args.notes;
+    if (args.vitals !== undefined) entryUpdates.vitals = args.vitals;
+    if (args.diagnosis !== undefined) entryUpdates.diagnosis = args.diagnosis;
+    if (args.recommendations !== undefined)
+      entryUpdates.recommendations = args.recommendations;
+    if (args.followUpDate !== undefined)
+      entryUpdates.followUpDate = args.followUpDate;
+    if (args.attachments !== undefined)
+      entryUpdates.attachments = args.attachments;
+
+    if (Object.keys(entryUpdates).length > 0) {
+      await ctx.db.patch(args.entryId, entryUpdates);
+    }
+
+    // 2. Remove medications
+    if (args.removeMedicationIds && args.removeMedicationIds.length > 0) {
+      for (const medId of args.removeMedicationIds) {
+        await ctx.db.delete(medId);
+      }
+    }
+
+    // 3. Remove lab requests
+    if (args.removeLabRequestIds && args.removeLabRequestIds.length > 0) {
+      for (const labId of args.removeLabRequestIds) {
+        await ctx.db.delete(labId);
+      }
+    }
+
+    const createdMedications: Id<"medications">[] = [];
+    const createdLabRequests: Id<"labRequests">[] = [];
+
+    // 4. Add new medications
+    if (args.newMedications && args.newMedications.length > 0) {
+      const visitDate = args.visitDate ?? entry.visitDate;
+      for (const med of args.newMedications) {
+        const medId = await ctx.db.insert("medications", {
+          bookletId: entry.bookletId,
+          medicalEntryId: args.entryId,
+          name: med.name,
+          dosage: `${med.dosageAmount} ${med.dosageUnit}`,
+          instructions: med.instructions,
+          startDate: visitDate,
+          endDate: med.endDate,
+          frequencyPerDay: med.frequencyPerDay,
+          isActive: true,
+        });
+        createdMedications.push(medId);
+      }
+    }
+
+    // 5. Add new lab requests
+    if (args.newLabRequests && args.newLabRequests.length > 0) {
+      const visitDate = args.visitDate ?? entry.visitDate;
+      for (const lab of args.newLabRequests) {
+        const labId = await ctx.db.insert("labRequests", {
+          bookletId: entry.bookletId,
+          medicalEntryId: args.entryId,
+          requestedByDoctorId: entry.doctorId,
+          description: lab.name,
+          status: "pending",
+          priority: lab.priority,
+          dueDate: lab.dueDate,
+          requestedDate: visitDate,
+          notes: lab.notes,
+        });
+        createdLabRequests.push(labId);
+      }
+    }
+
+    return {
+      entryId: args.entryId,
+      newMedicationIds: createdMedications,
+      newLabRequestIds: createdLabRequests,
+    };
   },
 });

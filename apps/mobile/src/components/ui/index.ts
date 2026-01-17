@@ -27,6 +27,7 @@ export { LoadingScreen } from "./LoadingScreen";
 export { ModalHeader } from "./ModalHeader";
 export { CollapsibleSectionHeader } from "./CollapsibleSectionHeader";
 export { DatePickerButton } from "./DatePickerButton";
+export { FavoriteChip } from "./FavoriteChip";
 
 // Timeline components
 export { TimelineDateBadge } from "./TimelineDateBadge";
