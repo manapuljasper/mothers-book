@@ -11,9 +11,17 @@
     "mobile:android": "yarn workspace @mothers-book/mobile android",
     "web": "yarn workspace @mothers-book/web dev",
     "web:build": "yarn workspace @mothers-book/web build",
-    "convex:dev": "npx convex dev"
+    "convex:dev": "npx convex dev",
+    "mobile:prebuild": "yarn workspace @mothers-book/mobile prebuild",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "devDependencies": {
     "convex": "1.30.0"
+  },
+  "dependencies": {
+    "expo": "~54.0.31",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }

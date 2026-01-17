@@ -21,7 +21,8 @@ export default function HomePage() {
     } else if (role === "doctor") {
       redirect("/doctor");
     } else if (role === "mother") {
-      redirect("/mother");
+      // Mothers should not access web portal - redirect to login where they'll see error
+      redirect("/login");
     } else {
       // No profile yet, go to login
       redirect("/login");

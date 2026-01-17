@@ -4,6 +4,7 @@ import { MMKV } from 'react-native-mmkv';
 export enum StorageKey {
   // Auth
   AUTH_STATE = 'auth.state',
+  SELECTED_ROLE = 'auth.selectedRole',
 
   // Data entities
   USERS = 'data.users',

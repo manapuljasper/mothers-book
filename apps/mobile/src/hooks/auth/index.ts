@@ -1,7 +1,6 @@
 import { useQuery, useMutation } from "convex/react";
 import { useAuth as useClerkAuth, useSignIn as useClerkSignIn, useSignUp as useClerkSignUp } from "@clerk/clerk-expo";
 import { api } from "@convex/_generated/api";
-import { useAuthStore } from "../../stores";
 import { useEffect } from "react";
 
 /**
@@ -24,6 +23,8 @@ export function useCurrentUser() {
   // Return undefined while loading to match existing component behavior
   if (!clerkLoaded) return undefined;
   if (isSignedIn && data === undefined) return undefined;
+  // User is signed in but not yet synced to Convex - show loading state
+  if (isSignedIn && data === null) return undefined;
 
   return data;
 }
@@ -96,14 +97,12 @@ export function useSignUp() {
 }
 
 /**
- * Sign out and clear role
+ * Sign out (keeps role selection for faster re-login)
  */
 export function useSignOut() {
   const { signOut } = useClerkAuth();
-  const clearRole = useAuthStore((s) => s.clearRole);
 
   return async () => {
-    clearRole();
     await signOut();
   };
 }

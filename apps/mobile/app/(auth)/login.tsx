@@ -2,16 +2,24 @@ import { useState } from "react";
 import { View, Text, ScrollView, Alert } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Stethoscope, Heart } from "lucide-react-native";
 import { useSignIn } from "../../src/hooks";
+import { useAuthStore } from "../../src/stores";
 import { TextField, Button, ListItemPressable } from "../../src/components/ui";
 
 export default function LoginScreen() {
   const router = useRouter();
   const signIn = useSignIn();
+  const selectedRole = useAuthStore((s) => s.selectedRole);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const isDoctor = selectedRole === "doctor";
+  const roleLabel = isDoctor ? "Healthcare Provider" : "Patient";
+  const RoleIcon = isDoctor ? Stethoscope : Heart;
+  const roleColor = isDoctor ? "#2563eb" : "#db2777";
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -26,7 +34,7 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await signIn({ email: email.trim(), password });
-      router.replace("/(auth)/role-select");
+      router.replace("/");
     } catch (error) {
       Alert.alert(
         "Login Failed",
@@ -47,9 +55,27 @@ export default function LoginScreen() {
         <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
           Welcome Back
         </Text>
-        <Text className="text-gray-500 dark:text-gray-400 text-center mb-8">
-          Sign in to continue
-        </Text>
+
+        {selectedRole && (
+          <View className="flex-row items-center justify-center mb-6">
+            <RoleIcon size={20} color={roleColor} />
+            <Text
+              className={`ml-2 font-medium ${
+                isDoctor
+                  ? "text-blue-600 dark:text-blue-400"
+                  : "text-pink-600 dark:text-pink-400"
+              }`}
+            >
+              Sign in as {roleLabel}
+            </Text>
+          </View>
+        )}
+
+        {!selectedRole && (
+          <Text className="text-gray-500 dark:text-gray-400 text-center mb-8">
+            Sign in to continue
+          </Text>
+        )}
 
         <TextField
           label="Email"
@@ -95,6 +121,18 @@ export default function LoginScreen() {
             </ListItemPressable>
           </Link>
         </View>
+
+        {selectedRole && (
+          <View className="flex-row justify-center mt-4">
+            <Link href="/(auth)/welcome" asChild>
+              <ListItemPressable>
+                <Text className="text-gray-500 dark:text-gray-400">
+                  Switch role
+                </Text>
+              </ListItemPressable>
+            </Link>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

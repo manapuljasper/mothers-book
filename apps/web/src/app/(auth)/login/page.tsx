@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useCurrentUser, useSignIn, useSignUp } from "@/hooks";
-import { redirect, useRouter } from "next/navigation";
-import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useCurrentUser, useSignIn, useSignUp, useSignOut } from "@/hooks";
+import { Loader2, Mail, Lock, ArrowRight, AlertTriangle } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const signIn = useSignIn();
   const signUp = useSignUp();
+  const signOut = useSignOut();
   const { isAuthenticated, isLoading, role } = useCurrentUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,15 +15,20 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
+  const [showMotherError, setShowMotherError] = useState(false);
 
-  // Redirect if already authenticated
-  if (!isLoading && isAuthenticated) {
-    if (role === "super_admin") redirect("/admin");
-    if (role === "doctor") redirect("/doctor");
-    if (role === "mother") redirect("/mother");
-    // If no role, redirect to role selection
-    redirect("/role-select");
-  }
+  // Handle mother role detection and auto sign-out
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && role === "mother") {
+      setShowMotherError(true);
+      // Auto sign out after delay
+      const timer = setTimeout(async () => {
+        await signOut();
+        setShowMotherError(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isAuthenticated, role, signOut]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,21 +41,41 @@ export default function LoginPage() {
       } else {
         await signUp({ email, password, fullName });
       }
-      // After successful auth, the useCurrentUser hook will trigger sync and redirect
-      router.refresh();
+      // After successful auth, keep isSubmitting true - the layout will handle redirect
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
-    } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  // Show mother error screen
+  if (showMotherError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
-          <p className="text-sm text-[var(--text-secondary)]">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] p-8">
+        <div className="max-w-md w-full rounded-2xl bg-[var(--background-white)] border border-[var(--border)] p-8 shadow-sm text-center">
+          <div className="mx-auto w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-6">
+            <AlertTriangle className="h-8 w-8 text-amber-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-[var(--primary)] mb-3">
+            Web Portal Access Restricted
+          </h2>
+          <p className="text-[var(--text-secondary)] mb-6">
+            The web portal is for healthcare providers only. Please use the{" "}
+            <span className="font-medium text-[var(--primary)]">MaternaMD mobile app</span>{" "}
+            to access your health records and track your pregnancy journey.
+          </p>
+          <p className="text-sm text-[var(--text-muted)]">
+            Signing you out automatically...
+          </p>
+          <button
+            onClick={async () => {
+              await signOut();
+              setShowMotherError(false);
+            }}
+            className="mt-6 w-full rounded-xl bg-[var(--primary)] px-4 py-3 font-semibold text-white transition-all duration-200 hover:bg-[var(--primary-light)]"
+          >
+            Sign Out Now
+          </button>
         </div>
       </div>
     );
@@ -68,20 +92,20 @@ export default function LoginPage() {
 
         <div className="space-y-6">
           <h2 className="text-4xl font-light text-white leading-tight">
-            Your pregnancy journey,<br />
-            <span className="font-semibold">digitally managed.</span>
+            Healthcare Provider<br />
+            <span className="font-semibold">Portal</span>
           </h2>
           <p className="text-lg text-white/70 max-w-md">
-            Track your health records, medications, and connect with your healthcare providers seamlessly.
+            Manage patient records, track maternal health, and coordinate care with your patients seamlessly.
           </p>
 
           {/* Feature highlights */}
           <div className="grid gap-4 pt-4">
             {[
-              "Digital pregnancy booklet",
-              "Medication tracking & reminders",
-              "Secure doctor-patient connection",
-              "Lab results & visit history",
+              "Patient records management",
+              "Prenatal visit tracking",
+              "Lab requests & results",
+              "Medication prescriptions",
             ].map((feature, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10">
@@ -104,7 +128,7 @@ export default function LoginPage() {
           {/* Mobile Logo */}
           <div className="mb-8 text-center lg:hidden">
             <h1 className="text-2xl font-semibold text-[var(--primary)]">MaternaMD</h1>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">Digital Mother&apos;s Book</p>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">Healthcare Provider Portal</p>
           </div>
 
           {/* Form Card */}
@@ -229,10 +253,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Sample accounts hint */}
+          {/* Info hint */}
           <div className="mt-6 rounded-xl bg-[var(--background-white)] border border-[var(--border)] p-4 shadow-sm">
             <p className="text-xs text-[var(--text-muted)] text-center">
-              New users will need to create an account with Clerk authentication
+              This portal is for healthcare providers. Patients should use the mobile app.
             </p>
           </div>
         </div>

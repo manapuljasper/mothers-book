@@ -1,6 +1,7 @@
 export { NotesEditModal } from "./NotesEditModal";
 export { EntryCard } from "./EntryCard";
 export { EditMedicationModal } from "./EditMedicationModal";
+export { EditLMPModal } from "./EditLMPModal";
 export { VisitSummaryModal } from "./VisitSummaryModal";
 
 // Tab content components for booklet detail

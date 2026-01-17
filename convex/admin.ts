@@ -3,6 +3,18 @@ import { query, mutation } from "./_generated/server";
 import { requireSuperAdmin, getCurrentUserId } from "./lib/auth";
 
 // ============================================================================
+// SETUP CHECK
+// ============================================================================
+
+export const checkSuperAdminExists = query({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("superAdminProfiles").first();
+    return existing !== null;
+  },
+});
+
+// ============================================================================
 // DASHBOARD STATS
 // ============================================================================
 

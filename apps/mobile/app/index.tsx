@@ -102,8 +102,13 @@ export default function Index() {
     );
   }
 
-  // Not authenticated - redirect to login
+  // Not authenticated
   if (!currentUser) {
+    // No role selected - go to welcome to pick role first
+    if (!selectedRole) {
+      return <Redirect href="/(auth)/welcome" />;
+    }
+    // Has role - go directly to login
     return <Redirect href="/(auth)/login" />;
   }
 

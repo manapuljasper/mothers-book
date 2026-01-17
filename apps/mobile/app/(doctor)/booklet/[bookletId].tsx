@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { ChevronLeft, Plus, Baby } from "lucide-react-native";
+import { ChevronLeft, Plus, Baby, Pencil } from "lucide-react-native";
 import { useCurrentUser } from "@/hooks";
-import { formatDate } from "@/utils";
+import { formatDate, calculateAOG } from "@/utils";
 import {
   CardPressable,
   StatusBadge,
@@ -19,6 +19,7 @@ import {
 import {
   NotesEditModal,
   EditMedicationModal,
+  EditLMPModal,
   HistoryTabContent,
   MedsTabContent,
   LabsTabContent,
@@ -54,8 +55,10 @@ export default function DoctorBookletDetailScreen() {
   // Local state
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isSavingMedication, setIsSavingMedication] = useState(false);
+  const [isSavingLMP, setIsSavingLMP] = useState(false);
   const [activeTab, setActiveTab] = useState<BookletTab>("history");
   const [showNotesModal, setShowNotesModal] = useState(false);
+  const [showLMPModal, setShowLMPModal] = useState(false);
   const [editingNotes, setEditingNotes] = useState("");
   const [editingMedication, setEditingMedication] = useState<Medication | null>(
     null
@@ -76,13 +79,11 @@ export default function DoctorBookletDetailScreen() {
     });
   }, [entries]);
 
-  // Latest AOG from entries
-  const latestAOG = useMemo(() => {
-    for (const entry of sortedEntries) {
-      if (entry.vitals?.aog) return entry.vitals.aog;
-    }
-    return null;
-  }, [sortedEntries]);
+  // Calculate AOG from booklet's LMP
+  const currentAOG = useMemo(() => {
+    if (!booklet?.lastMenstrualPeriod) return null;
+    return calculateAOG(booklet.lastMenstrualPeriod);
+  }, [booklet?.lastMenstrualPeriod]);
 
   const activeMeds = allMedications.filter((m) => m.isActive);
 
@@ -113,6 +114,25 @@ export default function DoctorBookletDetailScreen() {
       Alert.alert("Error", "Failed to save notes. Please try again.");
     } finally {
       setIsSavingNotes(false);
+    }
+  };
+
+  const handleSaveLMP = async (lmp: Date | null, dueDate: Date | null) => {
+    if (!booklet) return;
+    setIsSavingLMP(true);
+    try {
+      await updateBooklet({
+        id: booklet.id,
+        updates: {
+          lastMenstrualPeriod: lmp?.getTime() ?? undefined,
+          expectedDueDate: dueDate?.getTime() ?? undefined,
+        },
+      });
+      setShowLMPModal(false);
+    } catch {
+      Alert.alert("Error", "Failed to update LMP. Please try again.");
+    } finally {
+      setIsSavingLMP(false);
     }
   };
 
@@ -196,18 +216,22 @@ export default function DoctorBookletDetailScreen() {
                 </Text>
               </View>
             </View>
-            {latestAOG && <AOGBadge aog={latestAOG} size="md" />}
+            {currentAOG && <AOGBadge aog={currentAOG} size="md" />}
           </View>
 
           <View className="flex-row items-center gap-3 mt-5">
             <StatusBadge status={booklet.status} showDot glassmorphism />
-            {booklet.expectedDueDate && (
-              <View className="bg-blue-600/30 px-3 py-1 rounded-full border border-white/10">
-                <Text className="text-blue-50 text-xs font-medium">
-                  Due: {formatDate(booklet.expectedDueDate)}
-                </Text>
-              </View>
-            )}
+            <Pressable
+              onPress={() => setShowLMPModal(true)}
+              className="bg-blue-600/30 px-3 py-1 rounded-full border border-white/10 flex-row items-center gap-1.5"
+            >
+              <Text className="text-blue-50 text-xs font-medium">
+                {booklet.expectedDueDate
+                  ? `Due: ${formatDate(booklet.expectedDueDate)}`
+                  : "Set LMP"}
+              </Text>
+              <Pencil size={10} color="#eff6ff" strokeWidth={2} />
+            </Pressable>
           </View>
         </View>
 
@@ -275,6 +299,14 @@ export default function DoctorBookletDetailScreen() {
         onClose={() => setEditingMedication(null)}
         onSave={handleUpdateMedication}
         isSaving={isSavingMedication}
+      />
+
+      <EditLMPModal
+        visible={showLMPModal}
+        onClose={() => setShowLMPModal(false)}
+        currentLMP={booklet.lastMenstrualPeriod}
+        onSave={handleSaveLMP}
+        isSaving={isSavingLMP}
       />
     </SafeAreaView>
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Avatar } from "./Avatar";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
 
 interface NavItem {
@@ -27,9 +27,10 @@ interface SidebarProps {
     avatar?: string;
   };
   settingsHref?: string;
+  onLogout?: () => void;
 }
 
-export function Sidebar({ logo = "MaternaMD", navigation, user, settingsHref = "/settings" }: SidebarProps) {
+export function Sidebar({ logo = "MaternaMD", navigation, user, settingsHref = "/settings", onLogout }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -89,12 +90,23 @@ export function Sidebar({ logo = "MaternaMD", navigation, user, settingsHref = "
       {/* User Profile */}
       {user && (
         <div className="p-6 border-t border-[var(--border)]">
-          <div className="flex items-center gap-3">
-            <Avatar src={user.avatar} name={user.name} size="sm" />
-            <div className="flex flex-col overflow-hidden">
-              <p className="text-xs font-semibold text-[var(--primary)] truncate">{user.name}</p>
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">{user.role}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <Avatar src={user.avatar} name={user.name} size="sm" />
+              <div className="flex flex-col overflow-hidden">
+                <p className="text-xs font-semibold text-[var(--primary)] truncate">{user.name}</p>
+                <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">{user.role}</p>
+              </div>
             </div>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
       )}

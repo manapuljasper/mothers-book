@@ -41,7 +41,7 @@ export function useCurrentUser() {
 }
 
 export function useSignIn() {
-  const { signIn, isLoaded } = useClerkSignIn();
+  const { signIn, isLoaded, setActive } = useClerkSignIn();
 
   return async ({ email, password }: { email: string; password: string }) => {
     if (!isLoaded || !signIn) {
@@ -54,7 +54,8 @@ export function useSignIn() {
     });
 
     if (result.status === "complete") {
-      // Session will be set automatically by Clerk
+      // Set the active session to trigger auth state update
+      await setActive({ session: result.createdSessionId });
       return result;
     }
 
@@ -63,7 +64,7 @@ export function useSignIn() {
 }
 
 export function useSignUp() {
-  const { signUp, isLoaded } = useClerkSignUp();
+  const { signUp, isLoaded, setActive } = useClerkSignUp();
 
   return async ({
     email,
@@ -86,6 +87,8 @@ export function useSignUp() {
     });
 
     if (result.status === "complete") {
+      // Set the active session to trigger auth state update
+      await setActive({ session: result.createdSessionId });
       return result;
     }
 
@@ -102,10 +105,10 @@ export function useSignUp() {
 
 export function useSignOut() {
   const { signOut } = useClerkAuth();
-  const { clearRole } = useAuthStore();
+  const { setSelectedRole } = useAuthStore();
 
   return async () => {
-    clearRole();
-    await signOut();
+    setSelectedRole(null);
+    await signOut({ redirectUrl: "/login" });
   };
 }

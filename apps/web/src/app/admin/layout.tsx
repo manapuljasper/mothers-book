@@ -5,29 +5,27 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { Loader2 } from "lucide-react";
 
-const doctorNavigation = [
+const adminNavigation = [
   {
     title: "Overview",
-    items: [{ label: "Dashboard", href: "/doctor" }],
+    items: [{ label: "Dashboard", href: "/admin" }],
   },
   {
-    title: "Maternal Care",
+    title: "Catalog Management",
     items: [
-      { label: "Mothers", href: "/doctor/mothers" },
-      { label: "Schedule", href: "/doctor/schedule" },
-      { label: "Deliveries", href: "/doctor/deliveries" },
-      { label: "Messages", href: "/doctor/messages", badge: "3" },
+      { label: "Medicines", href: "/admin/medicines" },
+      { label: "Laboratory Tests", href: "/admin/laboratory" },
     ],
   },
 ];
 
-export default function DoctorLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const signOut = useSignOut();
-  const { user, doctorProfile, role, isLoading, isAuthenticated } = useCurrentUser();
+  const { user, superAdminProfile, role, isLoading, isAuthenticated } = useCurrentUser();
 
   const handleLogout = () => {
     signOut();
@@ -45,31 +43,31 @@ export default function DoctorLayout({
     );
   }
 
-  // Redirect if not authenticated or not a doctor
+  // Redirect if not authenticated or not a super admin
   if (!isAuthenticated) {
     redirect("/login");
   }
 
-  if (role !== "doctor") {
-    if (role === "mother") redirect("/mother");
-    if (role === "super_admin") redirect("/admin");
+  if (role !== "super_admin") {
+    if (role === "doctor") redirect("/doctor");
+    if (role === "mother") redirect("/login");
     redirect("/login");
   }
 
   return (
     <div className="flex h-screen w-full">
       <Sidebar
-        logo="MaternaMD"
-        navigation={doctorNavigation}
+        logo="MaternaMD Admin"
+        navigation={adminNavigation}
         user={
           user
             ? {
-                name: user.fullName || user.name || "Doctor",
-                role: doctorProfile?.specialization || "Obstetrician",
+                name: user.fullName || user.name || "Admin",
+                role: "System Administrator",
               }
             : undefined
         }
-        settingsHref="/doctor/settings"
+        settingsHref="/admin/settings"
         onLogout={handleLogout}
       />
       <main className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--background)] relative z-10 lg:ml-0">
