@@ -1,17 +1,16 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  // Convex Auth tables
-  ...authTables,
-  // Users table (extends Convex Auth's users table with custom fields)
-  // The auth user and our custom user are the same record
+  // Users table with Clerk authentication
   users: defineTable({
+    clerkId: v.string(), // Clerk user ID (e.g., "user_2abc...")
     email: v.optional(v.string()),
-    name: v.optional(v.string()), // Required by Convex Auth
+    name: v.optional(v.string()),
     fullName: v.optional(v.string()),
-  }).index("by_email", ["email"]),
+  })
+    .index("by_email", ["email"])
+    .index("by_clerk_id", ["clerkId"]),
 
   // Doctor profiles (personal info only, clinics are separate)
   doctorProfiles: defineTable({

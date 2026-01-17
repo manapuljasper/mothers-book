@@ -1,5 +1,10 @@
 import { useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
+import {
+  useSignIn as useClerkSignIn,
+  useSignUp as useClerkSignUp,
+  useClerk,
+  useAuth,
+} from "@clerk/clerk-expo";
 import { api } from "../../../convex/_generated/api";
 import { useAuthStore } from "../../stores";
 
@@ -11,13 +16,35 @@ export function useCurrentUser() {
 }
 
 /**
+ * Check if authenticated (use for conditional rendering)
+ */
+export function useIsAuthenticated() {
+  const { isSignedIn, isLoaded } = useAuth();
+  return { isAuthenticated: isSignedIn ?? false, isLoading: !isLoaded };
+}
+
+/**
  * Sign in with email/password
  */
 export function useSignIn() {
-  const { signIn } = useAuthActions();
+  const { signIn, setActive, isLoaded } = useClerkSignIn();
 
   return async ({ email, password }: { email: string; password: string }) => {
-    await signIn("password", { email, password, flow: "signIn" });
+    if (!isLoaded || !signIn) {
+      throw new Error("Sign in not ready");
+    }
+
+    const result = await signIn.create({
+      identifier: email,
+      password,
+    });
+
+    if (result.status === "complete") {
+      await setActive({ session: result.createdSessionId });
+    } else {
+      // Handle other statuses if needed (e.g., needs_first_factor)
+      throw new Error("Sign in incomplete. Please try again.");
+    }
   };
 }
 
@@ -25,7 +52,7 @@ export function useSignIn() {
  * Sign up with email/password/name
  */
 export function useSignUp() {
-  const { signIn } = useAuthActions();
+  const { signUp, setActive, isLoaded } = useClerkSignUp();
 
   return async ({
     email,
@@ -36,12 +63,33 @@ export function useSignUp() {
     password: string;
     fullName: string;
   }) => {
-    await signIn("password", {
-      email,
+    if (!isLoaded || !signUp) {
+      throw new Error("Sign up not ready");
+    }
+
+    // Split full name into first and last name
+    const nameParts = fullName.trim().split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || undefined;
+
+    const result = await signUp.create({
+      emailAddress: email,
       password,
-      name: fullName,
-      flow: "signUp",
+      firstName,
+      lastName,
     });
+
+    // If Clerk requires email verification, handle it
+    if (result.status === "complete") {
+      await setActive({ session: result.createdSessionId });
+    } else if (result.status === "missing_requirements") {
+      // Email verification might be required
+      // For now, we'll prepare verification but the UI should handle this
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      throw new Error("Please check your email for a verification code.");
+    } else {
+      throw new Error("Sign up incomplete. Please try again.");
+    }
   };
 }
 
@@ -49,7 +97,7 @@ export function useSignUp() {
  * Sign out and clear role
  */
 export function useSignOut() {
-  const { signOut } = useAuthActions();
+  const { signOut } = useClerk();
   const clearRole = useAuthStore((s) => s.clearRole);
 
   return async () => {

@@ -4,13 +4,13 @@ import { View, ActivityIndicator, Platform } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
+import { tokenCache } from "@clerk/clerk-expo/token-cache";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { useColorScheme } from "nativewind";
 import { useThemeStore } from "../src/stores";
 import { useCurrentUser, useNetworkListener, useSyncProcessor } from "../src/hooks";
-import { storage } from "../src/services/storage.service";
-import * as SecureStore from "expo-secure-store";
 import { OfflineBanner } from "../src/components/ui";
 
 // Create Convex client
@@ -18,12 +18,11 @@ const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
 });
 
-// Auth token storage using MMKV (implements TokenStorage interface)
-const secureStorage = {
-  getItem: SecureStore.getItemAsync,
-  setItem: SecureStore.setItemAsync,
-  removeItem: SecureStore.deleteItemAsync,
-};
+const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+
+if (!clerkPublishableKey) {
+  throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY");
+}
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { colorScheme: themeColorScheme } = useThemeStore();
@@ -76,19 +75,19 @@ function RootContent() {
 
 export default function RootLayout() {
   return (
-    <ConvexAuthProvider
-      client={convex}
-      storage={
-        Platform.OS === "android" || Platform.OS === "ios"
-          ? secureStorage
-          : undefined
-      }
+    <ClerkProvider
+      tokenCache={Platform.OS !== "web" ? tokenCache : undefined}
+      publishableKey={clerkPublishableKey}
     >
-      <KeyboardProvider>
-        <ThemeProvider>
-          <RootContent />
-        </ThemeProvider>
-      </KeyboardProvider>
-    </ConvexAuthProvider>
+      <ClerkLoaded>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <KeyboardProvider>
+            <ThemeProvider>
+              <RootContent />
+            </ThemeProvider>
+          </KeyboardProvider>
+        </ConvexProviderWithClerk>
+      </ClerkLoaded>
+    </ClerkProvider>
   );
 }

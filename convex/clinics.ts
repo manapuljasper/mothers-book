@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireAuth } from "./lib/auth";
 
 // ============================================================================
 // QUERIES
@@ -62,12 +62,11 @@ export const create = mutation({
     isPrimary: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const user = await requireAuth(ctx);
 
     // Verify the doctor profile belongs to this user
     const doctorProfile = await ctx.db.get(args.doctorId);
-    if (!doctorProfile || doctorProfile.userId !== userId) {
+    if (!doctorProfile || doctorProfile.userId !== user._id) {
       throw new Error("Not authorized");
     }
 
@@ -118,15 +117,14 @@ export const update = mutation({
     isPrimary: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const user = await requireAuth(ctx);
 
     const clinic = await ctx.db.get(args.clinicId);
     if (!clinic) throw new Error("Clinic not found");
 
     // Verify ownership
     const doctorProfile = await ctx.db.get(clinic.doctorId);
-    if (!doctorProfile || doctorProfile.userId !== userId) {
+    if (!doctorProfile || doctorProfile.userId !== user._id) {
       throw new Error("Not authorized");
     }
 
@@ -171,15 +169,14 @@ export const update = mutation({
 export const remove = mutation({
   args: { clinicId: v.id("doctorClinics") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const user = await requireAuth(ctx);
 
     const clinic = await ctx.db.get(args.clinicId);
     if (!clinic) throw new Error("Clinic not found");
 
     // Verify ownership
     const doctorProfile = await ctx.db.get(clinic.doctorId);
-    if (!doctorProfile || doctorProfile.userId !== userId) {
+    if (!doctorProfile || doctorProfile.userId !== user._id) {
       throw new Error("Not authorized");
     }
 
@@ -206,15 +203,14 @@ export const remove = mutation({
 export const setPrimary = mutation({
   args: { clinicId: v.id("doctorClinics") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const user = await requireAuth(ctx);
 
     const clinic = await ctx.db.get(args.clinicId);
     if (!clinic) throw new Error("Clinic not found");
 
     // Verify ownership
     const doctorProfile = await ctx.db.get(clinic.doctorId);
-    if (!doctorProfile || doctorProfile.userId !== userId) {
+    if (!doctorProfile || doctorProfile.userId !== user._id) {
       throw new Error("Not authorized");
     }
 

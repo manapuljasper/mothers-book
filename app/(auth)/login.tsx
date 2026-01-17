@@ -27,11 +27,17 @@ export default function LoginScreen() {
     try {
       await signIn({ email: email.trim(), password });
       router.replace("/(auth)/role-select");
-    } catch (error) {
-      Alert.alert(
-        "Login Failed",
-        error instanceof Error ? error.message : "Please try again"
-      );
+    } catch (error: unknown) {
+      // Handle Clerk-specific error messages
+      let message = "Please try again";
+      if (error instanceof Error) {
+        if (error.message.includes("Invalid") || error.message.includes("credentials")) {
+          message = "Invalid email or password";
+        } else {
+          message = error.message;
+        }
+      }
+      Alert.alert("Login Failed", message);
     } finally {
       setIsLoading(false);
     }

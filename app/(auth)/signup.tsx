@@ -32,11 +32,19 @@ export default function SignupScreen() {
     try {
       await signUp({ email: email.trim(), password, fullName: name.trim() });
       router.replace("/(auth)/role-select");
-    } catch (error) {
-      Alert.alert(
-        "Sign Up Failed",
-        error instanceof Error ? error.message : "Please try again"
-      );
+    } catch (error: unknown) {
+      // Handle Clerk-specific error messages
+      let message = "Please try again";
+      if (error instanceof Error) {
+        if (error.message.includes("email")) {
+          message = error.message;
+        } else if (error.message.includes("password")) {
+          message = "Password must be at least 8 characters with a number and special character";
+        } else {
+          message = error.message;
+        }
+      }
+      Alert.alert("Sign Up Failed", message);
     } finally {
       setIsLoading(false);
     }

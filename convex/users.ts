@@ -1,7 +1,11 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { Doc } from "./_generated/dataModel";
+import {
+  getAuthenticatedUser,
+  requireAuth,
+  getOrCreateUser,
+} from "./lib/auth";
 
 // ============================================================================
 // QUERIES
@@ -11,11 +15,10 @@ import { Doc } from "./_generated/dataModel";
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return null;
+
+    const userId = user._id;
 
     const doctorProfile = await ctx.db
       .query("doctorProfiles")
@@ -47,8 +50,8 @@ export const getById = query({
 export const createDoctorProfile = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const user = await getOrCreateUser(ctx);
+    const userId = user._id;
 
     // Check if already exists
     const existing = await ctx.db
@@ -69,8 +72,8 @@ export const createDoctorProfile = mutation({
 export const createMotherProfile = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const user = await getOrCreateUser(ctx);
+    const userId = user._id;
 
     // Check if already exists
     const existing = await ctx.db
@@ -101,8 +104,7 @@ export const updateDoctorProfile = mutation({
     avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    await requireAuth(ctx);
 
     const { doctorId, fullName, ...profileUpdates } = args;
 
@@ -144,8 +146,7 @@ export const updateMotherProfile = mutation({
     babyName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    await requireAuth(ctx);
 
     const { motherId, fullName, ...profileUpdates } = args;
 

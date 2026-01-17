@@ -1,7 +1,8 @@
 export default {
   providers: [
     {
-      domain: process.env.CONVEX_SITE_URL,
+      // Clerk JWT issuer domain
+      domain: "https://noted-weevil-66.clerk.accounts.dev",
       applicationID: "convex",
     },
   ],
