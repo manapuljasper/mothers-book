@@ -1,5 +1,9 @@
 import { useQuery, useMutation } from "convex/react";
-import { useAuth as useClerkAuth, useSignIn as useClerkSignIn, useSignUp as useClerkSignUp } from "@clerk/clerk-expo";
+import {
+  useAuth as useClerkAuth,
+  useSignIn as useClerkSignIn,
+  useSignUp as useClerkSignUp,
+} from "@clerk/clerk-expo";
 import { api } from "@convex/_generated/api";
 import { useEffect } from "react";
 
@@ -30,28 +34,98 @@ export function useCurrentUser() {
 }
 
 /**
+ * Sign in result type
+ */
+export type SignInResult =
+  | { status: "complete" }
+  | {
+      status: "needs_second_factor";
+      prepareSecondFactor: () => Promise<void>;
+      attemptSecondFactor: (code: string) => Promise<void>;
+    };
+
+/**
  * Sign in with email/password
  */
 export function useSignIn() {
   const { signIn, isLoaded, setActive } = useClerkSignIn();
 
-  return async ({ email, password }: { email: string; password: string }) => {
+  return async ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }): Promise<SignInResult> => {
     if (!isLoaded || !signIn) {
       throw new Error("Clerk is not loaded");
     }
 
-    const result = await signIn.create({
+    // Start sign-in with identifier
+    let result = await signIn.create({
       identifier: email,
-      password,
     });
 
-    if (result.status === "complete") {
-      // Set the active session
-      await setActive({ session: result.createdSessionId });
-      return result;
+    console.log("[Auth] Initial sign in result:", result.status);
+
+    // If we need first factor (password), attempt it
+    if (result.status === "needs_first_factor") {
+      const passwordFactor = result.supportedFirstFactors?.find(
+        (factor) => factor.strategy === "password"
+      );
+
+      if (passwordFactor) {
+        result = await signIn.attemptFirstFactor({
+          strategy: "password",
+          password,
+        });
+        console.log("[Auth] After password attempt:", result.status);
+      } else {
+        console.log(
+          "[Auth] Supported first factors:",
+          result.supportedFirstFactors
+        );
+        throw new Error(
+          "Password authentication not available for this account."
+        );
+      }
     }
 
-    throw new Error("Sign in failed");
+    if (result.status === "complete") {
+      await setActive({ session: result.createdSessionId });
+      return { status: "complete" };
+    }
+
+    if (result.status === "needs_second_factor") {
+      console.log(
+        "[Auth] Second factors required:",
+        result.supportedSecondFactors
+      );
+
+      // Return object with helper functions for second factor flow
+      return {
+        status: "needs_second_factor",
+        prepareSecondFactor: async () => {
+          await signIn.prepareSecondFactor({ strategy: "email_code" });
+          console.log("[Auth] Second factor email code sent");
+        },
+        attemptSecondFactor: async (code: string) => {
+          const verifyResult = await signIn.attemptSecondFactor({
+            strategy: "email_code",
+            code,
+          });
+
+          if (verifyResult.status === "complete") {
+            await setActive({ session: verifyResult.createdSessionId });
+            console.log("[Auth] Second factor verification complete");
+          } else {
+            throw new Error(`Verification failed: ${verifyResult.status}`);
+          }
+        },
+      };
+    }
+
+    throw new Error(`Sign in failed: ${result.status}`);
   };
 }
 

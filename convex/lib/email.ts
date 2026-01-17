@@ -4,6 +4,10 @@ import { Resend } from "resend";
 // For production, verify your domain in Resend and use: "Mother's Book <noreply@materna-md.com>"
 const FROM_ADDRESS = "Mother's Book <onboarding@resend.dev>";
 
+// Development email override (set via environment variable)
+// When set, all emails will be sent to this address instead of the actual recipient
+const DEV_EMAIL_OVERRIDE = process.env.DEV_EMAIL_OVERRIDE;
+
 // Lazy-initialized Resend client
 let resendClient: Resend | null = null;
 
@@ -32,9 +36,12 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
   try {
     const resend = getResendClient();
 
+    // Use dev override if set (for testing without domain verification)
+    const recipient = DEV_EMAIL_OVERRIDE || options.to;
+
     const { error } = await resend.emails.send({
       from: FROM_ADDRESS,
-      to: options.to,
+      to: recipient,
       subject: options.subject,
       html: options.html,
       text: options.text,

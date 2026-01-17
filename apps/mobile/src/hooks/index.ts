@@ -11,6 +11,7 @@ export {
   useSignUp,
   useSignOut,
 } from "./auth";
+export type { SignInResult } from "./auth";
 
 // Booklet hooks
 export {

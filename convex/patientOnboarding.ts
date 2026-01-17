@@ -39,6 +39,7 @@ export const lookupPatientByEmail = query({
         found: true as const,
         isDoctor: false,
         needsMotherProfile: true,
+        hasActiveBooklet: false,
         user: {
           id: user._id,
           fullName: user.fullName || "Unknown",
@@ -47,9 +48,18 @@ export const lookupPatientByEmail = query({
       };
     }
 
+    // Check if mother already has an active booklet
+    const activeBooklet = await ctx.db
+      .query("booklets")
+      .withIndex("by_mother", (q) => q.eq("motherId", motherProfile._id))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
     return {
       found: true as const,
       isDoctor: false,
+      hasActiveBooklet: !!activeBooklet,
+      activeBookletLabel: activeBooklet?.label,
       user: {
         id: user._id,
         fullName: user.fullName || "Unknown",
@@ -244,6 +254,7 @@ export const createNewPatientWithBooklet = action({
 
     // Generate a random password
     const tempPassword = generateRandomPassword();
+    console.log(`[DEV] Generated temp password for ${email}: ${tempPassword}`);
 
     // Create Clerk user
     const clerkSecretKey = process.env.CLERK_SECRET_KEY;
@@ -260,9 +271,11 @@ export const createNewPatientWithBooklet = action({
         firstName: args.firstName,
         lastName: args.lastName,
         password: tempPassword,
+        skipPasswordChecks: true, // Allow simpler passwords for temp credentials
       });
     } catch (error: unknown) {
       const err = error as { errors?: Array<{ code: string; message: string }> };
+      console.error("Clerk user creation error:", JSON.stringify(err.errors || error));
       if (err.errors?.[0]?.code === "form_identifier_exists") {
         throw new Error("A user with this email already exists in the authentication system");
       }

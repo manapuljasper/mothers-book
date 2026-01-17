@@ -87,6 +87,13 @@ export default function AddPatientScreen() {
       }
 
       if (result.found && "user" in result) {
+        // Check if patient already has an active booklet
+        if ("hasActiveBooklet" in result && result.hasActiveBooklet) {
+          const bookletName = "activeBookletLabel" in result ? result.activeBookletLabel : "an active booklet";
+          setEmailError(`This patient already has ${bookletName}. A patient can only have one active pregnancy at a time.`);
+          return;
+        }
+
         // Patient found (may or may not have mother profile)
         setFoundPatient({
           fullName: result.user.fullName,

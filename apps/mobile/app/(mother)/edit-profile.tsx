@@ -11,7 +11,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useCurrentUser, useUpdateMotherProfile } from "../../src/hooks";
+import { useCurrentUser, useUpdateMotherProfile, useSignOut } from "../../src/hooks";
 import {
   ModalHeader,
   TextField,
@@ -26,6 +26,7 @@ export default function EditMotherProfileScreen() {
 
   const currentUser = useCurrentUser();
   const updateProfile = useUpdateMotherProfile();
+  const signOut = useSignOut();
 
   // Extract user and profile only when available and not pending
   const user = currentUser && "user" in currentUser ? currentUser.user : null;
@@ -117,7 +118,7 @@ export default function EditMotherProfileScreen() {
       >
         <ModalHeader
           title={isCreateMode ? "Complete Your Profile" : "Edit Profile"}
-          onClose={isCreateMode ? (() => {}) : () => router.back()}
+          onClose={isCreateMode ? () => signOut() : () => router.back()}
         />
 
         <ScrollView className="flex-1 px-6" keyboardShouldPersistTaps="handled">

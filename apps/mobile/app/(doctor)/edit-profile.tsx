@@ -18,6 +18,7 @@ import {
   useClinicsByDoctor,
   useDeleteClinic,
   useSetPrimaryClinic,
+  useSignOut,
 } from "../../src/hooks";
 import {
   ModalHeader,
@@ -53,6 +54,7 @@ export default function EditDoctorProfileScreen() {
   const updateProfile = useUpdateDoctorProfile();
   const deleteClinic = useDeleteClinic();
   const setPrimaryClinic = useSetPrimaryClinic();
+  const signOut = useSignOut();
 
   // Extract user and profile only when available
   const user =
@@ -190,7 +192,7 @@ export default function EditDoctorProfileScreen() {
       >
         <ModalHeader
           title={isCreateMode ? "Complete Your Profile" : "Edit Profile"}
-          onClose={isCreateMode ? () => {} : () => router.back()}
+          onClose={isCreateMode ? () => signOut() : () => router.back()}
         />
 
         <ScrollView

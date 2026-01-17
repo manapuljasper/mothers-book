@@ -84,8 +84,8 @@ export default function SignupScreen() {
       Alert.alert("Error", "Please enter your email");
       return;
     }
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+    if (password.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters");
       return;
     }
 
@@ -175,7 +175,7 @@ export default function SignupScreen() {
 
         <TextField
           label="Password"
-          placeholder="At least 6 characters"
+          placeholder="At least 8 characters"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
