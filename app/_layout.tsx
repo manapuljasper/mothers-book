@@ -8,9 +8,10 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import { useColorScheme } from "nativewind";
 import { useThemeStore } from "../src/stores";
-import { useCurrentUser } from "../src/hooks";
+import { useCurrentUser, useNetworkListener, useSyncProcessor } from "../src/hooks";
 import { storage } from "../src/services/storage.service";
 import * as SecureStore from "expo-secure-store";
+import { OfflineBanner } from "../src/components/ui";
 
 // Create Convex client
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
@@ -40,6 +41,10 @@ function RootContent() {
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
 
+  // Initialize network monitoring and sync processor
+  useNetworkListener();
+  useSyncProcessor();
+
   // Show loading while Convex fetches auth state
   if (currentUser === undefined) {
     return (
@@ -57,6 +62,7 @@ function RootContent() {
 
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+      <OfflineBanner />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />

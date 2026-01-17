@@ -22,6 +22,9 @@ export enum StorageKey {
   DATA_INITIALIZED = 'app.dataInitialized',
 }
 
+// Cache key prefix for query results
+const CACHE_PREFIX = 'cache.';
+
 // Lazy-initialized MMKV instance
 let _storage: MMKV | null = null;
 
@@ -99,6 +102,128 @@ function dateReviver(_key: string, value: unknown): unknown {
     }
   }
   return value;
+}
+
+// Cache entry with metadata
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+/**
+ * CacheService - Specialized caching for Convex query results
+ *
+ * Stores query results with timestamps for offline access and staleness checking.
+ */
+export const CacheService = {
+  /**
+   * Generate a cache key from API path and arguments.
+   * Creates a deterministic key based on the query and its parameters.
+   */
+  generateCacheKey(apiPath: string, args: Record<string, unknown>): string {
+    // Sort keys for consistent hashing
+    const sortedArgs = Object.keys(args)
+      .sort()
+      .reduce(
+        (acc, key) => {
+          acc[key] = args[key];
+          return acc;
+        },
+        {} as Record<string, unknown>
+      );
+
+    // Create a simple hash of the args
+    const argsHash = hashString(JSON.stringify(sortedArgs));
+    return `${CACHE_PREFIX}${apiPath}.${argsHash}`;
+  },
+
+  /**
+   * Store query result with metadata.
+   */
+  cacheQuery<T>(key: string, data: T, timestamp?: number): void {
+    const entry: CacheEntry<T> = {
+      data,
+      timestamp: timestamp ?? Date.now(),
+    };
+    storage.set(key, JSON.stringify(entry));
+  },
+
+  /**
+   * Retrieve cached query result with metadata.
+   */
+  getCachedQuery<T>(key: string): CacheEntry<T> | null {
+    const value = storage.getString(key);
+    if (!value) return null;
+    try {
+      return JSON.parse(value, dateReviver) as CacheEntry<T>;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Check if cache entry is stale based on max age.
+   * @param key - Cache key
+   * @param maxAgeMs - Maximum age in milliseconds (default: 5 minutes)
+   */
+  isCacheStale(key: string, maxAgeMs: number = 5 * 60 * 1000): boolean {
+    const entry = this.getCachedQuery(key);
+    if (!entry) return true;
+    return Date.now() - entry.timestamp > maxAgeMs;
+  },
+
+  /**
+   * Invalidate a specific cache entry.
+   */
+  invalidateCache(key: string): void {
+    storage.delete(key);
+  },
+
+  /**
+   * Invalidate all caches for a specific table/entity type.
+   * Useful after mutations that affect multiple queries.
+   */
+  invalidateTableCaches(tableName: string): void {
+    const allKeys = storage.getAllKeys();
+    const prefix = `${CACHE_PREFIX}${tableName}`;
+    allKeys.forEach((key) => {
+      if (key.startsWith(prefix)) {
+        storage.delete(key);
+      }
+    });
+  },
+
+  /**
+   * Clear all cached query results.
+   */
+  clearAllCaches(): void {
+    const allKeys = storage.getAllKeys();
+    allKeys.forEach((key) => {
+      if (key.startsWith(CACHE_PREFIX)) {
+        storage.delete(key);
+      }
+    });
+  },
+
+  /**
+   * Get all cache keys (for debugging).
+   */
+  getAllCacheKeys(): string[] {
+    return storage.getAllKeys().filter((key) => key.startsWith(CACHE_PREFIX));
+  },
+};
+
+/**
+ * Simple string hash function for generating cache keys.
+ * Uses djb2 algorithm for fast, low-collision hashing.
+ */
+function hashString(str: string): string {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
+  }
+  // Convert to base36 for shorter string
+  return (hash >>> 0).toString(36);
 }
 
 export default StorageService;

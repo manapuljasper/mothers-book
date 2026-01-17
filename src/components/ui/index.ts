@@ -63,3 +63,8 @@ export {
   PatientListSkeleton,
   MedicationsSkeleton,
 } from "./skeleton";
+
+// Sync status components
+export { SyncStatusBadge } from "./SyncStatusBadge";
+export { OfflineBanner, OfflineIndicator } from "./OfflineBanner";
+export { FailedSyncList } from "./FailedSyncList";
