@@ -1,23 +1,30 @@
 import { useState } from "react";
 import { View, Text, TextInput, ScrollView, Pressable, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Pill, Plus, Trash2, Calendar, X, Search } from "lucide-react-native";
+import {
+  Pill,
+  Plus,
+  Trash2,
+  Calendar,
+  X,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Edit3,
+} from "lucide-react-native";
 import { Id } from "@convex/_generated/dataModel";
 import { useMedicationFavorites, useSearchMedicationCatalog } from "@/hooks";
 import { formatDate } from "@/utils";
 import { FavoriteChip } from "@/components/ui";
-import type { PendingMedication, MedicationFrequency, DoctorFavorite, MedicationCatalogItem } from "@/types";
-
-const DOSAGE_UNITS = ["mg", "mcg", "g", "mL", "IU", "tablet", "capsule"] as const;
-type DosageUnit = (typeof DOSAGE_UNITS)[number];
-
-type TabId = "favorites" | "search" | "manual";
-
-const TABS: { id: TabId; label: string }[] = [
-  { id: "favorites", label: "Favorites" },
-  { id: "search", label: "Search" },
-  { id: "manual", label: "Manual" },
-];
+import {
+  DOSAGE_UNITS,
+  formatDosage,
+  type DosageUnit,
+  type PendingMedication,
+  type MedicationFrequency,
+  type DoctorFavorite,
+  type MedicationCatalogItem,
+} from "@/types";
 
 export type { PendingMedication };
 
@@ -25,6 +32,7 @@ interface MedicationFormProps {
   pendingMeds: PendingMedication[];
   onAddMedication: (med: Omit<PendingMedication, "id">) => void;
   onRemoveMedication: (id: string) => void;
+  onUpdateMedication?: (id: string, updates: Partial<PendingMedication>) => void;
   defaultEndDate?: Date | null;
   doctorId?: Id<"doctorProfiles">;
 }
@@ -33,11 +41,13 @@ export function MedicationForm({
   pendingMeds,
   onAddMedication,
   onRemoveMedication,
+  onUpdateMedication,
   defaultEndDate,
   doctorId,
 }: MedicationFormProps) {
-  const [activeTab, setActiveTab] = useState<TabId>("favorites");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [expandedMedId, setExpandedMedId] = useState<string | null>(null);
 
   const [currentMed, setCurrentMed] = useState({
     name: "",
@@ -54,10 +64,52 @@ export function MedicationForm({
   const favorites = useMedicationFavorites(doctorId);
   const searchResults = useSearchMedicationCatalog(searchQuery, { limit: 10 });
 
+  // Quick add from favorite - uses saved defaults
+  const quickAddFromFavorite = (fav: DoctorFavorite) => {
+    const endDate = defaultEndDate || undefined;
+
+    onAddMedication({
+      name: fav.name,
+      dosageAmount: fav.defaultDosage?.toString() || "",
+      dosageUnit: fav.defaultDosageUnit || "mg",
+      instructions: fav.defaultInstructions || "",
+      frequencyPerDay: (fav.defaultFrequency as MedicationFrequency) || 1,
+      endDate,
+      fromFavorite: true,
+    });
+  };
+
+  // Quick add from catalog search result
+  const quickAddFromCatalog = (item: MedicationCatalogItem) => {
+    const endDate = defaultEndDate || undefined;
+
+    // Fix: Properly extract dosage unit with fallbacks
+    let dosageUnit = "mg";
+    if (item.dosageUnit && DOSAGE_UNITS.includes(item.dosageUnit as DosageUnit)) {
+      dosageUnit = item.dosageUnit;
+    } else if (item.availableUnits && item.availableUnits.length > 0) {
+      const firstUnit = item.availableUnits[0];
+      if (DOSAGE_UNITS.includes(firstUnit as DosageUnit)) {
+        dosageUnit = firstUnit;
+      }
+    }
+
+    onAddMedication({
+      name: item.name,
+      dosageAmount: item.dosage?.toString() || "",
+      dosageUnit,
+      instructions: item.instructions || "",
+      frequencyPerDay: 1,
+      endDate,
+    });
+
+    setSearchQuery("");
+  };
+
+  // Manual entry handlers
   const handleAddMedToPending = () => {
     if (!currentMed.name || !currentMed.dosageAmount) return;
 
-    // If no end date specified, use default end date (next appointment)
     const endDate = currentMed.endDate || defaultEndDate || undefined;
 
     onAddMedication({
@@ -77,6 +129,7 @@ export function MedicationForm({
       frequencyPerDay: "1",
       endDate: null,
     });
+    setShowManualEntry(false);
   };
 
   const handleMedEndDateChange = (event: any, selectedDate?: Date) => {
@@ -88,32 +141,12 @@ export function MedicationForm({
     }
   };
 
-  // Prefill from a favorite
-  const prefillFromFavorite = (fav: DoctorFavorite) => {
-    setCurrentMed({
-      name: fav.name,
-      dosageAmount: fav.defaultDosage?.toString() || "",
-      dosageUnit: (fav.defaultDosageUnit as DosageUnit) || "mg",
-      instructions: fav.defaultInstructions || "",
-      frequencyPerDay: fav.defaultFrequency?.toString() || "1",
-      endDate: null,
-    });
-    setActiveTab("manual");
+  // Toggle expanded state for pending med
+  const toggleExpanded = (id: string) => {
+    setExpandedMedId(expandedMedId === id ? null : id);
   };
 
-  // Prefill from a catalog search result
-  const prefillFromCatalog = (item: MedicationCatalogItem) => {
-    setCurrentMed({
-      name: item.name,
-      dosageAmount: item.dosage?.toString() || "",
-      dosageUnit: (item.dosageUnit as DosageUnit) || "mg",
-      instructions: item.instructions || "",
-      frequencyPerDay: "1",
-      endDate: null,
-    });
-    setSearchQuery("");
-    setActiveTab("manual");
-  };
+  const isSearching = searchQuery.trim().length > 0;
 
   return (
     <View className="border-t border-gray-100 dark:border-gray-700 pt-4 mt-2">
@@ -124,107 +157,77 @@ export function MedicationForm({
         </Text>
       </View>
 
-      {/* Pending medications list */}
+      {/* Pending medications list - now expandable */}
       {pendingMeds.length > 0 && (
         <View className="mb-3">
           {pendingMeds.map((med) => (
-            <View
+            <EditablePendingMedication
               key={med.id}
-              className="flex-row items-center justify-between bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3 mb-2"
-            >
-              <View className="flex-1">
-                <Text className="font-medium text-gray-900 dark:text-white">
-                  {med.name}
-                </Text>
-                <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                  {med.dosageAmount} {med.dosageUnit} • {med.frequencyPerDay}x daily
-                  {med.endDate && ` • Until ${formatDate(med.endDate)}`}
-                </Text>
-              </View>
-              <Pressable onPress={() => onRemoveMedication(med.id)}>
-                <Trash2 size={18} color="#ef4444" strokeWidth={1.5} />
-              </Pressable>
-            </View>
+              med={med}
+              isExpanded={expandedMedId === med.id}
+              onToggleExpand={() => toggleExpanded(med.id)}
+              onRemove={() => onRemoveMedication(med.id)}
+              onUpdate={onUpdateMedication ? (updates) => onUpdateMedication(med.id, updates) : undefined}
+              defaultEndDate={defaultEndDate}
+            />
           ))}
         </View>
       )}
 
-      {/* Tab bar */}
-      <View className="flex-row mb-3 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-        {TABS.map((tab) => (
-          <Pressable
-            key={tab.id}
-            onPress={() => setActiveTab(tab.id)}
-            className={`flex-1 py-1.5 rounded-md ${
-              activeTab === tab.id ? "bg-white dark:bg-gray-700" : ""
-            }`}
-          >
-            <Text
-              className={`text-center text-sm font-medium ${
-                activeTab === tab.id
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-gray-500 dark:text-gray-400"
-              }`}
-            >
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Tab content */}
+      {/* Search input - always visible */}
       <View className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4">
-        {/* Favorites Tab */}
-        {activeTab === "favorites" && (
+        <View className="flex-row items-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 mb-3">
+          <Search size={16} color="#9ca3af" strokeWidth={1.5} />
+          <TextInput
+            className="flex-1 ml-2 text-gray-900 dark:text-white"
+            placeholder="Search medications..."
+            placeholderTextColor="#9ca3af"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery("")}>
+              <X size={16} color="#9ca3af" strokeWidth={1.5} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Show favorites when not searching */}
+        {!isSearching && (
           <View>
             {favorites === undefined ? (
-              <Text className="text-gray-400 text-sm text-center py-4">
+              <Text className="text-gray-400 text-sm text-center py-2">
                 Loading favorites...
               </Text>
             ) : favorites.length > 0 ? (
-              <View className="flex-row flex-wrap">
-                {favorites.map((fav) => (
-                  <FavoriteChip
-                    key={fav.id}
-                    label={fav.name}
-                    color="green"
-                    onPress={() => prefillFromFavorite(fav)}
-                  />
-                ))}
+              <View>
+                <Text className="text-gray-400 text-xs mb-2 uppercase tracking-wide">
+                  Quick Add from Favorites
+                </Text>
+                <View className="flex-row flex-wrap">
+                  {favorites.map((fav) => (
+                    <FavoriteChip
+                      key={fav.id}
+                      label={fav.name}
+                      color="green"
+                      onPress={() => quickAddFromFavorite(fav)}
+                    />
+                  ))}
+                </View>
               </View>
             ) : (
-              <Text className="text-gray-400 text-sm text-center py-4">
-                No favorites yet. Items you use frequently will appear here.
+              <Text className="text-gray-400 text-sm text-center py-2">
+                Frequently used items will appear here for quick add.
               </Text>
             )}
           </View>
         )}
 
-        {/* Search Tab */}
-        {activeTab === "search" && (
+        {/* Show search results when searching */}
+        {isSearching && (
           <View>
-            <View className="flex-row items-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 mb-3">
-              <Search size={16} color="#9ca3af" strokeWidth={1.5} />
-              <TextInput
-                className="flex-1 ml-2 text-gray-900 dark:text-white"
-                placeholder="Search medications..."
-                placeholderTextColor="#9ca3af"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-              />
-              {searchQuery.length > 0 && (
-                <Pressable onPress={() => setSearchQuery("")}>
-                  <X size={16} color="#9ca3af" strokeWidth={1.5} />
-                </Pressable>
-              )}
-            </View>
-
-            {searchQuery.trim().length === 0 ? (
-              <Text className="text-gray-400 text-sm text-center py-4">
-                Type to search the medication catalog
-              </Text>
-            ) : searchResults === undefined ? (
+            {searchResults === undefined ? (
               <Text className="text-gray-400 text-sm text-center py-4">
                 Searching...
               </Text>
@@ -233,16 +236,21 @@ export function MedicationForm({
                 {searchResults.map((item) => (
                   <Pressable
                     key={item.id}
-                    onPress={() => prefillFromCatalog(item)}
-                    className="py-2 border-b border-gray-100 dark:border-gray-700"
+                    onPress={() => quickAddFromCatalog(item)}
+                    className="flex-row items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700"
                   >
-                    <Text className="font-medium text-gray-900 dark:text-white">
-                      {item.name}
-                    </Text>
-                    <Text className="text-gray-400 text-sm">
-                      {item.genericName}
-                      {item.dosage && item.dosageUnit && ` • ${item.dosage}${item.dosageUnit}`}
-                    </Text>
+                    <View className="flex-1">
+                      <Text className="font-medium text-gray-900 dark:text-white">
+                        {item.name}
+                      </Text>
+                      <Text className="text-gray-400 text-sm">
+                        {item.genericName}
+                        {item.dosage && item.dosageUnit && ` • ${item.dosage}${item.dosageUnit}`}
+                      </Text>
+                    </View>
+                    <View className="bg-green-500 rounded-full p-1.5 ml-2">
+                      <Plus size={14} color="white" strokeWidth={2.5} />
+                    </View>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -254,191 +262,421 @@ export function MedicationForm({
           </View>
         )}
 
-        {/* Manual Tab */}
-        {activeTab === "manual" && (
-          <View>
-            {/* Medication name */}
-            <View className="mb-3">
-              <Text className="text-gray-400 text-xs mb-1">Medication</Text>
-              <TextInput
-                className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder="e.g., Folic Acid"
-                placeholderTextColor="#9ca3af"
-                value={currentMed.name}
-                onChangeText={(v) => setCurrentMed({ ...currentMed, name: v })}
-              />
+        {/* Manual Entry - Collapsible */}
+        <View className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+          <Pressable
+            onPress={() => setShowManualEntry(!showManualEntry)}
+            className="flex-row items-center justify-between py-1"
+          >
+            <View className="flex-row items-center">
+              <Edit3 size={14} color="#6b7280" strokeWidth={1.5} />
+              <Text className="text-gray-500 dark:text-gray-400 text-sm ml-2">
+                Manual Entry
+              </Text>
             </View>
+            {showManualEntry ? (
+              <ChevronUp size={16} color="#6b7280" strokeWidth={1.5} />
+            ) : (
+              <ChevronDown size={16} color="#6b7280" strokeWidth={1.5} />
+            )}
+          </Pressable>
 
-            {/* Dosage amount and unit */}
-            <View className="mb-3">
-              <Text className="text-gray-400 text-xs mb-1">Dosage</Text>
-              <View className="flex-row">
-                <TextInput
-                  className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 w-20 mr-2 text-gray-900 dark:text-white"
-                  placeholder="400"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="numeric"
-                  value={currentMed.dosageAmount}
-                  onChangeText={(v) => setCurrentMed({ ...currentMed, dosageAmount: v })}
-                />
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="flex-1"
-                >
-                  {DOSAGE_UNITS.map((unit) => (
-                    <Pressable
-                      key={unit}
-                      onPress={() => setCurrentMed({ ...currentMed, dosageUnit: unit })}
-                      className={`px-3 py-2 mr-1 rounded-lg border ${
-                        currentMed.dosageUnit === unit
-                          ? "bg-green-500 border-green-500"
-                          : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                      }`}
-                    >
-                      <Text
-                        className={
-                          currentMed.dosageUnit === unit
-                            ? "text-white text-sm"
-                            : "text-gray-600 dark:text-gray-300 text-sm"
-                        }
-                      >
-                        {unit}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            </View>
-
-            {/* Frequency and Instructions */}
-            <View className="flex-row mb-3">
-              <View className="flex-1 pr-2">
-                <Text className="text-gray-400 text-xs mb-1">Frequency</Text>
-                <View className="flex-row">
-                  {["1", "2", "3", "4"].map((freq) => (
-                    <Pressable
-                      key={freq}
-                      onPress={() => setCurrentMed({ ...currentMed, frequencyPerDay: freq })}
-                      className={`px-3 py-2 mr-1 rounded-lg border ${
-                        currentMed.frequencyPerDay === freq
-                          ? "bg-green-500 border-green-500"
-                          : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                      }`}
-                    >
-                      <Text
-                        className={
-                          currentMed.frequencyPerDay === freq
-                            ? "text-white text-sm"
-                            : "text-gray-600 dark:text-gray-300 text-sm"
-                        }
-                      >
-                        {freq}x
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-              <View className="flex-1 pl-2">
-                <Text className="text-gray-400 text-xs mb-1">Instructions</Text>
+          {showManualEntry && (
+            <View className="mt-3">
+              {/* Medication name */}
+              <View className="mb-3">
+                <Text className="text-gray-400 text-xs mb-1">Medication</Text>
                 <TextInput
                   className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="e.g., With food"
+                  placeholder="e.g., Folic Acid"
                   placeholderTextColor="#9ca3af"
-                  value={currentMed.instructions}
-                  onChangeText={(v) => setCurrentMed({ ...currentMed, instructions: v })}
+                  value={currentMed.name}
+                  onChangeText={(v) => setCurrentMed({ ...currentMed, name: v })}
                 />
               </View>
-            </View>
 
-            {/* End Date (optional) */}
-            <View className="mb-3">
-              <Text className="text-gray-400 text-xs mb-1">
-                End Date (optional, defaults to next appointment)
-              </Text>
+              {/* Dosage amount and unit */}
+              <View className="mb-3">
+                <Text className="text-gray-400 text-xs mb-1">Dosage</Text>
+                <View className="flex-row">
+                  <TextInput
+                    className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 w-20 mr-2 text-gray-900 dark:text-white"
+                    placeholder="400"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="numeric"
+                    value={currentMed.dosageAmount}
+                    onChangeText={(v) => setCurrentMed({ ...currentMed, dosageAmount: v })}
+                  />
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="flex-1"
+                  >
+                    {DOSAGE_UNITS.map((unit) => (
+                      <Pressable
+                        key={unit}
+                        onPress={() => setCurrentMed({ ...currentMed, dosageUnit: unit })}
+                        className={`px-3 py-2 mr-1 rounded-lg border ${
+                          currentMed.dosageUnit === unit
+                            ? "bg-green-500 border-green-500"
+                            : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                        }`}
+                      >
+                        <Text
+                          className={
+                            currentMed.dosageUnit === unit
+                              ? "text-white text-sm"
+                              : "text-gray-600 dark:text-gray-300 text-sm"
+                          }
+                        >
+                          {unit}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+
+              {/* Frequency and Instructions */}
+              <View className="flex-row mb-3">
+                <View className="flex-1 pr-2">
+                  <Text className="text-gray-400 text-xs mb-1">Frequency</Text>
+                  <View className="flex-row">
+                    {["1", "2", "3", "4"].map((freq) => (
+                      <Pressable
+                        key={freq}
+                        onPress={() => setCurrentMed({ ...currentMed, frequencyPerDay: freq })}
+                        className={`px-3 py-2 mr-1 rounded-lg border ${
+                          currentMed.frequencyPerDay === freq
+                            ? "bg-green-500 border-green-500"
+                            : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                        }`}
+                      >
+                        <Text
+                          className={
+                            currentMed.frequencyPerDay === freq
+                              ? "text-white text-sm"
+                              : "text-gray-600 dark:text-gray-300 text-sm"
+                          }
+                        >
+                          {freq}x
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View className="flex-1 pl-2">
+                  <Text className="text-gray-400 text-xs mb-1">Instructions</Text>
+                  <TextInput
+                    className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="e.g., With food"
+                    placeholderTextColor="#9ca3af"
+                    value={currentMed.instructions}
+                    onChangeText={(v) => setCurrentMed({ ...currentMed, instructions: v })}
+                  />
+                </View>
+              </View>
+
+              {/* End Date (optional) */}
+              <View className="mb-3">
+                <Text className="text-gray-400 text-xs mb-1">
+                  End Date (optional, defaults to next appointment)
+                </Text>
+                <Pressable
+                  onPress={() => setShowMedEndDatePicker(true)}
+                  className={`flex-row items-center border rounded-lg px-3 py-2 ${
+                    currentMed.endDate
+                      ? "border-green-400 bg-green-50 dark:bg-green-900/30"
+                      : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
+                  }`}
+                >
+                  <Calendar
+                    size={16}
+                    color={currentMed.endDate ? "#22c55e" : "#9ca3af"}
+                    strokeWidth={1.5}
+                  />
+                  <Text
+                    className={`ml-2 text-sm ${
+                      currentMed.endDate
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {currentMed.endDate
+                      ? formatDate(currentMed.endDate)
+                      : defaultEndDate
+                      ? `Default: ${formatDate(defaultEndDate)}`
+                      : "Set end date"}
+                  </Text>
+                  {currentMed.endDate && (
+                    <Pressable
+                      onPress={() => setCurrentMed({ ...currentMed, endDate: null })}
+                      className="ml-auto"
+                    >
+                      <X size={16} color="#9ca3af" strokeWidth={1.5} />
+                    </Pressable>
+                  )}
+                </Pressable>
+                {showMedEndDatePicker && (
+                  <DateTimePicker
+                    value={currentMed.endDate || defaultEndDate || new Date()}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    minimumDate={new Date()}
+                    onChange={handleMedEndDateChange}
+                  />
+                )}
+                {Platform.OS === "ios" && showMedEndDatePicker && (
+                  <View className="flex-row justify-end mt-2">
+                    <Pressable
+                      onPress={() => setShowMedEndDatePicker(false)}
+                      className="bg-green-500 px-4 py-2 rounded-lg"
+                    >
+                      <Text className="text-white font-medium">Done</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+
               <Pressable
-                onPress={() => setShowMedEndDatePicker(true)}
-                className={`flex-row items-center border rounded-lg px-3 py-2 ${
-                  currentMed.endDate
-                    ? "border-green-400 bg-green-50 dark:bg-green-900/30"
-                    : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
+                onPress={handleAddMedToPending}
+                disabled={!currentMed.name || !currentMed.dosageAmount}
+                className={`flex-row items-center justify-center py-2 rounded-lg ${
+                  currentMed.name && currentMed.dosageAmount
+                    ? "bg-green-500"
+                    : "bg-gray-200"
                 }`}
               >
-                <Calendar
+                <Plus
                   size={16}
-                  color={currentMed.endDate ? "#22c55e" : "#9ca3af"}
+                  color={currentMed.name && currentMed.dosageAmount ? "white" : "#9ca3af"}
                   strokeWidth={1.5}
                 />
                 <Text
-                  className={`ml-2 text-sm ${
-                    currentMed.endDate
-                      ? "text-green-600 dark:text-green-400"
+                  className={`ml-1 font-medium ${
+                    currentMed.name && currentMed.dosageAmount
+                      ? "text-white"
                       : "text-gray-400"
                   }`}
                 >
-                  {currentMed.endDate
-                    ? formatDate(currentMed.endDate)
-                    : defaultEndDate
-                    ? `Default: ${formatDate(defaultEndDate)}`
-                    : "Set end date"}
+                  Add Medication
                 </Text>
-                {currentMed.endDate && (
-                  <Pressable
-                    onPress={() => setCurrentMed({ ...currentMed, endDate: null })}
-                    className="ml-auto"
-                  >
-                    <X size={16} color="#9ca3af" strokeWidth={1.5} />
-                  </Pressable>
-                )}
               </Pressable>
-              {showMedEndDatePicker && (
-                <DateTimePicker
-                  value={currentMed.endDate || defaultEndDate || new Date()}
-                  mode="date"
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  minimumDate={new Date()}
-                  onChange={handleMedEndDateChange}
-                />
-              )}
-              {Platform.OS === "ios" && showMedEndDatePicker && (
-                <View className="flex-row justify-end mt-2">
-                  <Pressable
-                    onPress={() => setShowMedEndDatePicker(false)}
-                    className="bg-green-500 px-4 py-2 rounded-lg"
-                  >
-                    <Text className="text-white font-medium">Done</Text>
-                  </Pressable>
-                </View>
-              )}
             </View>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
 
+// Editable Pending Medication Component
+interface EditablePendingMedicationProps {
+  med: PendingMedication;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onRemove: () => void;
+  onUpdate?: (updates: Partial<PendingMedication>) => void;
+  defaultEndDate?: Date | null;
+}
+
+function EditablePendingMedication({
+  med,
+  isExpanded,
+  onToggleExpand,
+  onRemove,
+  onUpdate,
+  defaultEndDate,
+}: EditablePendingMedicationProps) {
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  const handleEndDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === "android") {
+      setShowEndDatePicker(false);
+    }
+    if (selectedDate && onUpdate) {
+      onUpdate({ endDate: selectedDate });
+    }
+  };
+
+  return (
+    <View className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg mb-2 overflow-hidden">
+      {/* Collapsed view */}
+      <Pressable
+        onPress={onToggleExpand}
+        className="flex-row items-center justify-between p-3"
+      >
+        <View className="flex-1">
+          <Text className="font-medium text-gray-900 dark:text-white">
+            {med.name}
+          </Text>
+          <Text className="text-gray-500 dark:text-gray-400 text-sm">
+            {formatDosage(med.dosageAmount, med.dosageUnit as DosageUnit)} • {med.frequencyPerDay}x daily
+            {med.endDate && ` • Until ${formatDate(med.endDate)}`}
+          </Text>
+        </View>
+        <View className="flex-row items-center">
+          {isExpanded ? (
+            <ChevronUp size={18} color="#6b7280" strokeWidth={1.5} />
+          ) : (
+            <ChevronDown size={18} color="#6b7280" strokeWidth={1.5} />
+          )}
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="ml-2 p-1"
+          >
+            <Trash2 size={18} color="#ef4444" strokeWidth={1.5} />
+          </Pressable>
+        </View>
+      </Pressable>
+
+      {/* Expanded edit view */}
+      {isExpanded && onUpdate && (
+        <View className="px-3 pb-3 border-t border-green-200 dark:border-green-700">
+          {/* Dosage */}
+          <View className="flex-row mt-3">
+            <View className="mr-2">
+              <Text className="text-gray-400 text-xs mb-1">Dosage</Text>
+              <TextInput
+                className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 w-20 text-gray-900 dark:text-white"
+                placeholder="400"
+                placeholderTextColor="#9ca3af"
+                keyboardType="numeric"
+                value={med.dosageAmount}
+                onChangeText={(v) => onUpdate({ dosageAmount: v })}
+              />
+            </View>
+            <View className="flex-1">
+              <Text className="text-gray-400 text-xs mb-1">Unit</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {DOSAGE_UNITS.map((unit) => (
+                  <Pressable
+                    key={unit}
+                    onPress={() => onUpdate({ dosageUnit: unit })}
+                    className={`px-3 py-2 mr-1 rounded-lg border ${
+                      med.dosageUnit === unit
+                        ? "bg-green-500 border-green-500"
+                        : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                    }`}
+                  >
+                    <Text
+                      className={
+                        med.dosageUnit === unit
+                          ? "text-white text-sm"
+                          : "text-gray-600 dark:text-gray-300 text-sm"
+                      }
+                    >
+                      {unit}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+
+          {/* Frequency */}
+          <View className="mt-3">
+            <Text className="text-gray-400 text-xs mb-1">Frequency</Text>
+            <View className="flex-row">
+              {[1, 2, 3, 4].map((freq) => (
+                <Pressable
+                  key={freq}
+                  onPress={() => onUpdate({ frequencyPerDay: freq as MedicationFrequency })}
+                  className={`px-3 py-2 mr-1 rounded-lg border ${
+                    med.frequencyPerDay === freq
+                      ? "bg-green-500 border-green-500"
+                      : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+                  }`}
+                >
+                  <Text
+                    className={
+                      med.frequencyPerDay === freq
+                        ? "text-white text-sm"
+                        : "text-gray-600 dark:text-gray-300 text-sm"
+                    }
+                  >
+                    {freq}x
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Instructions */}
+          <View className="mt-3">
+            <Text className="text-gray-400 text-xs mb-1">Instructions</Text>
+            <TextInput
+              className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="e.g., With food"
+              placeholderTextColor="#9ca3af"
+              value={med.instructions}
+              onChangeText={(v) => onUpdate({ instructions: v })}
+            />
+          </View>
+
+          {/* End Date */}
+          <View className="mt-3">
+            <Text className="text-gray-400 text-xs mb-1">End Date</Text>
             <Pressable
-              onPress={handleAddMedToPending}
-              disabled={!currentMed.name || !currentMed.dosageAmount}
-              className={`flex-row items-center justify-center py-2 rounded-lg ${
-                currentMed.name && currentMed.dosageAmount
-                  ? "bg-green-500"
-                  : "bg-gray-200"
+              onPress={() => setShowEndDatePicker(true)}
+              className={`flex-row items-center border rounded-lg px-3 py-2 ${
+                med.endDate
+                  ? "border-green-400 bg-green-100 dark:bg-green-800/30"
+                  : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
               }`}
             >
-              <Plus
+              <Calendar
                 size={16}
-                color={currentMed.name && currentMed.dosageAmount ? "white" : "#9ca3af"}
+                color={med.endDate ? "#22c55e" : "#9ca3af"}
                 strokeWidth={1.5}
               />
               <Text
-                className={`ml-1 font-medium ${
-                  currentMed.name && currentMed.dosageAmount
-                    ? "text-white"
+                className={`ml-2 text-sm ${
+                  med.endDate
+                    ? "text-green-600 dark:text-green-400"
                     : "text-gray-400"
                 }`}
               >
-                Add Medication
+                {med.endDate
+                  ? formatDate(med.endDate)
+                  : defaultEndDate
+                  ? `Default: ${formatDate(defaultEndDate)}`
+                  : "Set end date"}
               </Text>
+              {med.endDate && (
+                <Pressable
+                  onPress={() => onUpdate({ endDate: undefined })}
+                  className="ml-auto"
+                >
+                  <X size={16} color="#9ca3af" strokeWidth={1.5} />
+                </Pressable>
+              )}
             </Pressable>
+            {showEndDatePicker && (
+              <DateTimePicker
+                value={med.endDate || defaultEndDate || new Date()}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                minimumDate={new Date()}
+                onChange={handleEndDateChange}
+              />
+            )}
+            {Platform.OS === "ios" && showEndDatePicker && (
+              <View className="flex-row justify-end mt-2">
+                <Pressable
+                  onPress={() => setShowEndDatePicker(false)}
+                  className="bg-green-500 px-4 py-2 rounded-lg"
+                >
+                  <Text className="text-white font-medium">Done</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 }

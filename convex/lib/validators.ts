@@ -129,7 +129,7 @@ export const DEFAULT_TIMES_BY_FREQUENCY: Record<MedicationFrequency, string[]> =
 // QR token expiry in minutes
 export const QR_EXPIRY_MINUTES = 10;
 
-// Dosage units
+// Dosage units (stored as singular, pluralized on display)
 export const dosageUnits = [
   "mg",
   "g",
@@ -137,10 +137,10 @@ export const dosageUnits = [
   "mL",
   "L",
   "IU",
-  "units",
-  "tablets",
-  "capsules",
-  "drops",
+  "unit",
+  "tablet",
+  "capsule",
+  "drop",
 ] as const;
 
 export type DosageUnit = (typeof dosageUnits)[number];
@@ -152,11 +152,38 @@ export const DOSAGE_UNIT_LABELS: Record<DosageUnit, string> = {
   mL: "mL (milliliters)",
   L: "L (liters)",
   IU: "IU (international units)",
-  units: "units",
-  tablets: "tablets",
-  capsules: "capsules",
-  drops: "drops",
+  unit: "unit",
+  tablet: "tablet",
+  capsule: "capsule",
+  drop: "drop",
 };
+
+// Units that need pluralization (add 's' when amount > 1)
+const PLURALIZABLE_UNITS: DosageUnit[] = ["unit", "tablet", "capsule", "drop"];
+
+/**
+ * Format dosage unit with proper pluralization
+ * @param amount - The dosage amount (number or string)
+ * @param unit - The dosage unit (singular form)
+ * @returns Properly pluralized unit string
+ */
+export function formatDosageUnit(amount: number | string, unit: DosageUnit): string {
+  const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+  if (PLURALIZABLE_UNITS.includes(unit) && numAmount !== 1) {
+    return `${unit}s`;
+  }
+  return unit;
+}
+
+/**
+ * Format complete dosage string (amount + unit)
+ * @param amount - The dosage amount
+ * @param unit - The dosage unit (singular form)
+ * @returns Formatted string like "2 tablets" or "500 mg"
+ */
+export function formatDosage(amount: number | string, unit: DosageUnit): string {
+  return `${amount} ${formatDosageUnit(amount, unit)}`;
+}
 
 // Medication category validator
 export const medicationCategories = [

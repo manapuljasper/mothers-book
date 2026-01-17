@@ -11,12 +11,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Calendar, X } from "lucide-react-native";
-import type { Medication, MedicationFrequency } from "@/types";
+import {
+  DOSAGE_UNITS,
+  formatDosage,
+  type DosageUnit,
+  type Medication,
+  type MedicationFrequency,
+} from "@/types";
 import { formatDate } from "@/utils";
 import { ModalHeader } from "@/components/ui";
-
-const DOSAGE_UNITS = ["mg", "mcg", "g", "mL", "IU", "tablet", "capsule"] as const;
-type DosageUnit = (typeof DOSAGE_UNITS)[number];
 
 interface EditMedicationModalProps {
   visible: boolean;
@@ -70,7 +73,7 @@ export function EditMedicationModal({
 
     await onSave({
       name: name.trim(),
-      dosage: `${dosageAmount} ${dosageUnit}`,
+      dosage: formatDosage(dosageAmount, dosageUnit),
       instructions: instructions.trim() || undefined,
       frequencyPerDay,
       endDate,

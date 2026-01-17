@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -32,7 +32,10 @@ import {
   useEntriesByBooklet,
   useCreateEntryWithItems,
   useUpdateEntry,
+  useUpdateEntryWithItems,
   useIncrementUsageByName,
+  useMedicationsByEntry,
+  useLabsByEntry,
 } from "@/hooks";
 import { computeAOG, formatDate, getDateString, generateId } from "@/utils";
 import { VitalInput, LoadingScreen, AnimatedCollapsible } from "@/components/ui";
@@ -54,6 +57,7 @@ export default function AddEntryScreen() {
   // Mutations
   const createEntryWithItems = useCreateEntryWithItems();
   const updateEntry = useUpdateEntry();
+  const updateEntryWithItems = useUpdateEntryWithItems();
   const incrementUsage = useIncrementUsageByName();
 
   // Form state
@@ -78,6 +82,50 @@ export default function AddEntryScreen() {
 
   // Track the entry being edited (if any)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [existingItemsLoaded, setExistingItemsLoaded] = useState(false);
+
+  // Fetch existing medications and labs when editing
+  const existingMedications = useMedicationsByEntry(editingEntryId ?? undefined);
+  const existingLabRequests = useLabsByEntry(editingEntryId ?? undefined);
+
+  // Populate pending medications when editing
+  useEffect(() => {
+    if (editingEntryId && existingMedications && existingMedications.length > 0 && !existingItemsLoaded) {
+      // Parse dosage string "400 mg" -> amount="400", unit="mg"
+      const pendingFromExisting = existingMedications.map((med) => {
+        const dosageParts = med.dosage?.match(/^(\d+\.?\d*)\s*(.*)$/) || [];
+        return {
+          id: generateId(),
+          name: med.name,
+          dosageAmount: dosageParts[1] || "",
+          dosageUnit: dosageParts[2] || "mg",
+          instructions: med.instructions || "",
+          frequencyPerDay: med.frequencyPerDay,
+          endDate: med.endDate,
+          isExisting: true,
+          existingId: med.id,
+        };
+      });
+      setPendingMedications(pendingFromExisting);
+      setExistingItemsLoaded(true);
+    }
+  }, [editingEntryId, existingMedications, existingItemsLoaded]);
+
+  // Populate pending labs when editing
+  useEffect(() => {
+    if (editingEntryId && existingLabRequests && existingLabRequests.length > 0 && !existingItemsLoaded) {
+      const pendingFromExisting = existingLabRequests.map((lab) => ({
+        id: generateId(),
+        name: lab.description, // Labs use 'description' as name
+        notes: lab.notes || "",
+        priority: lab.priority || "routine",
+        dueDate: lab.dueDate,
+        isExisting: true,
+        existingId: lab.id,
+      }));
+      setPendingLabRequests(pendingFromExisting);
+    }
+  }, [editingEntryId, existingLabRequests, existingItemsLoaded]);
 
   const isLoading =
     currentUser === undefined ||
@@ -139,6 +187,12 @@ export default function AddEntryScreen() {
     setPendingMedications((prev) => prev.filter((m) => m.id !== id));
   };
 
+  const handleUpdateMedication = (id: string, updates: Partial<PendingMedication>) => {
+    setPendingMedications((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+    );
+  };
+
   // Lab request handlers
   const handleAddLabRequest = (lab: Omit<PendingLabRequest, "id">) => {
     const newLab: PendingLabRequest = {
@@ -150,6 +204,12 @@ export default function AddEntryScreen() {
 
   const handleRemoveLabRequest = (id: string) => {
     setPendingLabRequests((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  const handleUpdateLab = (id: string, updates: Partial<PendingLabRequest>) => {
+    setPendingLabRequests((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...updates } : l))
+    );
   };
 
   // Prefill form with entry data
@@ -172,6 +232,7 @@ export default function AddEntryScreen() {
     setInstructions("");
     setFollowUpDate(null);
     setEditingEntryId(null);
+    setExistingItemsLoaded(false);
     setPendingMedications([]);
     setPendingLabRequests([]);
   };
@@ -280,17 +341,61 @@ export default function AddEntryScreen() {
       if (aogWeeks) entryVitals.aog = aogWeeks;
 
       if (isEdit && editingEntryId) {
-        // Update existing entry (medications/labs not supported in edit mode yet)
-        await updateEntry({
-          id: editingEntryId,
-          updates: {
-            entryType: "prenatal_checkup",
-            notes,
-            recommendations: instructions || undefined,
-            vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
-            followUpDate: followUpDate ? followUpDate.getTime() : undefined,
-          },
+        // Update existing entry with medications and labs
+        // Find new items (without isExisting flag) and removed items
+        const newMeds = pendingMedications.filter((m) => !m.isExisting);
+        const newLabs = pendingLabRequests.filter((l) => !l.isExisting);
+
+        // Find removed medication IDs (were in existingMedications but not in current pending list)
+        const currentExistingMedIds = pendingMedications
+          .filter((m) => m.isExisting && m.existingId)
+          .map((m) => m.existingId!);
+        const removedMedIds = (existingMedications || [])
+          .filter((m) => !currentExistingMedIds.includes(m.id))
+          .map((m) => m.id);
+
+        // Find removed lab IDs
+        const currentExistingLabIds = pendingLabRequests
+          .filter((l) => l.isExisting && l.existingId)
+          .map((l) => l.existingId!);
+        const removedLabIds = (existingLabRequests || [])
+          .filter((l) => !currentExistingLabIds.includes(l.id))
+          .map((l) => l.id);
+
+        await updateEntryWithItems({
+          entryId: editingEntryId,
+          entryType: "prenatal_checkup",
+          notes,
+          recommendations: instructions || undefined,
+          vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
+          followUpDate: followUpDate ? followUpDate.getTime() : undefined,
+          newMedications: newMeds.length > 0 ? newMeds : undefined,
+          newLabRequests: newLabs.length > 0 ? newLabs : undefined,
+          removeMedicationIds: removedMedIds.length > 0 ? removedMedIds : undefined,
+          removeLabRequestIds: removedLabIds.length > 0 ? removedLabIds : undefined,
         });
+
+        // Track usage for new items
+        for (const med of newMeds) {
+          incrementUsage({
+            doctorId: doctorProfile._id,
+            itemType: "medication",
+            name: med.name,
+            defaultDosage: parseFloat(med.dosageAmount) || undefined,
+            defaultDosageUnit: med.dosageUnit,
+            defaultFrequency: med.frequencyPerDay,
+            defaultInstructions: med.instructions || undefined,
+          }).catch(() => {});
+        }
+
+        for (const lab of newLabs) {
+          incrementUsage({
+            doctorId: doctorProfile._id,
+            itemType: "lab",
+            name: lab.name,
+            defaultPriority: lab.priority,
+          }).catch(() => {});
+        }
       } else {
         // Create new entry with medications and labs
         await createEntryWithItems({
@@ -566,6 +671,7 @@ export default function AddEntryScreen() {
               pendingMeds={pendingMedications}
               onAddMedication={handleAddMedication}
               onRemoveMedication={handleRemoveMedication}
+              onUpdateMedication={handleUpdateMedication}
               defaultEndDate={followUpDate}
             />
           </View>
@@ -596,6 +702,7 @@ export default function AddEntryScreen() {
               pendingLabs={pendingLabRequests}
               onAddLab={handleAddLabRequest}
               onRemoveLab={handleRemoveLabRequest}
+              onUpdateLab={handleUpdateLab}
             />
           </View>
         </AnimatedCollapsible>

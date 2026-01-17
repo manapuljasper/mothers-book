@@ -7,6 +7,8 @@ import {
   labPriorityValidator,
   vitalsValidator,
   medicationFrequencyValidator,
+  formatDosage,
+  type DosageUnit,
 } from "./lib/validators";
 
 // ========== Medical Entries ==========
@@ -406,7 +408,7 @@ export const createEntryWithItems = mutation({
           bookletId: args.bookletId,
           medicalEntryId: entryId,
           name: med.name,
-          dosage: `${med.dosageAmount} ${med.dosageUnit}`,
+          dosage: formatDosage(med.dosageAmount, med.dosageUnit as DosageUnit),
           instructions: med.instructions,
           startDate: args.visitDate,
           endDate: med.endDate,
@@ -520,7 +522,7 @@ export const updateEntryWithItems = mutation({
           bookletId: entry.bookletId,
           medicalEntryId: args.entryId,
           name: med.name,
-          dosage: `${med.dosageAmount} ${med.dosageUnit}`,
+          dosage: formatDosage(med.dosageAmount, med.dosageUnit as DosageUnit),
           instructions: med.instructions,
           startDate: visitDate,
           endDate: med.endDate,

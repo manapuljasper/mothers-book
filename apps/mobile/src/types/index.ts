@@ -54,6 +54,8 @@ export {
   DOSAGE_UNIT_LABELS,
   MEDICATION_CATEGORY_LABELS,
   LAB_CATEGORY_LABELS,
+  formatDosageUnit,
+  formatDosage,
 } from './catalog.types';
 
 // Entry form types
