@@ -1,14 +1,20 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+const convexPath = path.resolve(__dirname, "../../convex");
+
 const nextConfig: NextConfig = {
-  // Allow importing from the monorepo root convex folder
+  // Turbopack configuration (Next.js 16+ default bundler)
+  turbopack: {
+    resolveAlias: {
+      "@convex": convexPath,
+    },
+  },
+  // Webpack fallback for production builds
   webpack: (config) => {
-    config.resolve.alias["@convex"] = path.resolve(__dirname, "../../convex");
+    config.resolve.alias["@convex"] = convexPath;
     return config;
   },
-  // Transpile the convex folder which is outside the app directory
-  transpilePackages: [],
 };
 
 export default nextConfig;
