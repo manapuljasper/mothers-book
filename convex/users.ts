@@ -163,6 +163,24 @@ export const updateDoctorProfile = mutation({
   },
 });
 
+// Clear the requiresPasswordChange flag (called after password change)
+export const clearPasswordChangeFlag = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getCurrentUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    if (user.requiresPasswordChange) {
+      await ctx.db.patch(userId, { requiresPasswordChange: false });
+    }
+
+    return { success: true };
+  },
+});
+
 // Update mother profile
 export const updateMotherProfile = mutation({
   args: {

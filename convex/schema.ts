@@ -7,6 +7,7 @@ export default defineSchema({
     clerkId: v.optional(v.string()), // Clerk user ID (from identity.subject) - optional for migration
     email: v.optional(v.string()),
     fullName: v.optional(v.string()),
+    requiresPasswordChange: v.optional(v.boolean()), // True for accounts created by doctors
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
@@ -202,6 +203,24 @@ export default defineSchema({
   })
     .index("by_booklet", ["bookletId"])
     .index("by_expires", ["expiresAt"]),
+
+  // Booklet invitations (doctor-initiated patient onboarding)
+  bookletInvitations: defineTable({
+    bookletId: v.id("booklets"),
+    email: v.string(),
+    token: v.string(), // Unique invitation token
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("expired")
+    ),
+    createdByDoctorId: v.id("doctorProfiles"),
+    expiresAt: v.number(),
+    tempPassword: v.optional(v.string()), // For new account creation (hashed)
+  })
+    .index("by_token", ["token"])
+    .index("by_email", ["email"])
+    .index("by_booklet", ["bookletId"]),
 
   // Super Admin profiles (web-only)
   superAdminProfiles: defineTable({

@@ -117,6 +117,11 @@ export default function Index() {
     return <Redirect href="/(auth)/role-select" />;
   }
 
+  // Check if user requires password change (for accounts created by doctors)
+  if (currentUser?.user?.requiresPasswordChange) {
+    return <Redirect href="/(auth)/change-password" />;
+  }
+
   // Profile doesn't exist yet - show creating state
   if (selectedProfile === null) {
     return (

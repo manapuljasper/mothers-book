@@ -15,6 +15,10 @@ export default function DoctorLayout() {
         name="edit-profile"
         options={{ presentation: "modal", animation: "slide_from_bottom" }}
       />
+      <Stack.Screen
+        name="patients/add"
+        options={{ presentation: "modal", animation: "slide_from_bottom" }}
+      />
     </Stack>
   );
 }

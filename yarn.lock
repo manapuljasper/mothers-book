@@ -10234,10 +10234,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "mothers-book-monorepo@workspace:."
   dependencies:
+    "@clerk/backend": "npm:^2.29.3"
     convex: "npm:1.30.0"
     expo: "npm:~54.0.31"
     react: "npm:19.1.0"
     react-native: "npm:0.81.5"
+    resend: "npm:^6.7.0"
   languageName: unknown
   linkType: soft
 
@@ -11781,6 +11783,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"resend@npm:^6.7.0":
+  version: 6.7.0
+  resolution: "resend@npm:6.7.0"
+  dependencies:
+    svix: "npm:1.84.1"
+  peerDependencies:
+    "@react-email/render": "*"
+  peerDependenciesMeta:
+    "@react-email/render":
+      optional: true
+  checksum: 10c0/d23eec2f7e314fb64151ce97a815647ea1c6ec65787cff072452208fdd334967bd887fbef9693b6584b7f9b0a247b5d74538f0252c2fb0cbef699cf1f2bdce55
+  languageName: node
+  linkType: hard
+
 "resolve-from@npm:^4.0.0":
   version: 4.0.0
   resolution: "resolve-from@npm:4.0.0"
@@ -12473,7 +12489,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"standardwebhooks@npm:^1.0.0":
+"standardwebhooks@npm:1.0.0, standardwebhooks@npm:^1.0.0":
   version: 1.0.0
   resolution: "standardwebhooks@npm:1.0.0"
   dependencies:
@@ -12747,6 +12763,16 @@ __metadata:
   version: 1.0.0
   resolution: "supports-preserve-symlinks-flag@npm:1.0.0"
   checksum: 10c0/6c4032340701a9950865f7ae8ef38578d8d7053f5e10518076e6554a9381fa91bd9c6850193695c141f32b21f979c985db07265a758867bac95de05f7d8aeb39
+  languageName: node
+  linkType: hard
+
+"svix@npm:1.84.1":
+  version: 1.84.1
+  resolution: "svix@npm:1.84.1"
+  dependencies:
+    standardwebhooks: "npm:1.0.0"
+    uuid: "npm:^10.0.0"
+  checksum: 10c0/59b06741d37d1de271fcc1fe7f16e4180bb295fd3e8990be330bb6c31988d4ba2ca82548060374dba3d9ceb776c49136f70a485dd856a3dfb9a76728c429874e
   languageName: node
   linkType: hard
 
@@ -13351,6 +13377,15 @@ __metadata:
   version: 1.0.1
   resolution: "utils-merge@npm:1.0.1"
   checksum: 10c0/02ba649de1b7ca8854bfe20a82f1dfbdda3fb57a22ab4a8972a63a34553cf7aa51bc9081cf7e001b035b88186d23689d69e71b510e610a09a4c66f68aa95b672
+  languageName: node
+  linkType: hard
+
+"uuid@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "uuid@npm:10.0.0"
+  bin:
+    uuid: dist/bin/uuid
+  checksum: 10c0/eab18c27fe4ab9fb9709a5d5f40119b45f2ec8314f8d4cf12ce27e4c6f4ffa4a6321dc7db6c515068fa373c075b49691ba969f0010bf37f44c37ca40cd6bf7fe
   languageName: node
   linkType: hard
 
