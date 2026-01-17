@@ -100,6 +100,19 @@ export const labPriorityValidator = v.union(
 
 export type LabPriority = Infer<typeof labPriorityValidator>;
 
+// Risk level validator
+export const riskLevelValidator = v.union(
+  v.literal("low"),
+  v.literal("high")
+);
+
+export type RiskLevel = Infer<typeof riskLevelValidator>;
+
+export const RISK_LEVEL_LABELS: Record<RiskLevel, string> = {
+  low: "Low Risk",
+  high: "High Risk",
+};
+
 export const LAB_PRIORITY_LABELS: Record<LabPriority, string> = {
   routine: "Routine",
   urgent: "Urgent",

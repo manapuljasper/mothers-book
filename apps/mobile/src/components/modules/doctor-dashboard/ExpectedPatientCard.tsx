@@ -1,5 +1,7 @@
 import { View, Text } from "react-native";
+import { AlertTriangle } from "lucide-react-native";
 import { ListItemPressable } from "@/components/ui";
+import type { RiskLevel } from "@/types";
 
 interface PatientCardProps {
   patientName: string;
@@ -8,6 +10,8 @@ interface PatientCardProps {
   onPress?: () => void;
   /** Optional opacity for later queue items */
   faded?: boolean;
+  /** Risk level indicator */
+  riskLevel?: RiskLevel;
 }
 
 export function PatientCard({
@@ -16,6 +20,7 @@ export function PatientCard({
   queueNumber,
   onPress,
   faded = false,
+  riskLevel,
 }: PatientCardProps) {
   const containerOpacity = faded ? "opacity-80" : "";
 
@@ -44,8 +49,31 @@ export function PatientCard({
         </Text>
       </View>
 
-      {/* Indicator dot */}
-      <View className="h-2 w-2 rounded-full bg-gray-200 dark:bg-slate-700" />
+      {/* Risk Level Badge or Indicator dot */}
+      {riskLevel ? (
+        <View
+          className={`flex-row items-center px-2 py-1 rounded-full ${
+            riskLevel === "high"
+              ? "bg-red-100 dark:bg-red-900/30"
+              : "bg-emerald-100 dark:bg-emerald-900/30"
+          }`}
+        >
+          {riskLevel === "high" && (
+            <AlertTriangle size={10} color="#ef4444" strokeWidth={2.5} style={{ marginRight: 3 }} />
+          )}
+          <Text
+            className={`text-xs font-bold ${
+              riskLevel === "high"
+                ? "text-red-600 dark:text-red-400"
+                : "text-emerald-600 dark:text-emerald-400"
+            }`}
+          >
+            {riskLevel === "high" ? "HR" : "LR"}
+          </Text>
+        </View>
+      ) : (
+        <View className="h-2 w-2 rounded-full bg-gray-200 dark:bg-slate-700" />
+      )}
     </ListItemPressable>
   );
 }

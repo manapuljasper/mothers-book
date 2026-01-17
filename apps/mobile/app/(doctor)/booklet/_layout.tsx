@@ -8,6 +8,10 @@ export default function DoctorBookletLayout() {
         name="add-entry"
         options={{ presentation: "modal", animation: "slide_from_bottom" }}
       />
+      <Stack.Screen
+        name="entry/[entryId]"
+        options={{ presentation: "modal", animation: "slide_from_bottom" }}
+      />
     </Stack>
   );
 }

@@ -17,6 +17,7 @@ import {
   Calendar,
   Stethoscope,
   FileText,
+  AlertTriangle,
 } from "lucide-react-native";
 import {
   useEntryById,
@@ -193,6 +194,43 @@ export default function MotherEntryDetailScreen() {
               {ENTRY_TYPE_LABELS[entry.entryType]} with {entry.doctorName}
             </Text>
           </View>
+
+          {/* Risk Level Badge */}
+          {entry.riskLevel && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor:
+                  entry.riskLevel === "high"
+                    ? "rgba(239, 68, 68, 0.1)"
+                    : "rgba(16, 185, 129, 0.1)",
+                alignSelf: "flex-start",
+              }}
+            >
+              {entry.riskLevel === "high" && (
+                <AlertTriangle
+                  size={14}
+                  color="#ef4444"
+                  strokeWidth={2.5}
+                  style={{ marginRight: 6 }}
+                />
+              )}
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: entry.riskLevel === "high" ? "#ef4444" : "#10b981",
+                }}
+              >
+                {entry.riskLevel === "high" ? "High Risk" : "Low Risk"}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Vitals Section */}

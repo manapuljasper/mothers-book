@@ -9,7 +9,7 @@ import { useState, useMemo } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronLeft, Plus, Baby, Users } from "lucide-react-native";
+import { ChevronLeft, Plus, Baby, Users, AlertTriangle } from "lucide-react-native";
 import { useCurrentUser } from "@/hooks";
 import { formatDate } from "@/utils";
 import {
@@ -224,6 +224,29 @@ export function BookletDetailContent({
 
           <View className="flex-row items-center gap-3 mt-5">
             <StatusBadge status={booklet.status} showDot glassmorphism />
+            {/* Risk Level Badge */}
+            {booklet.currentRiskLevel && (
+              <View
+                className={`flex-row items-center px-3 py-1 rounded-full ${
+                  booklet.currentRiskLevel === "high"
+                    ? "bg-red-500/20 border border-red-400/30"
+                    : "bg-emerald-500/20 border border-emerald-400/30"
+                }`}
+              >
+                {booklet.currentRiskLevel === "high" && (
+                  <AlertTriangle size={12} color="#fca5a5" strokeWidth={2.5} style={{ marginRight: 4 }} />
+                )}
+                <Text
+                  className={`text-xs font-bold ${
+                    booklet.currentRiskLevel === "high"
+                      ? "text-red-200"
+                      : "text-emerald-200"
+                  }`}
+                >
+                  {booklet.currentRiskLevel === "high" ? "High Risk" : "Low Risk"}
+                </Text>
+              </View>
+            )}
             {booklet.expectedDueDate && (
               <View className="bg-blue-600/30 px-3 py-1 rounded-full border border-white/10">
                 <Text className="text-blue-50 text-xs font-medium">

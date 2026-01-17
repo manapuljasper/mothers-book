@@ -21,6 +21,8 @@ export interface Vitals {
   aog?: string; // Age of Gestation e.g., "20 weeks 3 days"
 }
 
+export type RiskLevel = 'low' | 'high';
+
 export interface MedicalEntry {
   id: string;
   bookletId: string;
@@ -31,6 +33,7 @@ export interface MedicalEntry {
   vitals?: Vitals;
   diagnosis?: string;
   recommendations?: string;
+  riskLevel?: RiskLevel;
   followUpDate?: Date;
   attachments?: string[]; // Array of image URIs
   createdAt: Date;

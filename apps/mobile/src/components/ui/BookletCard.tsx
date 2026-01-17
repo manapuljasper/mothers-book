@@ -1,4 +1,5 @@
 import { View, Text } from "react-native";
+import { AlertTriangle } from "lucide-react-native";
 import { CardPressable } from "./AnimatedPressable";
 import { formatDate, formatRelativeDate } from "../../utils";
 import type { MotherBooklet, BookletWithMother } from "../../types";
@@ -66,10 +67,36 @@ export function BookletCard({
             )
           )}
         </View>
-        <View className={`border ${colors.border} px-2 py-1 rounded-full`}>
-          <Text className={`text-xs font-medium ${colors.text}`}>
-            {booklet.status}
-          </Text>
+        <View className="flex-row items-center gap-2">
+          {/* Risk Level Badge */}
+          {booklet.currentRiskLevel && (
+            <View
+              className={`flex-row items-center px-2 py-1 rounded-full ${
+                booklet.currentRiskLevel === "high"
+                  ? "bg-red-100 dark:bg-red-900/30"
+                  : "bg-emerald-100 dark:bg-emerald-900/30"
+              }`}
+            >
+              {booklet.currentRiskLevel === "high" && (
+                <AlertTriangle size={10} color="#ef4444" strokeWidth={2.5} style={{ marginRight: 3 }} />
+              )}
+              <Text
+                className={`text-xs font-bold ${
+                  booklet.currentRiskLevel === "high"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-emerald-600 dark:text-emerald-400"
+                }`}
+              >
+                {booklet.currentRiskLevel === "high" ? "HR" : "LR"}
+              </Text>
+            </View>
+          )}
+          {/* Status Badge */}
+          <View className={`border ${colors.border} px-2 py-1 rounded-full`}>
+            <Text className={`text-xs font-medium ${colors.text}`}>
+              {booklet.status}
+            </Text>
+          </View>
         </View>
       </View>
 

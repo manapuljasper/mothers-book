@@ -7,6 +7,7 @@ import {
   labPriorityValidator,
   vitalsValidator,
   medicationFrequencyValidator,
+  riskLevelValidator,
   formatDosage,
   type DosageUnit,
 } from "./lib/validators";
@@ -373,6 +374,7 @@ export const createEntryWithItems = mutation({
     vitals: v.optional(vitalsValidator),
     diagnosis: v.optional(v.string()),
     recommendations: v.optional(v.string()),
+    riskLevel: v.optional(riskLevelValidator),
     followUpDate: v.optional(v.number()),
     attachments: v.optional(v.array(v.string())),
     // Linked items
@@ -395,9 +397,15 @@ export const createEntryWithItems = mutation({
       vitals: args.vitals,
       diagnosis: args.diagnosis,
       recommendations: args.recommendations,
+      riskLevel: args.riskLevel,
       followUpDate: args.followUpDate,
       attachments: args.attachments,
     });
+
+    // 2. Sync risk level to booklet (denormalized for quick access)
+    if (args.riskLevel) {
+      await ctx.db.patch(args.bookletId, { currentRiskLevel: args.riskLevel });
+    }
 
     const createdMedications: Id<"medications">[] = [];
     const createdLabRequests: Id<"labRequests">[] = [];
@@ -459,6 +467,7 @@ export const updateEntryWithItems = mutation({
     vitals: v.optional(vitalsValidator),
     diagnosis: v.optional(v.string()),
     recommendations: v.optional(v.string()),
+    riskLevel: v.optional(riskLevelValidator),
     followUpDate: v.optional(v.number()),
     attachments: v.optional(v.array(v.string())),
     // New medications to add
@@ -490,6 +499,7 @@ export const updateEntryWithItems = mutation({
     if (args.diagnosis !== undefined) entryUpdates.diagnosis = args.diagnosis;
     if (args.recommendations !== undefined)
       entryUpdates.recommendations = args.recommendations;
+    if (args.riskLevel !== undefined) entryUpdates.riskLevel = args.riskLevel;
     if (args.followUpDate !== undefined)
       entryUpdates.followUpDate = args.followUpDate;
     if (args.attachments !== undefined)
@@ -497,6 +507,11 @@ export const updateEntryWithItems = mutation({
 
     if (Object.keys(entryUpdates).length > 0) {
       await ctx.db.patch(args.entryId, entryUpdates);
+    }
+
+    // Sync risk level to booklet (denormalized for quick access)
+    if (args.riskLevel !== undefined) {
+      await ctx.db.patch(entry.bookletId, { currentRiskLevel: args.riskLevel });
     }
 
     // 2. Remove medications

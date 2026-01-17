@@ -73,6 +73,7 @@ export default defineSchema({
     lastMenstrualPeriod: v.optional(v.number()), // Unix timestamp for AOG calculation
     expectedDueDate: v.optional(v.number()),
     actualDeliveryDate: v.optional(v.number()),
+    currentRiskLevel: v.optional(v.union(v.literal("low"), v.literal("high"))), // Synced from latest entry
     notes: v.optional(v.string()),
   })
     .index("by_mother", ["motherId"])
@@ -118,6 +119,7 @@ export default defineSchema({
     ),
     diagnosis: v.optional(v.string()),
     recommendations: v.optional(v.string()),
+    riskLevel: v.optional(v.union(v.literal("low"), v.literal("high"))),
     followUpDate: v.optional(v.number()),
     attachments: v.optional(v.array(v.string())),
   })

@@ -27,6 +27,7 @@ function transformBooklet(doc: Doc<"booklets">): MotherBooklet {
     actualDeliveryDate: doc.actualDeliveryDate
       ? new Date(doc.actualDeliveryDate)
       : undefined,
+    currentRiskLevel: doc.currentRiskLevel,
     notes: doc.notes,
   };
 }

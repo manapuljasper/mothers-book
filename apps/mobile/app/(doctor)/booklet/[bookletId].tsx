@@ -5,7 +5,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { ChevronLeft, Plus, Baby, Pencil } from "lucide-react-native";
+import { ChevronLeft, Plus, Baby, Pencil, AlertTriangle } from "lucide-react-native";
 import { useCurrentUser } from "@/hooks";
 import { formatDate, calculateAOG } from "@/utils";
 import {
@@ -221,6 +221,29 @@ export default function DoctorBookletDetailScreen() {
 
           <View className="flex-row items-center gap-3 mt-5">
             <StatusBadge status={booklet.status} showDot glassmorphism />
+            {/* Risk Level Badge */}
+            {booklet.currentRiskLevel && (
+              <View
+                className={`flex-row items-center px-3 py-1 rounded-full ${
+                  booklet.currentRiskLevel === "high"
+                    ? "bg-red-500/20 border border-red-400/30"
+                    : "bg-emerald-500/20 border border-emerald-400/30"
+                }`}
+              >
+                {booklet.currentRiskLevel === "high" && (
+                  <AlertTriangle size={12} color="#fca5a5" strokeWidth={2.5} style={{ marginRight: 4 }} />
+                )}
+                <Text
+                  className={`text-xs font-bold ${
+                    booklet.currentRiskLevel === "high"
+                      ? "text-red-200"
+                      : "text-emerald-200"
+                  }`}
+                >
+                  {booklet.currentRiskLevel === "high" ? "High Risk" : "Low Risk"}
+                </Text>
+              </View>
+            )}
             <Pressable
               onPress={() => setShowLMPModal(true)}
               className="bg-blue-600/30 px-3 py-1 rounded-full border border-white/10 flex-row items-center gap-1.5"

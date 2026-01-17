@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import { Baby, Calendar, CalendarDays, Stethoscope, ChevronRight, Flower2 } from "lucide-react-native";
+import { Baby, Calendar, CalendarDays, Stethoscope, ChevronRight, Flower2, AlertTriangle } from "lucide-react-native";
 import type { MotherBooklet } from "../../types";
 import { calculateAOGParts, formatDate } from "../../utils";
 import { ButtonPressable } from "./AnimatedPressable";
@@ -44,11 +44,37 @@ export function CurrentPregnancyCard({
           <Text className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
             {booklet.label}
           </Text>
-          <View className="flex-row items-center mt-2 px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/30 self-start">
-            <View className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" />
-            <Text className="text-[10px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">
-              Active
-            </Text>
+          <View className="flex-row items-center gap-2 mt-2">
+            {/* Active Status Badge */}
+            <View className="flex-row items-center px-2.5 py-1 rounded-full bg-green-100 dark:bg-green-900/30">
+              <View className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" />
+              <Text className="text-[10px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">
+                Active
+              </Text>
+            </View>
+            {/* Risk Level Badge */}
+            {booklet.currentRiskLevel && (
+              <View
+                className={`flex-row items-center px-2.5 py-1 rounded-full ${
+                  booklet.currentRiskLevel === "high"
+                    ? "bg-red-100 dark:bg-red-900/30"
+                    : "bg-emerald-100 dark:bg-emerald-900/30"
+                }`}
+              >
+                {booklet.currentRiskLevel === "high" && (
+                  <AlertTriangle size={10} color="#ef4444" strokeWidth={2.5} style={{ marginRight: 4 }} />
+                )}
+                <Text
+                  className={`text-[10px] font-bold uppercase tracking-wider ${
+                    booklet.currentRiskLevel === "high"
+                      ? "text-red-700 dark:text-red-400"
+                      : "text-emerald-700 dark:text-emerald-400"
+                  }`}
+                >
+                  {booklet.currentRiskLevel === "high" ? "High Risk" : "Low Risk"}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>

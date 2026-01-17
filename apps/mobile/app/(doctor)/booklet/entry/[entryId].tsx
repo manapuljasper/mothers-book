@@ -1,8 +1,14 @@
-import { View, Text, ScrollView, TouchableOpacity, useColorScheme } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  ChevronLeft,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Pressable,
+  useColorScheme,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  X,
   Share2,
   Heart,
   Scale,
@@ -11,6 +17,7 @@ import {
   Stethoscope,
   FileText,
   CalendarPlus,
+  AlertTriangle,
 } from "lucide-react-native";
 import {
   useEntryById,
@@ -28,7 +35,6 @@ export default function EntryDetailScreen() {
     bookletId: string;
   }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -43,23 +49,23 @@ export default function EntryDetailScreen() {
     medications === undefined ||
     labs === undefined;
 
-  // Theme colors
+  // Theme colors - blue accent for doctor's view
   const colors = {
-    background: isDark ? "#101822" : "#f9fafb",
-    headerBg: isDark ? "rgba(17, 24, 34, 0.9)" : "#ffffff",
-    headerBorder: isDark ? "#1e293b" : "#e5e7eb",
-    headerIcon: isDark ? "#cbd5e1" : "#6b7280",
+    background: isDark ? "#0f172a" : "#ffffff",
+    headerBg: isDark ? "#0f172a" : "#ffffff",
+    headerIcon: isDark ? "#94a3b8" : "#6b7280",
     headerTitle: isDark ? "#ffffff" : "#111827",
     dateText: isDark ? "#ffffff" : "#111827",
     doctorText: isDark ? "#94a3b8" : "#6b7280",
     sectionTitle: isDark ? "#ffffff" : "#111827",
-    cardBg: isDark ? "#1e293b" : "#ffffff",
+    cardBg: isDark ? "#1e293b" : "#f9fafb",
     cardBorder: isDark ? "#334155" : "#e5e7eb",
     notesText: isDark ? "#cbd5e1" : "#374151",
     divider: isDark ? "#1e293b" : "#e5e7eb",
     subSectionTitle: isDark ? "#64748b" : "#6b7280",
     listTitle: isDark ? "#ffffff" : "#111827",
     listSubtitle: isDark ? "#64748b" : "#6b7280",
+    accent: "#3b82f6", // Blue accent for doctor
   };
 
   if (isLoading) {
@@ -68,14 +74,14 @@ export default function EntryDetailScreen() {
 
   if (!entry) {
     return (
-      <SafeAreaView
+      <View
         className="flex-1 items-center justify-center"
         style={{ backgroundColor: colors.background }}
       >
         <Text style={{ color: colors.doctorText, fontSize: 16 }}>
           Entry not found
         </Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -87,42 +93,68 @@ export default function EntryDetailScreen() {
   const visitDateFormatted = formatDate(entry.visitDate, "long");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={[]}>
-      {/* Header */}
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Modal Header */}
       <View
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: 16,
+          paddingTop: 20,
           paddingBottom: 12,
-          paddingTop: insets.top,
+          paddingHorizontal: 16,
           backgroundColor: colors.headerBg,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.headerBorder,
         }}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ padding: 8, borderRadius: 20 }}
-          activeOpacity={0.7}
+        {/* Header Row */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
         >
-          <ChevronLeft size={24} color={colors.headerIcon} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.headerTitle }}>
-          Visit Details
-        </Text>
-        <TouchableOpacity style={{ padding: 8, borderRadius: 20 }} activeOpacity={0.7}>
-          <Share2 size={22} color={colors.headerIcon} strokeWidth={2} />
-        </TouchableOpacity>
+          <Pressable
+            onPress={() => router.back()}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.1)"
+                : "rgba(0,0,0,0.05)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <X size={24} color={colors.headerIcon} strokeWidth={2} />
+          </Pressable>
+          <Text
+            style={{ fontSize: 16, fontWeight: "700", color: colors.headerTitle }}
+          >
+            Visit Details
+          </Text>
+          <TouchableOpacity
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: isDark
+                ? "rgba(255,255,255,0.1)"
+                : "rgba(0,0,0,0.05)",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            activeOpacity={0.7}
+          >
+            <Share2 size={20} color={colors.headerIcon} strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Date & Doctor Section */}
+        {/* Date & Entry Type Section */}
         <View style={{ marginTop: 24, marginBottom: 24 }}>
           <Text
             style={{
@@ -134,7 +166,14 @@ export default function EntryDetailScreen() {
           >
             {visitDateFormatted}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, gap: 8 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 8,
+              gap: 8,
+            }}
+          >
             <View
               style={{
                 width: 24,
@@ -145,12 +184,55 @@ export default function EntryDetailScreen() {
                 justifyContent: "center",
               }}
             >
-              <Stethoscope size={14} color="#3b82f6" strokeWidth={1.5} />
+              <Stethoscope size={14} color={colors.accent} strokeWidth={1.5} />
             </View>
-            <Text style={{ fontSize: 14, fontWeight: "500", color: colors.doctorText }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "500",
+                color: colors.doctorText,
+              }}
+            >
               {ENTRY_TYPE_LABELS[entry.entryType]} with {entry.doctorName}
             </Text>
           </View>
+
+          {/* Risk Level Badge */}
+          {entry.riskLevel && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor:
+                  entry.riskLevel === "high"
+                    ? "rgba(239, 68, 68, 0.1)"
+                    : "rgba(16, 185, 129, 0.1)",
+                alignSelf: "flex-start",
+              }}
+            >
+              {entry.riskLevel === "high" && (
+                <AlertTriangle
+                  size={14}
+                  color="#ef4444"
+                  strokeWidth={2.5}
+                  style={{ marginRight: 6 }}
+                />
+              )}
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: entry.riskLevel === "high" ? "#ef4444" : "#10b981",
+                }}
+              >
+                {entry.riskLevel === "high" ? "High Risk" : "Low Risk"}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Vitals Section */}
@@ -168,8 +250,14 @@ export default function EntryDetailScreen() {
                 paddingHorizontal: 4,
               }}
             >
-              <Heart size={20} color="#3b82f6" strokeWidth={1.5} />
-              <Text style={{ fontSize: 18, fontWeight: "700", color: colors.sectionTitle }}>
+              <Heart size={20} color={colors.accent} strokeWidth={1.5} />
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "700",
+                  color: colors.sectionTitle,
+                }}
+              >
                 Vitals
               </Text>
             </View>
@@ -235,7 +323,13 @@ export default function EntryDetailScreen() {
               }}
             >
               <FileText size={18} color={colors.doctorText} strokeWidth={1.5} />
-              <Text style={{ fontSize: 18, fontWeight: "700", color: colors.sectionTitle }}>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "700",
+                  color: colors.sectionTitle,
+                }}
+              >
                 Doctor's Notes
               </Text>
             </View>
@@ -248,14 +342,20 @@ export default function EntryDetailScreen() {
                 borderColor: colors.cardBorder,
               }}
             >
-              <Text style={{ fontSize: 14, lineHeight: 22, color: colors.notesText }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  lineHeight: 22,
+                  color: colors.notesText,
+                }}
+              >
                 {entry.notes}
               </Text>
             </View>
           </View>
         )}
 
-        {/* Instructions Section */}
+        {/* Plan/Instructions Section */}
         {entry.recommendations && entry.recommendations.trim() && (
           <View style={{ marginBottom: 24 }}>
             <View
@@ -268,11 +368,53 @@ export default function EntryDetailScreen() {
               }}
             >
               <FileText size={18} color="#f59e0b" strokeWidth={1.5} />
-              <Text style={{ fontSize: 18, fontWeight: "700", color: "#fbbf24" }}>
-                Instructions
+              <Text
+                style={{ fontSize: 18, fontWeight: "700", color: "#fbbf24" }}
+              >
+                Plan
               </Text>
             </View>
             <InstructionsCard instructions={entry.recommendations} />
+          </View>
+        )}
+
+        {/* Follow-up Date */}
+        {entry.followUpDate && (
+          <View style={{ marginBottom: 24 }}>
+            <View
+              style={{
+                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                padding: 16,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: "rgba(59, 130, 246, 0.2)",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <CalendarPlus size={20} color={colors.accent} strokeWidth={1.5} />
+              <View>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.doctorText,
+                    marginBottom: 2,
+                  }}
+                >
+                  Follow-up Scheduled
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "600",
+                    color: colors.accent,
+                  }}
+                >
+                  {formatDate(entry.followUpDate, "long")}
+                </Text>
+              </View>
+            </View>
           </View>
         )}
 
@@ -332,10 +474,22 @@ export default function EntryDetailScreen() {
                   <Text style={{ fontSize: 16 }}>💊</Text>
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.listTitle }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: colors.listTitle,
+                    }}
+                  >
                     {med.name}
                   </Text>
-                  <Text style={{ fontSize: 12, color: colors.listSubtitle, marginTop: 2 }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.listSubtitle,
+                      marginTop: 2,
+                    }}
+                  >
                     {med.dosage}
                   </Text>
                 </View>
@@ -387,10 +541,22 @@ export default function EntryDetailScreen() {
                   <Text style={{ fontSize: 16 }}>🧪</Text>
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.listTitle }}>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: colors.listTitle,
+                    }}
+                  >
                     {lab.description}
                   </Text>
-                  <Text style={{ fontSize: 12, color: colors.listSubtitle, marginTop: 2 }}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.listSubtitle,
+                      marginTop: 2,
+                    }}
+                  >
                     Requested {formatDate(lab.requestedDate)}
                   </Text>
                 </View>
@@ -404,14 +570,14 @@ export default function EntryDetailScreen() {
                       lab.status === "completed"
                         ? "rgba(34, 197, 94, 0.1)"
                         : lab.status === "pending"
-                        ? "rgba(250, 204, 21, 0.1)"
-                        : "rgba(107, 114, 128, 0.1)",
+                          ? "rgba(250, 204, 21, 0.1)"
+                          : "rgba(107, 114, 128, 0.1)",
                     borderColor:
                       lab.status === "completed"
                         ? "rgba(34, 197, 94, 0.3)"
                         : lab.status === "pending"
-                        ? "rgba(250, 204, 21, 0.3)"
-                        : "rgba(107, 114, 128, 0.3)",
+                          ? "rgba(250, 204, 21, 0.3)"
+                          : "rgba(107, 114, 128, 0.3)",
                   }}
                 >
                   <Text
@@ -422,8 +588,8 @@ export default function EntryDetailScreen() {
                         lab.status === "completed"
                           ? "#22c55e"
                           : lab.status === "pending"
-                          ? "#facc15"
-                          : "#6b7280",
+                            ? "#facc15"
+                            : "#6b7280",
                     }}
                   >
                     {lab.status.charAt(0).toUpperCase() + lab.status.slice(1)}
@@ -433,50 +599,7 @@ export default function EntryDetailScreen() {
             ))}
           </View>
         )}
-
-        {/* Bottom spacing */}
-        <View style={{ height: 100 }} />
       </ScrollView>
-
-      {/* Bottom Button */}
-      {entry.followUpDate && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: colors.background,
-            borderTopWidth: 1,
-            borderTopColor: colors.headerBorder,
-            padding: 16,
-            paddingBottom: insets.bottom + 16,
-          }}
-        >
-          <TouchableOpacity
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "#3b82f6",
-              paddingVertical: 14,
-              borderRadius: 12,
-              gap: 8,
-              shadowColor: "#3b82f6",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
-            }}
-            activeOpacity={0.8}
-          >
-            <CalendarPlus size={20} color="#ffffff" strokeWidth={2} />
-            <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>
-              Schedule Follow-up
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </SafeAreaView>
+    </View>
   );
 }

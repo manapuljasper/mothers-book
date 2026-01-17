@@ -69,6 +69,7 @@ export default function AddEntryScreen() {
   const [fhr, setFhr] = useState("");
   const [notes, setNotes] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [riskLevel, setRiskLevel] = useState<"low" | "high">("low");
   const [followUpDate, setFollowUpDate] = useState<Date | null>(null);
   const [tempFollowUpDate, setTempFollowUpDate] = useState(new Date());
   const [showFollowUpPicker, setShowFollowUpPicker] = useState(false);
@@ -219,6 +220,7 @@ export default function AddEntryScreen() {
     setFhr(entry.vitals?.fetalHeartRate?.toString() || "");
     setNotes(entry.notes || "");
     setInstructions(entry.recommendations || "");
+    setRiskLevel(entry.riskLevel || "low");
     setFollowUpDate(entry.followUpDate ? new Date(entry.followUpDate) : null);
     setEditingEntryId(entry.id);
   };
@@ -230,6 +232,7 @@ export default function AddEntryScreen() {
     setFhr("");
     setNotes("");
     setInstructions("");
+    setRiskLevel("low");
     setFollowUpDate(null);
     setEditingEntryId(null);
     setExistingItemsLoaded(false);
@@ -367,6 +370,7 @@ export default function AddEntryScreen() {
           entryType: "prenatal_checkup",
           notes,
           recommendations: instructions || undefined,
+          riskLevel,
           vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
           followUpDate: followUpDate ? followUpDate.getTime() : undefined,
           newMedications: newMeds.length > 0 ? newMeds : undefined,
@@ -405,6 +409,7 @@ export default function AddEntryScreen() {
           visitDate: entryDate,
           notes,
           recommendations: instructions || undefined,
+          riskLevel,
           vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
           followUpDate: followUpDate ? followUpDate.getTime() : undefined,
           medications: pendingMedications.length > 0 ? pendingMedications : undefined,
@@ -628,15 +633,68 @@ export default function AddEntryScreen() {
           textAlignVertical="top"
         />
 
-        {/* Instructions Section */}
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
-          INSTRUCTIONS
-        </Text>
+        {/* Risk Level Toggle */}
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>RISK LEVEL</Text>
+        <View style={styles.riskToggleContainer}>
+          <TouchableOpacity
+            onPress={() => setRiskLevel("low")}
+            style={[
+              styles.riskToggleButton,
+              riskLevel === "low" && styles.riskToggleLowActive,
+            ]}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.riskToggleText,
+                riskLevel === "low" && styles.riskToggleLowActiveText,
+              ]}
+            >
+              LR
+            </Text>
+            <Text
+              style={[
+                styles.riskToggleLabel,
+                riskLevel === "low" && styles.riskToggleLowActiveText,
+              ]}
+            >
+              Low Risk
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setRiskLevel("high")}
+            style={[
+              styles.riskToggleButton,
+              riskLevel === "high" && styles.riskToggleHighActive,
+            ]}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.riskToggleText,
+                riskLevel === "high" && styles.riskToggleHighActiveText,
+              ]}
+            >
+              HR
+            </Text>
+            <Text
+              style={[
+                styles.riskToggleLabel,
+                riskLevel === "high" && styles.riskToggleHighActiveText,
+              ]}
+            >
+              High Risk
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Plan Section (formerly Instructions) */}
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>PLAN</Text>
         <TextInput
           style={styles.textArea}
           value={instructions}
           onChangeText={setInstructions}
-          placeholder="Add prescriptions or advice..."
+          placeholder="Add plan, prescriptions or advice..."
           placeholderTextColor="#4b5563"
           multiline
           numberOfLines={4}
@@ -1021,5 +1079,45 @@ const styles = StyleSheet.create({
   },
   collapsibleContent: {
     marginTop: 8,
+  },
+  riskToggleContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  riskToggleButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#192433",
+    borderWidth: 1,
+    borderColor: "#324867",
+    borderRadius: 12,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  riskToggleLowActive: {
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    borderColor: "#22c55e",
+  },
+  riskToggleHighActive: {
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderColor: "#ef4444",
+  },
+  riskToggleText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#6b7280",
+  },
+  riskToggleLowActiveText: {
+    color: "#22c55e",
+  },
+  riskToggleHighActiveText: {
+    color: "#ef4444",
+  },
+  riskToggleLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#6b7280",
   },
 });

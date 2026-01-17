@@ -13,6 +13,7 @@ import {
   QueueStatCard,
   PatientCard,
 } from "@/components/modules/doctor-dashboard";
+import type { RiskLevel } from "@/types";
 
 interface QueuePatient {
   id: string;
@@ -21,6 +22,7 @@ interface QueuePatient {
   bookletLabel: string;
   queueNumber: string;
   visitReason: string;
+  riskLevel?: RiskLevel;
 }
 
 export default function DoctorDashboard() {
@@ -58,6 +60,7 @@ export default function DoctorDashboard() {
       bookletLabel: booklet.label || `Booklet #${booklet.id.slice(-4)}`,
       queueNumber: `#${String(index + 1).padStart(2, "0")}`,
       visitReason: "Prenatal Checkup",
+      riskLevel: booklet.currentRiskLevel,
     }));
 
   // Queue data for done patients
@@ -81,6 +84,7 @@ export default function DoctorDashboard() {
                 : entry?.entryType === "lab_review"
                   ? "Lab Review"
                   : "Consultation",
+        riskLevel: booklet.currentRiskLevel,
       };
     });
 
@@ -155,6 +159,7 @@ export default function DoctorDashboard() {
                       queueNumber={patient.queueNumber}
                       onPress={() => handlePatientPress(patient.bookletId)}
                       faded={index >= 3}
+                      riskLevel={patient.riskLevel}
                     />
                   ))}
                 </View>
@@ -175,6 +180,7 @@ export default function DoctorDashboard() {
                       visitReason={patient.visitReason}
                       queueNumber={patient.queueNumber}
                       onPress={() => handlePatientPress(patient.bookletId)}
+                      riskLevel={patient.riskLevel}
                     />
                   ))}
                 </View>

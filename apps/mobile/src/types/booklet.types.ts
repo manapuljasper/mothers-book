@@ -1,6 +1,7 @@
 import { DoctorProfile } from './user.types';
 
 export type BookletStatus = 'active' | 'archived' | 'completed';
+export type RiskLevel = 'low' | 'high';
 
 export interface MotherBooklet {
   id: string;
@@ -11,6 +12,7 @@ export interface MotherBooklet {
   lastMenstrualPeriod?: Date;
   expectedDueDate?: Date;
   actualDeliveryDate?: Date;
+  currentRiskLevel?: RiskLevel;
   notes?: string;
 }
 

@@ -30,6 +30,7 @@ type ConvexEntry = {
   vitals?: MedicalEntry["vitals"];
   diagnosis?: string;
   recommendations?: string;
+  riskLevel?: "low" | "high";
   followUpDate?: number;
   attachments?: string[];
   doctorName?: string;
@@ -47,6 +48,7 @@ function transformEntry(doc: ConvexEntry): MedicalEntryWithDoctor {
     vitals: doc.vitals,
     diagnosis: doc.diagnosis,
     recommendations: doc.recommendations,
+    riskLevel: doc.riskLevel,
     followUpDate: doc.followUpDate ? new Date(doc.followUpDate) : undefined,
     attachments: doc.attachments,
     createdAt: new Date(doc._creationTime),
@@ -327,6 +329,7 @@ export function useCreateEntryWithItems() {
     vitals?: MedicalEntry["vitals"];
     diagnosis?: string;
     recommendations?: string;
+    riskLevel?: "low" | "high";
     followUpDate?: Date | number;
     attachments?: string[];
     medications?: PendingMedication[];
@@ -359,6 +362,7 @@ export function useCreateEntryWithItems() {
       vitals: args.vitals,
       diagnosis: args.diagnosis,
       recommendations: args.recommendations,
+      riskLevel: args.riskLevel,
       followUpDate: args.followUpDate instanceof Date ? args.followUpDate.getTime() : args.followUpDate,
       attachments: args.attachments,
       medications,
@@ -381,6 +385,7 @@ export function useUpdateEntryWithItems() {
     vitals?: MedicalEntry["vitals"];
     diagnosis?: string;
     recommendations?: string;
+    riskLevel?: "low" | "high";
     followUpDate?: Date | number;
     attachments?: string[];
     newMedications?: PendingMedication[];
@@ -414,6 +419,7 @@ export function useUpdateEntryWithItems() {
       vitals: args.vitals,
       diagnosis: args.diagnosis,
       recommendations: args.recommendations,
+      riskLevel: args.riskLevel,
       followUpDate: args.followUpDate instanceof Date ? args.followUpDate.getTime() : args.followUpDate,
       attachments: args.attachments,
       newMedications,
