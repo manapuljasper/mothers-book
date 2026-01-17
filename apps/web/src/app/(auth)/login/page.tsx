@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useCurrentUser } from "@/hooks";
-import { redirect } from "next/navigation";
+import { useCurrentUser, useSignIn, useSignUp } from "@/hooks";
+import { redirect, useRouter } from "next/navigation";
 import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
-  const { signIn } = useAuthActions();
+  const router = useRouter();
+  const signIn = useSignIn();
+  const signUp = useSignUp();
   const { isAuthenticated, isLoading, role } = useCurrentUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
@@ -20,6 +22,8 @@ export default function LoginPage() {
     if (role === "super_admin") redirect("/admin");
     if (role === "doctor") redirect("/doctor");
     if (role === "mother") redirect("/mother");
+    // If no role, redirect to role selection
+    redirect("/role-select");
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,12 +32,13 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("password", password);
-      formData.append("flow", mode);
-
-      await signIn("password", formData);
+      if (mode === "signIn") {
+        await signIn({ email, password });
+      } else {
+        await signUp({ email, password, fullName });
+      }
+      // After successful auth, the useCurrentUser hook will trigger sync and redirect
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
@@ -116,6 +121,26 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {mode === "signUp" && (
+                <div>
+                  <label
+                    htmlFor="fullName"
+                    className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
+                  >
+                    Full Name
+                  </label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="block w-full rounded-xl bg-[var(--background)] border border-[var(--border)] px-4 py-3.5 text-[var(--text-main)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all"
+                    placeholder="Juan Dela Cruz"
+                    required={mode === "signUp"}
+                  />
+                </div>
+              )}
+
               <div>
                 <label
                   htmlFor="email"
@@ -188,7 +213,10 @@ export default function LoginPage() {
             <div className="mt-6 text-center">
               <button
                 type="button"
-                onClick={() => setMode(mode === "signIn" ? "signUp" : "signIn")}
+                onClick={() => {
+                  setMode(mode === "signIn" ? "signUp" : "signIn");
+                  setError("");
+                }}
                 className="text-sm text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors"
               >
                 {mode === "signIn"
@@ -204,8 +232,7 @@ export default function LoginPage() {
           {/* Sample accounts hint */}
           <div className="mt-6 rounded-xl bg-[var(--background-white)] border border-[var(--border)] p-4 shadow-sm">
             <p className="text-xs text-[var(--text-muted)] text-center">
-              Demo accounts: <span className="text-[var(--text-secondary)]">dr.santos@clinic.ph</span> (Doctor) or{" "}
-              <span className="text-[var(--text-secondary)]">maria.cruz@gmail.com</span> (Mother)
+              New users will need to create an account with Clerk authentication
             </p>
           </div>
         </div>

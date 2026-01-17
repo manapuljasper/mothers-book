@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getCurrentUserId } from "./lib/auth";
 
 // ============================================================================
 // QUERIES
@@ -62,7 +62,7 @@ export const create = mutation({
     isPrimary: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getCurrentUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
     // Verify the doctor profile belongs to this user
@@ -118,7 +118,7 @@ export const update = mutation({
     isPrimary: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getCurrentUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
     const clinic = await ctx.db.get(args.clinicId);
@@ -171,7 +171,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { clinicId: v.id("doctorClinics") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getCurrentUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
     const clinic = await ctx.db.get(args.clinicId);
@@ -206,7 +206,7 @@ export const remove = mutation({
 export const setPrimary = mutation({
   args: { clinicId: v.id("doctorClinics") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = await getCurrentUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
     const clinic = await ctx.db.get(args.clinicId);

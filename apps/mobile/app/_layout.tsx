@@ -4,12 +4,12 @@ import { View, ActivityIndicator, Platform } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { useColorScheme } from "nativewind";
 import { useThemeStore } from "../src/stores";
 import { useCurrentUser } from "../src/hooks";
-import { storage } from "../src/services/storage.service";
 import * as SecureStore from "expo-secure-store";
 
 // Create Convex client
@@ -17,12 +17,33 @@ const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
 });
 
-// Auth token storage using MMKV (implements TokenStorage interface)
-const secureStorage = {
-  getItem: SecureStore.getItemAsync,
-  setItem: SecureStore.setItemAsync,
-  removeItem: SecureStore.deleteItemAsync,
+// Clerk token cache using SecureStore
+const tokenCache = {
+  async getToken(key: string) {
+    try {
+      const item = await SecureStore.getItemAsync(key);
+      return item;
+    } catch (error) {
+      await SecureStore.deleteItemAsync(key);
+      return null;
+    }
+  },
+  async saveToken(key: string, value: string) {
+    try {
+      return SecureStore.setItemAsync(key, value);
+    } catch (err) {
+      return;
+    }
+  },
 };
+
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+
+if (!publishableKey) {
+  throw new Error(
+    "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY. Please set it in your .env file."
+  );
+}
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { colorScheme: themeColorScheme } = useThemeStore();
@@ -70,19 +91,16 @@ function RootContent() {
 
 export default function RootLayout() {
   return (
-    <ConvexAuthProvider
-      client={convex}
-      storage={
-        Platform.OS === "android" || Platform.OS === "ios"
-          ? secureStorage
-          : undefined
-      }
-    >
-      <KeyboardProvider>
-        <ThemeProvider>
-          <RootContent />
-        </ThemeProvider>
-      </KeyboardProvider>
-    </ConvexAuthProvider>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+      <ClerkLoaded>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <KeyboardProvider>
+            <ThemeProvider>
+              <RootContent />
+            </ThemeProvider>
+          </KeyboardProvider>
+        </ConvexProviderWithClerk>
+      </ClerkLoaded>
+    </ClerkProvider>
   );
 }

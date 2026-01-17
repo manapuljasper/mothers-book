@@ -1,7 +1,24 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "../_generated/dataModel";
 import { UserRole } from "./validators";
+
+/**
+ * Get the current user's ID from Clerk authentication
+ * Returns null if not authenticated or user not found in database
+ */
+export async function getCurrentUserId(
+  ctx: QueryCtx | MutationCtx
+): Promise<Id<"users"> | null> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) return null;
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+    .first();
+
+  return user?._id ?? null;
+}
 
 /**
  * Get the current user's role based on their profiles
@@ -10,7 +27,7 @@ import { UserRole } from "./validators";
 export async function getUserRole(
   ctx: QueryCtx | MutationCtx
 ): Promise<UserRole | null> {
-  const userId = await getAuthUserId(ctx);
+  const userId = await getCurrentUserId(ctx);
   if (!userId) return null;
 
   // Check for super admin profile first
@@ -42,7 +59,7 @@ export async function getUserRole(
  * Throws an error if not authenticated or not a super admin
  */
 export async function requireSuperAdmin(ctx: QueryCtx | MutationCtx) {
-  const userId = await getAuthUserId(ctx);
+  const userId = await getCurrentUserId(ctx);
   if (!userId) {
     throw new Error("Not authenticated");
   }
@@ -64,7 +81,7 @@ export async function requireSuperAdmin(ctx: QueryCtx | MutationCtx) {
  * Throws an error if not authenticated or not a doctor
  */
 export async function requireDoctor(ctx: QueryCtx | MutationCtx) {
-  const userId = await getAuthUserId(ctx);
+  const userId = await getCurrentUserId(ctx);
   if (!userId) {
     throw new Error("Not authenticated");
   }
@@ -86,7 +103,7 @@ export async function requireDoctor(ctx: QueryCtx | MutationCtx) {
  * Throws an error if not authenticated or not a mother
  */
 export async function requireMother(ctx: QueryCtx | MutationCtx) {
-  const userId = await getAuthUserId(ctx);
+  const userId = await getCurrentUserId(ctx);
   if (!userId) {
     throw new Error("Not authenticated");
   }

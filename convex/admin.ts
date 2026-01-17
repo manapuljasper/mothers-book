@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireSuperAdmin } from "./lib/auth";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireSuperAdmin, getCurrentUserId } from "./lib/auth";
 
 // ============================================================================
 // DASHBOARD STATS
@@ -456,7 +455,7 @@ export const createSuperAdminProfile = mutation({
   handler: async (ctx, args) => {
     // For the first super admin, we need to allow creation without being a super admin
     // After that, only super admins can create other super admins
-    const currentUserId = await getAuthUserId(ctx);
+    const currentUserId = await getCurrentUserId(ctx);
     if (!currentUserId) throw new Error("Not authenticated");
 
     const existingSuperAdmins = await ctx.db.query("superAdminProfiles").take(1);
