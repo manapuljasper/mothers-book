@@ -13,7 +13,9 @@ import {
   MotherHomeSkeleton,
   DashboardHeader,
   CurrentPregnancyCard,
+  BabySizeCard,
 } from "@/components/ui";
+import { calculateAOGParts } from "@/utils";
 
 export default function MotherHomeScreen() {
   const router = useRouter();
@@ -108,6 +110,15 @@ export default function MotherHomeScreen() {
               booklet={primaryBooklet}
               assignedDoctor={primaryDoctor}
               onViewRecords={() => router.push(`/booklet/${primaryBooklet.id}`)}
+            />
+          </View>
+        )}
+
+        {/* Baby Size Fun Fact Card */}
+        {primaryBooklet?.lastMenstrualPeriod && (
+          <View className="mt-4" style={{ paddingHorizontal: select({ phone: 0, tablet: 16 }) }}>
+            <BabySizeCard
+              weeks={calculateAOGParts(primaryBooklet.lastMenstrualPeriod).weeks}
             />
           </View>
         )}

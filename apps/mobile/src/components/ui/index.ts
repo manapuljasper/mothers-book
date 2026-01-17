@@ -48,6 +48,7 @@ export { ClinicCard } from "./ClinicCard";
 export { DashboardHeader } from "./DashboardHeader";
 export { CurrentPregnancyCard } from "./CurrentPregnancyCard";
 export { MedicationDoseCard } from "./MedicationDoseCard";
+export { BabySizeCard } from "./BabySizeCard";
 
 // Skeleton components
 export {
