@@ -2,34 +2,64 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Monorepo Structure
+
+This is a **Yarn workspaces monorepo** containing:
+- **apps/mobile** - React Native/Expo mobile app
+- **apps/web** - Next.js web app
+- **convex/** - Shared Convex backend (at root level)
+
+Both apps share the same Convex deployment and backend code.
+
 ## Commands
 
 ```bash
-yarn start          # Start Expo dev server (press i for iOS, a for Android, w for web)
-yarn ios            # Start on iOS simulator
-yarn android        # Start on Android emulator
-yarn web            # Start in web browser
+# Root commands (run from repository root)
+yarn mobile          # Start Expo dev server for mobile app
+yarn mobile:ios      # Start mobile app on iOS simulator
+yarn mobile:android  # Start mobile app on Android emulator
+yarn web             # Start Next.js web app in development mode
+yarn web:build       # Build Next.js web app for production
+yarn convex:dev      # Start Convex dev server
+
+# From apps/mobile directory
+yarn start           # Start Expo dev server
+yarn ios             # Run on iOS simulator
+yarn android         # Run on Android emulator
+
+# From apps/web directory
+yarn dev             # Start Next.js dev server
+yarn build           # Build for production
 ```
 
 ## Important: Expo Go Not Supported
 
-This app uses `react-native-mmkv` which requires native modules. It **cannot run in Expo Go**.
+The mobile app uses `react-native-mmkv` which requires native modules. It **cannot run in Expo Go**.
 
-**To run the app, use one of these methods:**
-- **Local build**: `npx expo run:ios` or `npx expo run:android`
+**To run the mobile app, use one of these methods:**
+- **Local build**: `cd apps/mobile && npx expo run:ios` or `npx expo run:android`
 - **Development build via EAS**: `eas build --profile development`
-- **Simulators**: `yarn ios` or `yarn android`
+- **Simulators**: `yarn mobile:ios` or `yarn mobile:android`
 
 ## Tech Stack
 
+### Mobile App (apps/mobile)
 - **React Native** with **Expo SDK 54** (New Architecture enabled)
 - **Expo Router** for file-based navigation
 - **TypeScript** with strict mode
 - **NativeWind v4** for styling (Tailwind CSS for React Native)
-- **Convex** for backend (database, real-time sync, serverless functions)
+- **Convex** for backend (shared with web)
 - **Convex Auth** for authentication (email/password)
 - **Zustand** for auth state management
 - **MMKV** for local storage (theme preferences, etc.)
+
+### Web App (apps/web)
+- **Next.js** with App Router
+- **TypeScript** with strict mode
+- **Tailwind CSS v4** for styling
+- **Convex** for backend (shared with mobile)
+- **Convex Auth** for authentication
+- **Zustand** for auth state management
 
 ## Architecture
 
@@ -38,10 +68,10 @@ This is a **Digital Mother's Book** app - a healthcare application for maternal 
 ### Backend Status
 Using **Convex** for all data operations. Real-time sync enabled - all data updates propagate automatically to connected clients.
 
-### Route Structure
+### Mobile App Route Structure (apps/mobile)
 
 ```
-app/
+apps/mobile/app/
 ├── _layout.tsx           # Root layout (initializes data)
 ├── index.tsx             # Entry redirect based on auth
 ├── (auth)/               # Authentication screens
@@ -61,10 +91,10 @@ app/
         └── profile.tsx
 ```
 
-### Source Directory
+### Mobile App Source Directory (apps/mobile/src)
 
 ```
-src/
+apps/mobile/src/
 ├── types/           # TypeScript type definitions
 ├── data/            # Sample data files
 ├── stores/          # Zustand stores (auth, booklet, medical, medication)
@@ -74,12 +104,40 @@ src/
 └── components/      # Reusable components
 ```
 
+### Web App Structure (apps/web)
+
+```
+apps/web/src/
+├── app/             # Next.js App Router pages
+│   ├── layout.tsx   # Root layout with providers
+│   ├── page.tsx     # Home page
+│   ├── (auth)/      # Auth routes
+│   └── doctor/      # Doctor dashboard
+├── components/      # UI components
+│   ├── providers/   # Context providers (ConvexClientProvider)
+│   └── ui/          # Reusable UI components
+├── hooks/           # Custom hooks
+├── stores/          # Zustand stores
+└── lib/             # Utilities
+```
+
 ### Key Files
 
-- `src/types/index.ts` - All TypeScript types
-- `src/stores/auth.store.ts` - Authentication state
-- `src/stores/booklet.store.ts` - Booklet management
-- `src/data/index.ts` - Sample data initialization
+**Mobile App:**
+- `apps/mobile/src/types/index.ts` - TypeScript types
+- `apps/mobile/src/stores/auth.store.ts` - Authentication state
+- `apps/mobile/src/hooks/index.ts` - All Convex hooks
+
+**Web App:**
+- `apps/web/src/hooks/useAuth.ts` - Authentication hook
+- `apps/web/src/stores/auth.store.ts` - Auth state management
+- `apps/web/src/components/providers/ConvexClientProvider.tsx` - Convex provider
+
+**Shared Backend:**
+- `convex/schema.ts` - Database schema
+- `convex/users.ts` - User/profile operations
+- `convex/booklets.ts` - Booklet CRUD and access
+- `convex/medical.ts` - Medical entries and lab requests
 
 ### Data Model (Key Entities)
 
@@ -546,7 +604,7 @@ convex/
 
 **Use Doc and Id types from generated dataModel:**
 ```tsx
-import { Doc, Id } from "../convex/_generated/dataModel";
+import { Doc, Id } from "@convex/_generated/dataModel";
 
 // Components receive typed documents
 function BookletCard({ booklet }: { booklet: Doc<"booklets"> }) {
@@ -582,12 +640,14 @@ async function getBookletWithAuth(ctx: QueryCtx, bookletId: Id<"booklets">) {
 }
 ```
 
-### Usage in React Native
+### Usage in React Native / Next.js
+
+Both apps use the same Convex API with the `@convex` alias:
 
 ```tsx
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../convex/_generated/api";
-import { Id } from "../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import { Id } from "@convex/_generated/dataModel";
 
 // Queries - real-time subscriptions (returns undefined while loading)
 const booklets = useQuery(api.booklets.listByMother, { motherId });
@@ -606,15 +666,35 @@ await createBooklet({ label: "Baby #1", motherId });
 
 ### Initialization
 
-To set up Convex for the first time:
+To set up Convex for the first time (run from repository root):
 ```bash
-npx convex dev    # Starts dev server, generates types, syncs schema
+yarn convex:dev    # Starts dev server, generates types, syncs schema
+# or
+npx convex dev     # Same thing
 ```
 
-Environment variable required:
+Environment variables in `.env.local` (at root):
 ```
-EXPO_PUBLIC_CONVEX_URL=<your-convex-deployment-url>
+CONVEX_DEPLOYMENT=dev:giddy-fly-443
+EXPO_PUBLIC_CONVEX_URL=https://giddy-fly-443.convex.cloud  # For mobile
+NEXT_PUBLIC_CONVEX_URL=https://giddy-fly-443.convex.cloud  # For web
 ```
+
+### Monorepo Path Aliases
+
+Both apps use the `@convex` path alias to import from the shared convex folder:
+
+```tsx
+// Instead of relative paths like "../../../convex/_generated/api"
+import { api } from "@convex/_generated/api";
+import { Id, Doc } from "@convex/_generated/dataModel";
+```
+
+This is configured in:
+- `apps/mobile/tsconfig.json` - TypeScript path mapping
+- `apps/mobile/metro.config.js` - Metro resolver for runtime
+- `apps/web/tsconfig.json` - TypeScript path mapping
+- `apps/web/next.config.ts` - Webpack alias for runtime
 
 Refer to the official Convex documentation for detailed guides on:
 - Setting up Convex with React Native/Expo
