@@ -114,7 +114,49 @@ export const DEFAULT_TIMES_BY_FREQUENCY: Record<MedicationFrequency, string[]> =
 // QR token expiry in minutes
 export const QR_EXPIRY_MINUTES = 10;
 
+// Dosage units
+export const dosageUnits = [
+  "mg",
+  "g",
+  "mcg",
+  "mL",
+  "L",
+  "IU",
+  "units",
+  "tablets",
+  "capsules",
+  "drops",
+] as const;
+
+export type DosageUnit = (typeof dosageUnits)[number];
+
+export const DOSAGE_UNIT_LABELS: Record<DosageUnit, string> = {
+  mg: "mg (milligrams)",
+  g: "g (grams)",
+  mcg: "mcg (micrograms)",
+  mL: "mL (milliliters)",
+  L: "L (liters)",
+  IU: "IU (international units)",
+  units: "units",
+  tablets: "tablets",
+  capsules: "capsules",
+  drops: "drops",
+};
+
 // Medication category validator
+export const medicationCategories = [
+  "prenatal_vitamins",
+  "iron_supplements",
+  "calcium_supplements",
+  "folic_acid",
+  "antibiotics",
+  "pain_relief",
+  "anti_nausea",
+  "blood_pressure",
+  "hormones",
+  "other",
+] as const;
+
 export const medicationCategoryValidator = v.union(
   v.literal("prenatal_vitamins"),
   v.literal("iron_supplements"),
@@ -144,6 +186,17 @@ export const MEDICATION_CATEGORY_LABELS: Record<MedicationCategory, string> = {
 };
 
 // Lab test category validator
+export const labCategories = [
+  "blood_tests",
+  "urinalysis",
+  "imaging",
+  "prenatal_screening",
+  "glucose_tests",
+  "infection_screening",
+  "genetic_tests",
+  "other",
+] as const;
+
 export const labCategoryValidator = v.union(
   v.literal("blood_tests"),
   v.literal("urinalysis"),

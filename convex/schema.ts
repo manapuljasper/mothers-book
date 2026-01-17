@@ -208,8 +208,10 @@ export default defineSchema({
     name: v.string(),
     genericName: v.string(),
     category: v.string(),
-    defaultDosage: v.optional(v.string()),
-    dosageUnits: v.optional(v.array(v.string())),
+    dosage: v.optional(v.number()), // e.g., 500
+    dosageUnit: v.optional(v.string()), // e.g., "mg", "g", "mcg", "mL"
+    availableUnits: v.optional(v.array(v.string())), // Available unit options for this medication
+    availableDosages: v.optional(v.array(v.number())), // Common dosage amounts (e.g., [250, 500, 1000])
     instructions: v.optional(v.string()),
     warnings: v.optional(v.string()),
     isActive: v.boolean(),

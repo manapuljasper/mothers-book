@@ -140,16 +140,7 @@ export default function LaboratoryPage() {
     }
   };
 
-  if (labs === undefined) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
-          <p className="text-sm text-[var(--text-secondary)]">Loading laboratory tests...</p>
-        </div>
-      </div>
-    );
-  }
+  const isLoading = labs === undefined;
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -199,31 +190,40 @@ export default function LaboratoryPage() {
 
         {/* Table */}
         <div className="rounded-xl bg-[var(--background-white)] border border-[var(--border)] overflow-hidden">
-          <table className="w-full">
+          <table className="w-full table-fixed">
             <thead>
               <tr className="border-b border-[var(--border)] bg-[var(--background)]">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[25%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Name
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[10%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Code
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[18%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[20%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Normal Range
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[12%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[15%] px-6 py-4 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
-              {labs.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12">
+                    <div className="flex items-center justify-center gap-3">
+                      <Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
+                      <span className="text-sm text-[var(--text-secondary)]">Loading laboratory tests...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : labs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-secondary)]">
                     No laboratory tests found. Add your first lab test to get started.

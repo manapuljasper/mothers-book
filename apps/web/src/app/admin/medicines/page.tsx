@@ -5,15 +5,17 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
 import { Loader2, Plus, Search, Edit2, Trash2, X, Check } from "lucide-react";
-import { MEDICATION_CATEGORY_LABELS, MedicationCategory } from "@convex/lib/validators";
+import { MEDICATION_CATEGORY_LABELS, MedicationCategory, dosageUnits, DOSAGE_UNIT_LABELS, DosageUnit } from "@convex/lib/validators";
 
 type MedicationCatalogItem = {
   _id: Id<"medicationCatalog">;
   name: string;
   genericName: string;
   category: string;
-  defaultDosage?: string;
-  dosageUnits?: string[];
+  dosage?: number;
+  dosageUnit?: string;
+  availableUnits?: string[];
+  availableDosages?: number[];
   instructions?: string;
   warnings?: string;
   isActive: boolean;
@@ -24,7 +26,8 @@ interface MedicineFormData {
   name: string;
   genericName: string;
   category: string;
-  defaultDosage: string;
+  dosage: string;
+  dosageUnit: string;
   instructions: string;
   warnings: string;
 }
@@ -33,7 +36,8 @@ const emptyFormData: MedicineFormData = {
   name: "",
   genericName: "",
   category: "other",
-  defaultDosage: "",
+  dosage: "",
+  dosageUnit: "mg",
   instructions: "",
   warnings: "",
 };
@@ -68,7 +72,8 @@ export default function MedicinesPage() {
       name: item.name,
       genericName: item.genericName,
       category: item.category,
-      defaultDosage: item.defaultDosage || "",
+      dosage: item.dosage?.toString() || "",
+      dosageUnit: item.dosageUnit || "mg",
       instructions: item.instructions || "",
       warnings: item.warnings || "",
     });
@@ -87,13 +92,16 @@ export default function MedicinesPage() {
 
     setIsSubmitting(true);
     try {
+      const dosageValue = formData.dosage.trim() ? parseFloat(formData.dosage) : undefined;
+
       if (editingItem) {
         await updateMedication({
           id: editingItem._id,
           name: formData.name.trim(),
           genericName: formData.genericName.trim(),
           category: formData.category,
-          defaultDosage: formData.defaultDosage.trim() || undefined,
+          dosage: dosageValue,
+          dosageUnit: formData.dosageUnit || undefined,
           instructions: formData.instructions.trim() || undefined,
           warnings: formData.warnings.trim() || undefined,
         });
@@ -102,7 +110,8 @@ export default function MedicinesPage() {
           name: formData.name.trim(),
           genericName: formData.genericName.trim(),
           category: formData.category,
-          defaultDosage: formData.defaultDosage.trim() || undefined,
+          dosage: dosageValue,
+          dosageUnit: formData.dosageUnit || undefined,
           instructions: formData.instructions.trim() || undefined,
           warnings: formData.warnings.trim() || undefined,
         });
@@ -135,16 +144,7 @@ export default function MedicinesPage() {
     }
   };
 
-  if (medications === undefined) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
-          <p className="text-sm text-[var(--text-secondary)]">Loading medicines...</p>
-        </div>
-      </div>
-    );
-  }
+  const isLoading = medications === undefined;
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -194,30 +194,42 @@ export default function MedicinesPage() {
 
         {/* Table */}
         <div className="rounded-xl bg-[var(--background-white)] border border-[var(--border)] overflow-hidden">
-          <table className="w-full">
+          <table className="w-full table-fixed">
             <thead>
               <tr className="border-b border-[var(--border)] bg-[var(--background)]">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[22%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Brand Name
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[22%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Generic Name
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[12%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                  Dosage
+                </th>
+                <th className="w-[18%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[12%] px-6 py-4 text-left text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                <th className="w-[14%] px-6 py-4 text-right text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
-              {medications.length === 0 ? (
+              {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-[var(--text-secondary)]">
+                  <td colSpan={6} className="px-6 py-12">
+                    <div className="flex items-center justify-center gap-3">
+                      <Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
+                      <span className="text-sm text-[var(--text-secondary)]">Loading medicines...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : medications.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-secondary)]">
                     No medicines found. Add your first medicine to get started.
                   </td>
                 </tr>
@@ -229,6 +241,11 @@ export default function MedicinesPage() {
                     </td>
                     <td className="px-6 py-4 text-[var(--text-secondary)]">
                       {med.genericName}
+                    </td>
+                    <td className="px-6 py-4 text-[var(--text-secondary)]">
+                      {med.dosage && med.dosageUnit
+                        ? `${med.dosage} ${med.dosageUnit}`
+                        : "-"}
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center rounded-full bg-[var(--background)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)]">
@@ -345,35 +362,53 @@ export default function MedicinesPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
+                  Category *
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full rounded-xl bg-[var(--background)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-main)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all"
+                  required
+                >
+                  {Object.entries(MEDICATION_CATEGORY_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                    Category *
+                    Dosage
                   </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full rounded-xl bg-[var(--background)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-main)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all"
-                    required
-                  >
-                    {Object.entries(MEDICATION_CATEGORY_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    type="number"
+                    step="any"
+                    value={formData.dosage}
+                    onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
+                    className="w-full rounded-xl bg-[var(--background)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-main)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all"
+                    placeholder="e.g., 500"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                    Default Dosage
+                    Unit
                   </label>
-                  <input
-                    type="text"
-                    value={formData.defaultDosage}
-                    onChange={(e) => setFormData({ ...formData, defaultDosage: e.target.value })}
-                    className="w-full rounded-xl bg-[var(--background)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-main)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all"
-                    placeholder="e.g., 325mg"
-                  />
+                  <select
+                    value={formData.dosageUnit}
+                    onChange={(e) => setFormData({ ...formData, dosageUnit: e.target.value })}
+                    className="w-full rounded-xl bg-[var(--background)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-main)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all"
+                  >
+                    {dosageUnits.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {DOSAGE_UNIT_LABELS[unit]}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

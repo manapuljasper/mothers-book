@@ -39,3 +39,19 @@ export {
 // QR types
 export type { QRToken, QRCodeData } from './qr.types';
 export { QR_EXPIRY_MINUTES } from './qr.types';
+
+// Catalog types
+export type {
+  DosageUnit,
+  MedicationCategory,
+  LabCategory,
+  MedicationCatalogItem,
+  LabCatalogItem,
+  CategoryWithCount,
+} from './catalog.types';
+export {
+  DOSAGE_UNITS,
+  DOSAGE_UNIT_LABELS,
+  MEDICATION_CATEGORY_LABELS,
+  LAB_CATEGORY_LABELS,
+} from './catalog.types';

@@ -74,5 +74,17 @@ export {
   useSetPrimaryClinic,
 } from "./clinics";
 
+// Catalog hooks (medication and lab libraries)
+export {
+  useMedicationCatalog,
+  useSearchMedicationCatalog,
+  useMedicationCatalogItem,
+  useMedicationCategories,
+  useLabCatalog,
+  useSearchLabCatalog,
+  useLabCatalogItem,
+  useLabCategories,
+} from "./catalog";
+
 // Responsive hooks
 export { useResponsive, type ResponsiveValues, type DeviceType } from "./useResponsive";
