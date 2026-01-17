@@ -68,3 +68,9 @@ function useBooklet(id: Id<"booklets">) {}
 - **Dates**: Convex uses Unix timestamps (ms). Use `Date.now()`, display with `new Date(ts)`
 - **Date library**: Use `dayjs` (configured in `src/utils/date.utils.ts`)
 - **Filipino context**: PRC numbers, Philippine addresses, local terminology
+
+## App-Specific Docs
+
+For detailed conventions (components, styling, hooks), see:
+- `apps/mobile/CLAUDE.md` - NativeWind, UI components, animations
+- `apps/web/CLAUDE.md` - Next.js patterns
