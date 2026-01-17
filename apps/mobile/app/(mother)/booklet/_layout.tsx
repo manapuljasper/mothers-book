@@ -10,6 +10,13 @@ export default function BookletLayout() {
           presentation: "modal",
         }}
       />
+      <Stack.Screen
+        name="entry"
+        options={{
+          presentation: "modal",
+          animation: "slide_from_bottom",
+        }}
+      />
     </Stack>
   );
 }

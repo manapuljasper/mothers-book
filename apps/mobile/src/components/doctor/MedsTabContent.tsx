@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Pill, Clock, CheckCircle2 } from "lucide-react-native";
+import { Pill, Clock } from "lucide-react-native";
 import { formatDate } from "@/utils";
 import type { Medication } from "@/types";
 import { FREQUENCY_LABELS, DEFAULT_TIMES_BY_FREQUENCY } from "@/types";
@@ -7,14 +7,12 @@ import { FREQUENCY_LABELS, DEFAULT_TIMES_BY_FREQUENCY } from "@/types";
 interface MedsTabContentProps {
   medications: Medication[];
   activeMeds: Medication[];
-  onEditMedication: (med: Medication) => void;
-  onStopMedication: (med: Medication) => void;
-  /** Daily adherence data - if not provided, shows placeholder */
-  adherenceData?: {
-    totalDoses: number;
-    takenDoses: number;
-    percentage: number;
-  };
+  /** If not provided, edit button will be hidden */
+  onEditMedication?: (med: Medication) => void;
+  /** If not provided, stop button will be hidden */
+  onStopMedication?: (med: Medication) => void;
+  /** If true, hides action buttons (for read-only views like mother's view) */
+  readOnly?: boolean;
 }
 
 export function MedsTabContent({
@@ -22,16 +20,9 @@ export function MedsTabContent({
   activeMeds,
   onEditMedication,
   onStopMedication,
-  adherenceData,
+  readOnly = false,
 }: MedsTabContentProps) {
   const inactiveMeds = medications.filter((m) => !m.isActive);
-
-  // Default adherence data if not provided
-  const adherence = adherenceData || {
-    totalDoses: activeMeds.reduce((sum, m) => sum + m.frequencyPerDay, 0),
-    takenDoses: 0,
-    percentage: 0,
-  };
 
   if (medications.length === 0) {
     return (
@@ -49,27 +40,6 @@ export function MedsTabContent({
 
   return (
     <View>
-      {/* Daily Adherence Card */}
-      <View style={styles.adherenceCard}>
-        <View style={styles.adherenceHeader}>
-          <View style={styles.adherenceTitle}>
-            <CheckCircle2 size={18} color="#3b82f6" strokeWidth={2} />
-            <Text style={styles.adherenceTitleText}>Daily Adherence</Text>
-          </View>
-          <View style={styles.adherenceBadge}>
-            <Text style={styles.adherenceBadgeText}>{adherence.percentage}%</Text>
-          </View>
-        </View>
-        <View style={styles.progressBarBg}>
-          <View
-            style={[styles.progressBarFill, { width: `${adherence.percentage}%` }]}
-          />
-        </View>
-        <Text style={styles.adherenceSubtext}>
-          {adherence.takenDoses} of {adherence.totalDoses} doses taken today
-        </Text>
-      </View>
-
       {/* Active Medications Section */}
       {activeMeds.length > 0 && (
         <View style={styles.section}>
@@ -84,8 +54,9 @@ export function MedsTabContent({
             <MedicationCard
               key={med.id}
               medication={med}
-              onEdit={() => onEditMedication(med)}
-              onStop={() => onStopMedication(med)}
+              onEdit={!readOnly && onEditMedication ? () => onEditMedication(med) : undefined}
+              onStop={!readOnly && onStopMedication ? () => onStopMedication(med) : undefined}
+              readOnly={readOnly}
             />
           ))}
         </View>
@@ -130,11 +101,12 @@ export function MedsTabContent({
 // Medication Card Component
 interface MedicationCardProps {
   medication: Medication;
-  onEdit: () => void;
-  onStop: () => void;
+  onEdit?: () => void;
+  onStop?: () => void;
+  readOnly?: boolean;
 }
 
-function MedicationCard({ medication, onEdit, onStop }: MedicationCardProps) {
+function MedicationCard({ medication, onEdit, onStop, readOnly }: MedicationCardProps) {
   // Get schedule time from timesOfDay or default
   const scheduleTime =
     medication.timesOfDay?.[0] ||
@@ -180,22 +152,28 @@ function MedicationCard({ medication, onEdit, onStop }: MedicationCardProps) {
             {scheduleTime} {frequencyLabel}
           </Text>
         </View>
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity
-            onPress={onEdit}
-            style={styles.editButton}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onStop}
-            style={styles.stopButton}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.stopButtonText}>Stop</Text>
-          </TouchableOpacity>
-        </View>
+        {!readOnly && (onEdit || onStop) && (
+          <View style={styles.buttonGroup}>
+            {onEdit && (
+              <TouchableOpacity
+                onPress={onEdit}
+                style={styles.editButton}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+            )}
+            {onStop && (
+              <TouchableOpacity
+                onPress={onStop}
+                style={styles.stopButton}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.stopButtonText}>Stop</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -226,60 +204,6 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontSize: 14,
     marginTop: 4,
-  },
-
-  // Adherence Card
-  adherenceCard: {
-    backgroundColor: "#1e293b",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  adherenceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  adherenceTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  adherenceTitleText: {
-    color: "#e2e8f0",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  adherenceBadge: {
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  adherenceBadgeText: {
-    color: "#60a5fa",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  progressBarBg: {
-    height: 10,
-    backgroundColor: "#334155",
-    borderRadius: 5,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: 10,
-    backgroundColor: "#3b82f6",
-    borderRadius: 5,
-  },
-  adherenceSubtext: {
-    color: "#64748b",
-    fontSize: 11,
-    textAlign: "right",
-    marginTop: 8,
   },
 
   // Section

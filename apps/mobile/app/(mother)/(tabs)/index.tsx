@@ -1,24 +1,19 @@
-import { View, Text, ScrollView, Alert } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Pill } from "lucide-react-native";
 import {
   useCurrentUser,
   useBookletsByMother,
   useBookletDoctors,
   useActiveMedications,
-  useLogIntake,
   useResponsive,
 } from "@/hooks";
 import {
   StatCard,
-  EmptyState,
   MotherHomeSkeleton,
   DashboardHeader,
   CurrentPregnancyCard,
-  MedicationDoseCard,
 } from "@/components/ui";
-import { ResponsiveGrid } from "@/components/layout";
 
 export default function MotherHomeScreen() {
   const router = useRouter();
@@ -28,7 +23,6 @@ export default function MotherHomeScreen() {
 
   const booklets = useBookletsByMother(motherProfile?._id) ?? [];
   const allActiveMedications = useActiveMedications() ?? [];
-  const logIntake = useLogIntake();
 
   // Get the primary (first active) booklet
   const activeBooklets = booklets.filter((b) => b.status === "active");
@@ -74,36 +68,8 @@ export default function MotherHomeScreen() {
       )
     : null;
 
-  // Get mother's name and user ID
+  // Get mother's name
   const motherName = currentUser?.user?.fullName || "there";
-  const userId = currentUser?.user?._id;
-
-  // Get booklet label for medication
-  const getBookletLabel = (bookletId: string): string | undefined => {
-    return booklets.find((b) => b.id === bookletId)?.label;
-  };
-
-  // Handle dose toggle
-  const handleToggleDose = async (
-    medicationId: string,
-    doseIndex: number,
-    currentlyTaken: boolean
-  ) => {
-    if (!userId) {
-      Alert.alert("Error", "User not authenticated");
-      return;
-    }
-    try {
-      await logIntake({
-        medicationId,
-        doseIndex,
-        status: currentlyTaken ? "missed" : "taken",
-        userId,
-      });
-    } catch {
-      Alert.alert("Error", "Failed to update dose status");
-    }
-  };
 
   return (
     <SafeAreaView edges={[]} className="flex-1 bg-pink-500">
@@ -145,34 +111,6 @@ export default function MotherHomeScreen() {
             />
           </View>
         )}
-
-        {/* Today's Medications Section */}
-        <View style={{ paddingHorizontal: select({ phone: 20, tablet: 32 }) }} className="mt-6">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-            Today's Medications
-          </Text>
-
-          {activeMedications.length === 0 ? (
-            <EmptyState
-              icon={Pill}
-              title="No medications"
-              description="Prescribed medications will appear here"
-            />
-          ) : (
-            <ResponsiveGrid columns={{ phone: 1, tablet: 2 }} gap={12}>
-              {activeMedications.map((med) => (
-                <MedicationDoseCard
-                  key={med.id}
-                  medication={med}
-                  bookletLabel={getBookletLabel(med.bookletId)}
-                  onToggleDose={(doseIndex, currentlyTaken) =>
-                    handleToggleDose(med.id, doseIndex, currentlyTaken)
-                  }
-                />
-              ))}
-            </ResponsiveGrid>
-          )}
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

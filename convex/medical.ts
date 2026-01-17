@@ -345,6 +345,7 @@ export const deleteLab = mutation({
 // Medication item validator
 const pendingMedicationValidator = v.object({
   name: v.string(),
+  genericName: v.optional(v.string()),
   dosageAmount: v.string(),
   dosageUnit: v.string(),
   instructions: v.optional(v.string()),
@@ -408,6 +409,7 @@ export const createEntryWithItems = mutation({
           bookletId: args.bookletId,
           medicalEntryId: entryId,
           name: med.name,
+          genericName: med.genericName,
           dosage: formatDosage(med.dosageAmount, med.dosageUnit as DosageUnit),
           instructions: med.instructions,
           startDate: args.visitDate,
@@ -522,6 +524,7 @@ export const updateEntryWithItems = mutation({
           bookletId: entry.bookletId,
           medicalEntryId: args.entryId,
           name: med.name,
+          genericName: med.genericName,
           dosage: formatDosage(med.dosageAmount, med.dosageUnit as DosageUnit),
           instructions: med.instructions,
           startDate: visitDate,

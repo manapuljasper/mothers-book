@@ -19,6 +19,7 @@ export const LAB_PRIORITY_LABELS: Record<LabPriority, string> = {
 export interface PendingMedication {
   id: string; // Local ID for list management
   name: string;
+  genericName?: string;
   dosageAmount: string;
   dosageUnit: string;
   instructions: string;

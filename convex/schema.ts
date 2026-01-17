@@ -156,6 +156,7 @@ export default defineSchema({
     bookletId: v.id("booklets"),
     medicalEntryId: v.optional(v.id("medicalEntries")),
     name: v.string(),
+    genericName: v.optional(v.string()),
     dosage: v.string(),
     instructions: v.optional(v.string()),
     startDate: v.number(),

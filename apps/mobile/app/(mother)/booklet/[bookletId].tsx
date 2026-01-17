@@ -1,84 +1,71 @@
-import { useState, useMemo, useEffect } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { useState, useMemo } from "react";
+import { View, Text, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { ChevronLeft, FlaskConical, Paperclip, Pill } from "lucide-react-native";
+import { ChevronLeft, Baby, Users } from "lucide-react-native";
 import {
   useBookletById,
   useBookletDoctors,
   useEntriesByBooklet,
   useLabsByBooklet,
   useMedicationsByBooklet,
-  usePendingLabs,
 } from "@/hooks";
-import { formatDate } from "@/utils";
-import { ENTRY_TYPE_LABELS } from "@/types";
+import { formatDate, calculateAOG } from "@/utils";
 import {
   CardPressable,
-  AnimatedCollapsible,
-  StatCard,
+  StatusBadge,
+  AOGBadge,
+  BookletTabBar,
   MotherBookletDetailSkeleton,
-  CollapsibleSectionHeader,
+  type BookletTab,
 } from "@/components/ui";
-import { VitalsDisplay, MedicationCard, LabRequestCard } from "@/components";
+import {
+  HistoryTabContent,
+  MedsTabContent,
+  LabsTabContent,
+} from "@/components/doctor";
 
-export default function BookletDetailScreen() {
+export default function MotherBookletDetailScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  // Convex query hooks
   const booklet = useBookletById(bookletId);
   const doctors = useBookletDoctors(bookletId) ?? [];
   const entries = useEntriesByBooklet(bookletId) ?? [];
   const allMedications = useMedicationsByBooklet(bookletId) ?? [];
   const allLabs = useLabsByBooklet(bookletId) ?? [];
-  const pendingLabs = usePendingLabs(bookletId) ?? [];
 
-  // Get sorted unique dates from entries (as ISO date strings)
-  const visitDates = useMemo(() => {
-    const dateStrings = entries.map((e) => {
-      const d = e.visitDate;
-      return typeof d === "string" ? d : new Date(d).toISOString().split("T")[0];
+  // Local state
+  const [activeTab, setActiveTab] = useState<BookletTab>("history");
+
+  const isLoading =
+    booklet === undefined ||
+    entries === undefined ||
+    allMedications === undefined;
+
+  // Sorted entries by date (most recent first)
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort((a, b) => {
+      const dateA = new Date(a.visitDate).getTime();
+      const dateB = new Date(b.visitDate).getTime();
+      return dateB - dateA;
     });
-    return [...new Set(dateStrings)].sort(
-      (a, b) => new Date(b).getTime() - new Date(a).getTime()
-    );
   }, [entries]);
 
-  // Selected date state - default to most recent
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // Calculate AOG from booklet's LMP
+  const currentAOG = useMemo(() => {
+    if (!booklet?.lastMenstrualPeriod) return null;
+    return calculateAOG(booklet.lastMenstrualPeriod);
+  }, [booklet?.lastMenstrualPeriod]);
 
-  // Set selected date to most recent when entries load
-  useEffect(() => {
-    if (visitDates.length > 0 && selectedDate === null) {
-      setSelectedDate(visitDates[0]);
-    }
-  }, [visitDates, selectedDate]);
+  const activeMeds = allMedications.filter((m) => m.isActive);
 
-  // Collapsible sections state - default to collapsed
-  const [medsExpanded, setMedsExpanded] = useState(true);
-  const [labsExpanded, setLabsExpanded] = useState(true);
-  const [pendingLabsExpanded, setPendingLabsExpanded] = useState(false);
-  const [activeMedsExpanded, setActiveMedsExpanded] = useState(false);
-
-  // Get entry for selected date
-  const selectedEntry = useMemo(() => {
-    if (!selectedDate) return null;
-    return (
-      entries.find((e) => {
-        const d = e.visitDate;
-        const dateStr =
-          typeof d === "string" ? d : new Date(d).toISOString().split("T")[0];
-        return dateStr === selectedDate;
-      }) || null
-    );
-  }, [entries, selectedDate]);
-
-  const isLoading = booklet === undefined || entries === undefined || allMedications === undefined;
-
+  // Loading state
   if (isLoading) {
     return <MotherBookletDetailSkeleton />;
   }
@@ -86,346 +73,129 @@ export default function BookletDetailScreen() {
   if (!booklet) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
-        <Text className="text-gray-500 dark:text-gray-400">Booklet not found</Text>
+        <Text className="text-gray-400">Booklet not found</Text>
       </SafeAreaView>
     );
   }
 
-  const activeMeds = allMedications.filter((m) => m.isActive);
-
-  // Helper to get labs requested on a specific date
-  const getLabsForVisitDate = (visitDate: string) => {
-    return allLabs.filter((lab) => {
-      const labDate = new Date(lab.requestedDate).toISOString().split("T")[0];
-      return labDate === visitDate;
-    });
-  };
-
-  // Helper to get medications active during a specific date
-  const getMedsActiveOnDate = (visitDate: string) => {
-    const date = new Date(visitDate);
-    return allMedications.filter((med) => {
-      const startDate = new Date(med.startDate);
-      const endDate = med.endDate ? new Date(med.endDate) : null;
-      // Active if: started before/on this date AND (no end date OR end date on/after this date)
-      return startDate <= date && (!endDate || endDate >= date);
-    });
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-pink-500" edges={[]}>
-      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
-        {/* Header */}
-        <View className="bg-pink-500 px-6 py-6" style={{ paddingTop: insets.top }}>
-          <CardPressable onPress={() => router.back()} className="flex-row items-center mb-3">
-            <ChevronLeft size={20} color="#fbcfe8" strokeWidth={1.5} />
-            <Text className="text-pink-200 ml-1">Back</Text>
+      <ScrollView
+        className="flex-1 bg-gray-50 dark:bg-slate-900"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* Curved Header - Pink Theme */}
+        <View
+          className="bg-pink-500 px-5 pb-12 relative overflow-hidden"
+          style={{
+            paddingTop: insets.top + 8,
+            borderBottomLeftRadius: 40,
+            borderBottomRightRadius: 40,
+          }}
+        >
+          {/* Decorative circle */}
+          <View
+            className="absolute -top-32 -right-16 w-64 h-64 bg-white/5 rounded-full"
+            style={{ transform: [{ scale: 1.5 }] }}
+          />
+
+          {/* Back button */}
+          <CardPressable
+            onPress={() => router.back()}
+            className="flex-row items-center mb-6 opacity-90"
+          >
+            <ChevronLeft size={20} color="#ffffff" strokeWidth={2} />
+            <Text className="text-white text-sm font-semibold tracking-wide ml-1">
+              Back
+            </Text>
           </CardPressable>
-          <Text className="text-white text-2xl font-bold">{booklet.label}</Text>
-          <View className="flex-row items-center mt-2">
-            <View
-              className={`px-2 py-1 rounded-full border ${
-                booklet.status === "active" ? "border-white/50" : "border-white/30"
-              }`}
-            >
-              <Text className="text-white text-xs font-medium">
-                {booklet.status}
+
+          {/* Title and AOG */}
+          <View className="flex-row justify-between items-start">
+            <View className="flex-1">
+              <Text className="text-3xl font-bold text-white tracking-tight">
+                {booklet.label}
               </Text>
+              {booklet.expectedDueDate && (
+                <View className="flex-row items-center gap-2 mt-1">
+                  <Baby size={14} color="#fbcfe8" strokeWidth={1.5} />
+                  <Text className="text-pink-100 font-medium">
+                    Due: {formatDate(booklet.expectedDueDate)}
+                  </Text>
+                </View>
+              )}
             </View>
-            {booklet.expectedDueDate && (
-              <Text className="text-pink-200 ml-3">
-                Due: {formatDate(booklet.expectedDueDate)}
-              </Text>
+            {currentAOG && <AOGBadge aog={currentAOG} size="md" />}
+          </View>
+
+          {/* Status and doctors count */}
+          <View className="flex-row items-center gap-3 mt-5">
+            <StatusBadge status={booklet.status} showDot glassmorphism />
+            {doctors.length > 0 && (
+              <View className="bg-pink-600/30 px-3 py-1 rounded-full border border-white/10 flex-row items-center gap-1.5">
+                <Users size={12} color="#fce7f3" strokeWidth={2} />
+                <Text className="text-pink-50 text-xs font-medium">
+                  {doctors.length} Doctor{doctors.length !== 1 ? "s" : ""}
+                </Text>
+              </View>
             )}
           </View>
         </View>
 
-        {/* Quick Stats - tappable to navigate to history */}
-        <View className="flex-row px-4 -mt-4">
-          <StatCard value={entries.length} label="Visits" color="pink" size="sm" />
-          <StatCard
-            value={allMedications.length}
-            label="Medications"
-            color="blue"
-            size="sm"
-            onPress={() => router.push(`/(mother)/booklet/${bookletId}/history`)}
-          />
-          <StatCard
-            value={allLabs.length}
-            label="Labs"
-            color="purple"
-            size="sm"
-            onPress={() => router.push(`/(mother)/booklet/${bookletId}/labs`)}
-          />
-        </View>
-
-        {/* Doctors with Access */}
-        {doctors.length > 0 && (
-          <View className="px-6 mt-8">
-            <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-              My Doctors
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {doctors.map((doctor) => (
-                <CardPressable
-                  key={doctor.id}
-                  onPress={() => router.push(`/(mother)/view-doctor/${doctor.id}`)}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-4 mr-3 border border-gray-100 dark:border-gray-700 min-w-[140px]"
-                >
-                  <Text className="font-medium text-gray-900 dark:text-white">
-                    {doctor.fullName}
-                  </Text>
-                  <Text className="text-gray-400 text-xs">
-                    {doctor.specialization || "OB-GYN"}
-                  </Text>
-                </CardPressable>
-              ))}
-            </ScrollView>
+        {/* Content */}
+        <View className="px-5 -mt-8 relative z-20 pb-24">
+          {/* Tab Bar */}
+          <View className="mb-6">
+            <BookletTabBar activeTab={activeTab} onTabChange={setActiveTab} />
           </View>
-        )}
 
-        {/* Pending Labs Section - collapsed by default */}
-        <View className="px-6 mt-6">
-          <View className="mb-3">
-            <CollapsibleSectionHeader
-              title="Pending Labs"
-              count={pendingLabs.length}
-              expanded={pendingLabsExpanded}
-              onToggle={() => setPendingLabsExpanded(!pendingLabsExpanded)}
-              icon={FlaskConical}
-              size="md"
-            />
-          </View>
-          <AnimatedCollapsible expanded={pendingLabsExpanded}>
-            <View>
-              {pendingLabs.length === 0 ? (
-                <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                  <Text className="text-gray-400 text-center text-sm">No pending labs</Text>
-                </View>
-              ) : (
-                pendingLabs.map((lab) => (
-                  <View key={lab.id} className="mb-3">
-                    <LabRequestCard
-                      lab={lab}
-                      action={
-                        <Pressable
-                          onPress={() => {
-                            // Attachment functionality not implemented yet
-                          }}
-                          className="flex-row items-center"
-                        >
-                          <Paperclip size={14} color="#ec4899" strokeWidth={1.5} />
-                          <Text className="text-pink-500 text-sm font-medium ml-2">
-                            Add Attachment
-                          </Text>
-                        </Pressable>
-                      }
-                    />
-                  </View>
-                ))
-              )}
-            </View>
-          </AnimatedCollapsible>
-        </View>
-
-        {/* Active Medications Section - collapsed by default */}
-        <View className="px-6 mt-4">
-          <View className="mb-3">
-            <CollapsibleSectionHeader
-              title="Active Medications"
-              count={activeMeds.length}
-              expanded={activeMedsExpanded}
-              onToggle={() => setActiveMedsExpanded(!activeMedsExpanded)}
-              icon={Pill}
-              size="md"
-            />
-          </View>
-          <AnimatedCollapsible expanded={activeMedsExpanded}>
-            <View>
-              {activeMeds.length === 0 ? (
-                <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                  <Text className="text-gray-400 text-center text-sm">No active medications</Text>
-                </View>
-              ) : (
-                activeMeds.map((med) => (
-                  <View key={med.id} className="mb-3">
-                    <MedicationCard medication={med} />
-                  </View>
-                ))
-              )}
-            </View>
-          </AnimatedCollapsible>
-        </View>
-
-        {/* Date Picker for Visits */}
-        <View className="px-6 mt-8">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-            Visit History
-          </Text>
-          {visitDates.length === 0 ? (
-            <View className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700">
-              <Text className="text-gray-400 text-center">No visits yet</Text>
-            </View>
-          ) : (
-            <>
-              {/* Horizontal Date Selector */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                className="mb-4"
-              >
-                {visitDates.map((date) => {
-                  const isSelected = date === selectedDate;
-                  const dateObj = new Date(date);
-                  const day = dateObj.getDate();
-                  const month = dateObj.toLocaleDateString("en-US", {
-                    month: "short",
-                  });
-
-                  return (
-                    <Pressable
-                      key={date}
-                      onPress={() => setSelectedDate(date)}
-                      className={`items-center justify-center px-4 py-3 mr-2 rounded-xl border ${
-                        isSelected
-                          ? "bg-pink-500 border-pink-500"
-                          : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700"
-                      }`}
-                    >
-                      <Text
-                        className={`text-xs ${
-                          isSelected ? "text-pink-200" : "text-gray-400"
-                        }`}
-                      >
-                        {month}
-                      </Text>
-                      <Text
-                        className={`text-xl font-bold ${
-                          isSelected ? "text-white" : "text-gray-700 dark:text-gray-200"
-                        }`}
-                      >
-                        {day}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-
-              {/* Selected Entry Display */}
-              {selectedEntry && (
-                <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-8 border border-gray-100 dark:border-gray-700">
-                  {/* Entry Header */}
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1">
-                      <Text className="font-semibold text-gray-900 dark:text-white text-lg">
-                        {ENTRY_TYPE_LABELS[selectedEntry.entryType]}
-                      </Text>
-                      <Text className="text-gray-400 text-sm">
-                        {selectedEntry.doctorName}
-                      </Text>
-                    </View>
-                    <View className="border border-pink-300 dark:border-pink-500 px-3 py-1 rounded-full">
-                      <Text className="text-pink-500 text-sm font-medium">
-                        {formatDate(selectedEntry.visitDate)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Vitals */}
-                  {selectedEntry.vitals && (
-                    <View className="mt-3">
-                      <VitalsDisplay vitals={selectedEntry.vitals} />
-                    </View>
-                  )}
-
-                  {/* Notes */}
-                  {selectedEntry.notes && (
-                    <Text className="text-gray-600 dark:text-gray-300 text-sm mt-3">
-                      {selectedEntry.notes}
+          {/* My Doctors Section - show at top of history tab */}
+          {activeTab === "history" && doctors.length > 0 && (
+            <View className="mb-6">
+              <Text className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                My Doctors
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {doctors.map((doctor) => (
+                  <CardPressable
+                    key={doctor.id}
+                    onPress={() => router.push(`/(mother)/view-doctor/${doctor.id}`)}
+                    className="bg-slate-800 rounded-xl p-4 mr-3 border border-slate-700 min-w-[140px]"
+                  >
+                    <Text className="font-medium text-white">
+                      {doctor.fullName}
                     </Text>
-                  )}
-
-                  {/* Diagnosis */}
-                  {selectedEntry.diagnosis && (
-                    <View className="mt-3 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
-                      <Text className="text-blue-600 dark:text-blue-400 text-sm">
-                        <Text className="font-semibold">Diagnosis: </Text>
-                        {selectedEntry.diagnosis}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Recommendations */}
-                  {selectedEntry.recommendations && (
-                    <View className="mt-2 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
-                      <Text className="text-gray-600 dark:text-gray-300 text-sm">
-                        <Text className="font-semibold">Recommendations: </Text>
-                        {selectedEntry.recommendations}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Medications active during this visit */}
-                  {selectedDate && getMedsActiveOnDate(selectedDate).length > 0 && (
-                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <CollapsibleSectionHeader
-                        title="Active Medications"
-                        count={getMedsActiveOnDate(selectedDate).length}
-                        expanded={medsExpanded}
-                        onToggle={() => setMedsExpanded(!medsExpanded)}
-                      />
-                      <AnimatedCollapsible expanded={medsExpanded}>
-                        <View className="pt-2">
-                          {getMedsActiveOnDate(selectedDate).map((med) => (
-                            <View key={med.id} className="mb-2">
-                              <MedicationCard
-                                medication={med}
-                                variant="inline"
-                              />
-                            </View>
-                          ))}
-                        </View>
-                      </AnimatedCollapsible>
-                    </View>
-                  )}
-
-                  {/* Lab requests from this visit date */}
-                  {selectedDate && getLabsForVisitDate(selectedDate).length > 0 && (
-                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <CollapsibleSectionHeader
-                        title="Lab Requests"
-                        count={getLabsForVisitDate(selectedDate).length}
-                        expanded={labsExpanded}
-                        onToggle={() => setLabsExpanded(!labsExpanded)}
-                      />
-                      <AnimatedCollapsible expanded={labsExpanded}>
-                        <View className="pt-2">
-                          {getLabsForVisitDate(selectedDate).map((lab) => (
-                            <View key={lab.id} className="mb-2">
-                              <LabRequestCard
-                                lab={lab}
-                                variant="inline"
-                                showDates={false}
-                              />
-                            </View>
-                          ))}
-                        </View>
-                      </AnimatedCollapsible>
-                    </View>
-                  )}
-
-                  {/* Follow-up date */}
-                  {selectedEntry.followUpDate && (
-                    <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <Text className="text-gray-500 text-sm">
-                        Follow-up: {formatDate(selectedEntry.followUpDate)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-            </>
+                    <Text className="text-slate-400 text-xs mt-1">
+                      {doctor.specialization || "OB-GYN"}
+                    </Text>
+                  </CardPressable>
+                ))}
+              </ScrollView>
+            </View>
           )}
+
+          {/* History Tab */}
+          {activeTab === "history" && (
+            <HistoryTabContent
+              entries={sortedEntries}
+              allMedications={allMedications}
+              bookletId={bookletId}
+              entryRoute="mother"
+            />
+          )}
+
+          {/* Meds Tab - read-only mode */}
+          {activeTab === "meds" && (
+            <MedsTabContent
+              medications={allMedications}
+              activeMeds={activeMeds}
+              readOnly
+            />
+          )}
+
+          {/* Labs Tab */}
+          {activeTab === "labs" && <LabsTabContent labs={allLabs} />}
         </View>
       </ScrollView>
     </SafeAreaView>

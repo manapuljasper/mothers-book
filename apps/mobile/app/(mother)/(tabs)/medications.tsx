@@ -6,6 +6,7 @@ import {
   useLogIntake,
 } from "@/hooks";
 import { FREQUENCY_LABELS } from "@/types";
+import { formatDate } from "@/utils";
 import { AnimatedView, DoseButton, MedicationsSkeleton } from "@/components/ui";
 
 export default function MedicationsScreen() {
@@ -139,14 +140,16 @@ export default function MedicationsScreen() {
                 })}
               </View>
 
-              {/* Adherence */}
+              {/* Schedule & Duration */}
               <View className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
                 <View className="flex-row justify-between">
                   <Text className="text-gray-500 dark:text-gray-400 text-sm">
                     {FREQUENCY_LABELS[med.frequencyPerDay]}
                   </Text>
                   <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                    {med.adherenceRate || 0}% adherence (7 days)
+                    {med.endDate
+                      ? `Until ${formatDate(med.endDate)}`
+                      : "Ongoing"}
                   </Text>
                 </View>
               </View>

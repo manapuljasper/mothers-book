@@ -4,7 +4,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { Home, BookOpen, User } from "lucide-react-native";
+import { Home, BookOpen, Pill, User } from "lucide-react-native";
 import { useThemeStore } from "../../../src/stores";
 import { useResponsive } from "../../../src/hooks";
 import { ResponsiveTabLayout } from "../../../src/components/layout";
@@ -89,6 +89,18 @@ export default function MotherTabsLayout() {
           }}
         />
         <Tabs.Screen
+          name="medications"
+          options={{
+            title: "Meds",
+            headerTitle: () => (
+              <HeaderTitle title="Medications" subtitle="Your prescriptions" />
+            ),
+            tabBarIcon: ({ color, size }) => (
+              <Pill size={size} color={color} strokeWidth={1.5} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="profile"
           options={{
             title: "Profile",
@@ -98,13 +110,6 @@ export default function MotherTabsLayout() {
             tabBarIcon: ({ color, size }) => (
               <User size={size} color={color} strokeWidth={1.5} />
             ),
-          }}
-        />
-        {/* Hide old tabs from tab bar */}
-        <Tabs.Screen
-          name="medications"
-          options={{
-            href: null, // Hide from tab bar
           }}
         />
         <Tabs.Screen

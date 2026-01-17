@@ -70,6 +70,7 @@ export function MedicationForm({
 
     onAddMedication({
       name: fav.name,
+      genericName: fav.genericName,
       dosageAmount: fav.defaultDosage?.toString() || "",
       dosageUnit: fav.defaultDosageUnit || "mg",
       instructions: fav.defaultInstructions || "",
@@ -96,6 +97,7 @@ export function MedicationForm({
 
     onAddMedication({
       name: item.name,
+      genericName: item.genericName,
       dosageAmount: item.dosage?.toString() || "",
       dosageUnit,
       instructions: item.instructions || "",
@@ -233,11 +235,15 @@ export function MedicationForm({
               </Text>
             ) : searchResults.length > 0 ? (
               <ScrollView style={{ maxHeight: 200 }}>
-                {searchResults.map((item) => (
+                {searchResults.map((item, index) => (
                   <Pressable
                     key={item.id}
                     onPress={() => quickAddFromCatalog(item)}
-                    className="flex-row items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700"
+                    className={`flex-row items-center justify-between py-2 ${
+                      index < searchResults.length - 1
+                        ? "border-b border-gray-100 dark:border-gray-700"
+                        : ""
+                    }`}
                   >
                     <View className="flex-1">
                       <Text className="font-medium text-gray-900 dark:text-white">

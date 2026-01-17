@@ -7,22 +7,35 @@ interface HistoryTabContentProps {
   entries: MedicalEntryWithDoctor[];
   allMedications: Medication[];
   bookletId: string;
+  /** Custom entry press handler - if not provided, navigates to doctor entry detail */
+  onEntryPress?: (entryId: string) => void;
+  /** Base route for entry detail - defaults to doctor route */
+  entryRoute?: "doctor" | "mother";
 }
 
 export function HistoryTabContent({
   entries,
   allMedications,
   bookletId,
+  onEntryPress,
+  entryRoute = "doctor",
 }: HistoryTabContentProps) {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
   const handleEntryPress = (entryId: string) => {
-    router.push({
-      pathname: "/(doctor)/booklet/entry/[entryId]",
-      params: { entryId, bookletId },
-    });
+    if (onEntryPress) {
+      onEntryPress(entryId);
+    } else {
+      const pathname = entryRoute === "mother"
+        ? "/(mother)/booklet/entry/[entryId]"
+        : "/(doctor)/booklet/entry/[entryId]";
+      router.push({
+        pathname: pathname as any,
+        params: { entryId, bookletId },
+      });
+    }
   };
 
   const timelineLineColor = isDark ? "rgba(51, 65, 85, 0.5)" : "rgba(209, 213, 219, 0.8)";
