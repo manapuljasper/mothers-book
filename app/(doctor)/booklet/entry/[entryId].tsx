@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, useColorScheme } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -29,6 +29,8 @@ export default function EntryDetailScreen() {
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   const entry = useEntryById(entryId);
   const booklet = useBookletById(bookletId);
@@ -41,16 +43,38 @@ export default function EntryDetailScreen() {
     medications === undefined ||
     labs === undefined;
 
+  // Theme colors
+  const colors = {
+    background: isDark ? "#101822" : "#f9fafb",
+    headerBg: isDark ? "rgba(17, 24, 34, 0.9)" : "#ffffff",
+    headerBorder: isDark ? "#1e293b" : "#e5e7eb",
+    headerIcon: isDark ? "#cbd5e1" : "#6b7280",
+    headerTitle: isDark ? "#ffffff" : "#111827",
+    dateText: isDark ? "#ffffff" : "#111827",
+    doctorText: isDark ? "#94a3b8" : "#6b7280",
+    sectionTitle: isDark ? "#ffffff" : "#111827",
+    cardBg: isDark ? "#1e293b" : "#ffffff",
+    cardBorder: isDark ? "#334155" : "#e5e7eb",
+    notesText: isDark ? "#cbd5e1" : "#374151",
+    divider: isDark ? "#1e293b" : "#e5e7eb",
+    subSectionTitle: isDark ? "#64748b" : "#6b7280",
+    listTitle: isDark ? "#ffffff" : "#111827",
+    listSubtitle: isDark ? "#64748b" : "#6b7280",
+  };
+
   if (isLoading) {
     return <LoadingScreen />;
   }
 
   if (!entry) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Entry not found</Text>
-        </View>
+      <SafeAreaView
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: colors.background }}
+      >
+        <Text style={{ color: colors.doctorText, fontSize: 16 }}>
+          Entry not found
+        </Text>
       </SafeAreaView>
     );
   }
@@ -63,35 +87,67 @@ export default function EntryDetailScreen() {
   const visitDateFormatted = formatDate(entry.visitDate, "long");
 
   return (
-    <SafeAreaView style={styles.container} edges={[]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={[]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 16,
+          paddingBottom: 12,
+          paddingTop: insets.top,
+          backgroundColor: colors.headerBg,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.headerBorder,
+        }}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.headerButton}
+          style={{ padding: 8, borderRadius: 20 }}
           activeOpacity={0.7}
         >
-          <ChevronLeft size={24} color="#cbd5e1" strokeWidth={2} />
+          <ChevronLeft size={24} color={colors.headerIcon} strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Visit Details</Text>
-        <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
-          <Share2 size={22} color="#cbd5e1" strokeWidth={2} />
+        <Text style={{ fontSize: 16, fontWeight: "700", color: colors.headerTitle }}>
+          Visit Details
+        </Text>
+        <TouchableOpacity style={{ padding: 8, borderRadius: 20 }} activeOpacity={0.7}>
+          <Share2 size={22} color={colors.headerIcon} strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Date & Doctor Section */}
-        <View style={styles.dateSection}>
-          <Text style={styles.dateHeading}>{visitDateFormatted}</Text>
-          <View style={styles.doctorInfo}>
-            <View style={styles.doctorIcon}>
+        <View style={{ marginTop: 24, marginBottom: 24 }}>
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: "700",
+              color: colors.dateText,
+              letterSpacing: -0.5,
+            }}
+          >
+            {visitDateFormatted}
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, gap: 8 }}>
+            <View
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                backgroundColor: "rgba(59, 130, 246, 0.2)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <Stethoscope size={14} color="#3b82f6" strokeWidth={1.5} />
             </View>
-            <Text style={styles.doctorText}>
+            <Text style={{ fontSize: 14, fontWeight: "500", color: colors.doctorText }}>
               {ENTRY_TYPE_LABELS[entry.entryType]} with {entry.doctorName}
             </Text>
           </View>
@@ -102,14 +158,24 @@ export default function EntryDetailScreen() {
           entry.vitals?.weight ||
           entry.vitals?.fetalHeartRate ||
           aog) && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+          <View style={{ marginBottom: 24 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 12,
+                paddingHorizontal: 4,
+              }}
+            >
               <Heart size={20} color="#3b82f6" strokeWidth={1.5} />
-              <Text style={styles.sectionTitle}>Vitals</Text>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: colors.sectionTitle }}>
+                Vitals
+              </Text>
             </View>
-            <View style={styles.vitalsGrid}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
               {entry.vitals?.bloodPressure && (
-                <View style={styles.vitalItem}>
+                <View style={{ width: "48%" }}>
                   <VitalCard
                     label="BP"
                     value={entry.vitals.bloodPressure}
@@ -120,7 +186,7 @@ export default function EntryDetailScreen() {
                 </View>
               )}
               {entry.vitals?.weight && (
-                <View style={styles.vitalItem}>
+                <View style={{ width: "48%" }}>
                   <VitalCard
                     label="Weight"
                     value={entry.vitals.weight}
@@ -131,7 +197,7 @@ export default function EntryDetailScreen() {
                 </View>
               )}
               {entry.vitals?.fetalHeartRate && (
-                <View style={styles.vitalItem}>
+                <View style={{ width: "48%" }}>
                   <VitalCard
                     label="FHR"
                     value={entry.vitals.fetalHeartRate}
@@ -142,7 +208,7 @@ export default function EntryDetailScreen() {
                 </View>
               )}
               {aog && (
-                <View style={styles.vitalItem}>
+                <View style={{ width: "48%" }}>
                   <VitalCard
                     label="AOG"
                     value={aog.replace("w", "").replace("d", "").trim().split(" ")[0]}
@@ -158,23 +224,51 @@ export default function EntryDetailScreen() {
 
         {/* Doctor's Notes Section */}
         {entry.notes && entry.notes.trim() && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <FileText size={18} color="#94a3b8" strokeWidth={1.5} />
-              <Text style={styles.sectionTitle}>Doctor's Notes</Text>
+          <View style={{ marginBottom: 24 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 12,
+                paddingHorizontal: 4,
+              }}
+            >
+              <FileText size={18} color={colors.doctorText} strokeWidth={1.5} />
+              <Text style={{ fontSize: 18, fontWeight: "700", color: colors.sectionTitle }}>
+                Doctor's Notes
+              </Text>
             </View>
-            <View style={styles.notesCard}>
-              <Text style={styles.notesText}>{entry.notes}</Text>
+            <View
+              style={{
+                backgroundColor: colors.cardBg,
+                padding: 20,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.cardBorder,
+              }}
+            >
+              <Text style={{ fontSize: 14, lineHeight: 22, color: colors.notesText }}>
+                {entry.notes}
+              </Text>
             </View>
           </View>
         )}
 
         {/* Instructions Section */}
         {entry.recommendations && entry.recommendations.trim() && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+          <View style={{ marginBottom: 24 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 12,
+                paddingHorizontal: 4,
+              }}
+            >
               <FileText size={18} color="#f59e0b" strokeWidth={1.5} />
-              <Text style={[styles.sectionTitle, { color: "#fbbf24" }]}>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: "#fbbf24" }}>
                 Instructions
               </Text>
             </View>
@@ -184,60 +278,153 @@ export default function EntryDetailScreen() {
 
         {/* Divider */}
         {((medications && medications.length > 0) ||
-          (labs && labs.length > 0)) && <View style={styles.divider} />}
+          (labs && labs.length > 0)) && (
+          <View
+            style={{
+              height: 1,
+              backgroundColor: colors.divider,
+              marginVertical: 24,
+              marginHorizontal: 8,
+            }}
+          />
+        )}
 
-        {/* Medications Section - Placeholder for now */}
+        {/* Medications Section */}
         {medications && medications.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.subSectionTitle}>Prescribed Medications</Text>
+          <View style={{ marginBottom: 24 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: colors.subSectionTitle,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                marginBottom: 12,
+                paddingHorizontal: 4,
+              }}
+            >
+              Prescribed Medications
+            </Text>
             {medications.map((med) => (
-              <View key={med.id} style={styles.listItem}>
-                <View style={[styles.listIcon, { backgroundColor: "rgba(249, 115, 22, 0.2)" }]}>
+              <View
+                key={med.id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colors.cardBg,
+                  padding: 12,
+                  borderRadius: 12,
+                  marginBottom: 8,
+                  borderWidth: 1,
+                  borderColor: colors.cardBorder,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: "rgba(249, 115, 22, 0.2)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
                   <Text style={{ fontSize: 16 }}>💊</Text>
                 </View>
-                <View style={styles.listContent}>
-                  <Text style={styles.listTitle}>{med.name}</Text>
-                  <Text style={styles.listSubtitle}>{med.dosage}</Text>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.listTitle }}>
+                    {med.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.listSubtitle, marginTop: 2 }}>
+                    {med.dosage}
+                  </Text>
                 </View>
               </View>
             ))}
           </View>
         )}
 
-        {/* Labs Section - Placeholder for now */}
+        {/* Labs Section */}
         {labs && labs.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.subSectionTitle}>Lab Requests</Text>
+          <View style={{ marginBottom: 24 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: colors.subSectionTitle,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                marginBottom: 12,
+                paddingHorizontal: 4,
+              }}
+            >
+              Lab Requests
+            </Text>
             {labs.map((lab) => (
-              <View key={lab.id} style={styles.listItem}>
-                <View style={[styles.listIcon, { backgroundColor: "rgba(99, 102, 241, 0.2)" }]}>
+              <View
+                key={lab.id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colors.cardBg,
+                  padding: 12,
+                  borderRadius: 12,
+                  marginBottom: 8,
+                  borderWidth: 1,
+                  borderColor: colors.cardBorder,
+                }}
+              >
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: "rgba(99, 102, 241, 0.2)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
                   <Text style={{ fontSize: 16 }}>🧪</Text>
                 </View>
-                <View style={styles.listContent}>
-                  <Text style={styles.listTitle}>{lab.description}</Text>
-                  <Text style={styles.listSubtitle}>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.listTitle }}>
+                    {lab.description}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.listSubtitle, marginTop: 2 }}>
                     Requested {formatDate(lab.requestedDate)}
                   </Text>
                 </View>
                 <View
-                  style={[
-                    styles.statusBadge,
-                    lab.status === "completed"
-                      ? styles.statusCompleted
-                      : lab.status === "pending"
-                      ? styles.statusPending
-                      : styles.statusCancelled,
-                  ]}
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    borderWidth: 1,
+                    backgroundColor:
+                      lab.status === "completed"
+                        ? "rgba(34, 197, 94, 0.1)"
+                        : lab.status === "pending"
+                        ? "rgba(250, 204, 21, 0.1)"
+                        : "rgba(107, 114, 128, 0.1)",
+                    borderColor:
+                      lab.status === "completed"
+                        ? "rgba(34, 197, 94, 0.3)"
+                        : lab.status === "pending"
+                        ? "rgba(250, 204, 21, 0.3)"
+                        : "rgba(107, 114, 128, 0.3)",
+                  }}
                 >
                   <Text
-                    style={[
-                      styles.statusText,
-                      lab.status === "completed"
-                        ? styles.statusTextCompleted
-                        : lab.status === "pending"
-                        ? styles.statusTextPending
-                        : styles.statusTextCancelled,
-                    ]}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "600",
+                      color:
+                        lab.status === "completed"
+                          ? "#22c55e"
+                          : lab.status === "pending"
+                          ? "#facc15"
+                          : "#6b7280",
+                    }}
                   >
                     {lab.status.charAt(0).toUpperCase() + lab.status.slice(1)}
                   </Text>
@@ -253,224 +440,43 @@ export default function EntryDetailScreen() {
 
       {/* Bottom Button */}
       {entry.followUpDate && (
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-          <TouchableOpacity style={styles.followUpButton} activeOpacity={0.8}>
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: colors.background,
+            borderTopWidth: 1,
+            borderTopColor: colors.headerBorder,
+            padding: 16,
+            paddingBottom: insets.bottom + 16,
+          }}
+        >
+          <TouchableOpacity
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#3b82f6",
+              paddingVertical: 14,
+              borderRadius: 12,
+              gap: 8,
+              shadowColor: "#3b82f6",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
+            activeOpacity={0.8}
+          >
             <CalendarPlus size={20} color="#ffffff" strokeWidth={2} />
-            <Text style={styles.followUpButtonText}>Schedule Follow-up</Text>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>
+              Schedule Follow-up
+            </Text>
           </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#101822",
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  errorText: {
-    color: "#94a3b8",
-    fontSize: 16,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: "rgba(17, 24, 34, 0.9)",
-    borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
-  },
-  headerButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#ffffff",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-  },
-  dateSection: {
-    marginTop: 24,
-    marginBottom: 24,
-  },
-  dateHeading: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#ffffff",
-    letterSpacing: -0.5,
-  },
-  doctorInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-    gap: 8,
-  },
-  doctorIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  doctorText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#94a3b8",
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#ffffff",
-  },
-  vitalsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  vitalItem: {
-    width: "48%",
-  },
-  notesCard: {
-    backgroundColor: "#1e293b",
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  notesText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: "#cbd5e1",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#1e293b",
-    marginVertical: 24,
-    marginHorizontal: 8,
-  },
-  subSectionTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#64748b",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1e293b",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  listIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  listContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  listTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  listSubtitle: {
-    fontSize: 12,
-    color: "#64748b",
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  statusPending: {
-    backgroundColor: "rgba(250, 204, 21, 0.1)",
-    borderColor: "rgba(250, 204, 21, 0.3)",
-  },
-  statusCompleted: {
-    backgroundColor: "rgba(34, 197, 94, 0.1)",
-    borderColor: "rgba(34, 197, 94, 0.3)",
-  },
-  statusCancelled: {
-    backgroundColor: "rgba(107, 114, 128, 0.1)",
-    borderColor: "rgba(107, 114, 128, 0.3)",
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  statusTextPending: {
-    color: "#facc15",
-  },
-  statusTextCompleted: {
-    color: "#22c55e",
-  },
-  statusTextCancelled: {
-    color: "#6b7280",
-  },
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "#101822",
-    borderTopWidth: 1,
-    borderTopColor: "#1e293b",
-    padding: 16,
-  },
-  followUpButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#3b82f6",
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  followUpButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#ffffff",
-  },
-});

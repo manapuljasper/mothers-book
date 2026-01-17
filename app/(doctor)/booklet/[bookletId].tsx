@@ -156,8 +156,9 @@ export default function DoctorBookletDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
       <ScrollView
-        className="flex-1 bg-slate-900"
+        className="flex-1 bg-gray-50 dark:bg-slate-900"
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
         {/* Header */}
         <View

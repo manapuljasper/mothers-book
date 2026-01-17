@@ -243,6 +243,20 @@ export const listPendingLabs = query({
   },
 });
 
+// List pending labs requested by a specific doctor
+export const listPendingLabsByDoctor = query({
+  args: { doctorId: v.id("doctorProfiles") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("labRequests")
+      .withIndex("by_doctor_status", (q) =>
+        q.eq("requestedByDoctorId", args.doctorId).eq("status", "pending")
+      )
+      .order("desc")
+      .collect();
+  },
+});
+
 // Create lab request
 export const createLab = mutation({
   args: {

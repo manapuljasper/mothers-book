@@ -199,6 +199,17 @@ export function usePendingLabs(bookletId?: string) {
   }, [result]);
 }
 
+export function usePendingLabsByDoctor(doctorId: Id<"doctorProfiles"> | undefined) {
+  const result = useQuery(
+    api.medical.listPendingLabsByDoctor,
+    doctorId ? { doctorId } : "skip"
+  );
+  return useMemo(() => {
+    if (result === undefined) return undefined;
+    return result.map((doc) => transformLab(doc as ConvexLab));
+  }, [result]);
+}
+
 export function useCreateLabRequest() {
   const mutation = useMutation(api.medical.createLab);
 

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, useColorScheme } from "react-native";
 import { Quote } from "lucide-react-native";
 
 interface InstructionsCardProps {
@@ -6,43 +6,55 @@ interface InstructionsCardProps {
 }
 
 export function InstructionsCard({ instructions }: InstructionsCardProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   if (!instructions || !instructions.trim()) {
     return null;
   }
 
+  const colors = {
+    background: isDark ? "#2c2214" : "#fffbeb", // warm amber-dark / amber-50
+    border: isDark ? "rgba(146, 64, 14, 0.3)" : "#fde68a", // amber-900/30 / amber-200
+    quoteIcon: isDark ? "#92400e" : "#d97706", // amber-800 / amber-600
+    text: isDark ? "#fef3c7" : "#78350f", // amber-100 / amber-900
+  };
+
   return (
-    <View style={styles.container}>
+    <View
+      style={{
+        backgroundColor: colors.background,
+        padding: 24,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
       {/* Background quote decoration */}
-      <View style={styles.quoteDecoration}>
-        <Quote size={96} color="#92400e" strokeWidth={1} />
+      <View
+        style={{
+          position: "absolute",
+          right: -16,
+          top: -16,
+          opacity: 0.07,
+          transform: [{ rotate: "12deg" }],
+        }}
+      >
+        <Quote size={96} color={colors.quoteIcon} strokeWidth={1} />
       </View>
 
-      <Text style={styles.text}>{instructions}</Text>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: "500",
+          color: colors.text,
+          lineHeight: 28,
+        }}
+      >
+        {instructions}
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#2c2214", // warm amber-dark
-    padding: 24,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(146, 64, 14, 0.3)", // amber-900/30
-    position: "relative",
-    overflow: "hidden",
-  },
-  quoteDecoration: {
-    position: "absolute",
-    right: -16,
-    top: -16,
-    opacity: 0.07,
-    transform: [{ rotate: "12deg" }],
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#fef3c7", // amber-100
-    lineHeight: 28,
-  },
-});

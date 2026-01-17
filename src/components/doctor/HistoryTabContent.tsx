@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, useColorScheme } from "react-native";
 import { useRouter } from "expo-router";
 import { TimelineDateBadge, TimelineEntryCard } from "@/components/ui";
 import type { MedicalEntryWithDoctor, Medication } from "@/types";
@@ -15,6 +15,8 @@ export function HistoryTabContent({
   bookletId,
 }: HistoryTabContentProps) {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   const handleEntryPress = (entryId: string) => {
     router.push({
@@ -23,18 +25,26 @@ export function HistoryTabContent({
     });
   };
 
+  const timelineLineColor = isDark ? "rgba(51, 65, 85, 0.5)" : "rgba(209, 213, 219, 0.8)";
+  const emptyTextColor = isDark ? "#475569" : "#6b7280";
+  const endOfRecordsTextColor = isDark ? "#475569" : "#9ca3af";
+  const endOfRecordsBgColor = isDark ? "#0f172a" : "#f9fafb";
+
   if (entries.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No records yet</Text>
+      <View className="items-center justify-center py-12">
+        <Text style={{ color: emptyTextColor, fontSize: 14 }}>No records yet</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View className="relative">
       {/* Vertical Timeline Line */}
-      <View style={styles.timelineLine} />
+      <View
+        className="absolute left-[27px] top-4 bottom-0 w-0.5 z-0"
+        style={{ backgroundColor: timelineLineColor }}
+      />
 
       {/* Timeline Entries */}
       {entries.map((entry, index) => {
@@ -45,10 +55,10 @@ export function HistoryTabContent({
         const hasNotes = !!entry.notes && entry.notes.trim().length > 0;
 
         return (
-          <View key={entry.id} style={styles.entryRow}>
-            <View style={styles.entryContent}>
+          <View key={entry.id} className="relative pb-8 z-10">
+            <View className="flex-row items-start gap-4">
               {/* Date Badge */}
-              <View style={styles.dateBadgeContainer}>
+              <View className="min-w-[56px]">
                 <TimelineDateBadge date={entry.visitDate} isActive={isFirst} />
               </View>
 
@@ -71,57 +81,19 @@ export function HistoryTabContent({
       })}
 
       {/* End of Records */}
-      <View style={styles.endOfRecords}>
-        <Text style={styles.endOfRecordsText}>No more records</Text>
+      <View className="items-center mt-2">
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "500",
+            color: endOfRecordsTextColor,
+            backgroundColor: endOfRecordsBgColor,
+            paddingHorizontal: 8,
+          }}
+        >
+          No more records
+        </Text>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 48,
-  },
-  emptyText: {
-    color: "#475569",
-    fontSize: 14,
-  },
-  timelineLine: {
-    position: "absolute",
-    left: 27,
-    top: 16,
-    bottom: 0,
-    width: 2,
-    backgroundColor: "rgba(51, 65, 85, 0.5)",
-    zIndex: 0,
-  },
-  entryRow: {
-    position: "relative",
-    paddingBottom: 32,
-    zIndex: 10,
-  },
-  entryContent: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 16,
-  },
-  dateBadgeContainer: {
-    minWidth: 56,
-  },
-  endOfRecords: {
-    alignItems: "center",
-    marginTop: 8,
-  },
-  endOfRecordsText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#475569",
-    backgroundColor: "#0f172a",
-    paddingHorizontal: 8,
-  },
-});

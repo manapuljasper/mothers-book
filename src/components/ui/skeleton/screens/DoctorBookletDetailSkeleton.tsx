@@ -1,117 +1,153 @@
 import React from "react";
-import { View, ScrollView } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, ScrollView, StyleSheet } from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { SkeletonProvider } from "../SkeletonContext";
 import { SkeletonBox } from "../SkeletonBox";
-import { SkeletonStatCard } from "../SkeletonStatCard";
-import { SkeletonMedicationCard } from "../SkeletonMedicationCard";
-import { SkeletonEntryCard } from "../SkeletonEntryCard";
+import { SkeletonTabBar } from "../SkeletonTabBar";
+import { SkeletonTimelineDateBadge } from "../SkeletonTimelineDateBadge";
+import { SkeletonTimelineEntryCard } from "../SkeletonTimelineEntryCard";
 
 function DoctorBookletDetailSkeletonContent() {
   const insets = useSafeAreaInsets();
 
   return (
     <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
-      <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900">
-        {/* Header skeleton */}
-        <View className="bg-blue-500 px-6 py-6" style={{ paddingTop: insets.top }}>
-          {/* Back button placeholder */}
-          <View className="flex-row items-center mb-3">
+      <ScrollView
+        className="flex-1 bg-gray-50 dark:bg-slate-900"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* Header */}
+        <View
+          className="bg-blue-500 px-5 pb-12 relative overflow-hidden"
+          style={{
+            paddingTop: insets.top + 8,
+            borderBottomLeftRadius: 40,
+            borderBottomRightRadius: 40,
+          }}
+        >
+          {/* Background decoration */}
+          <View
+            className="absolute -top-32 -right-16 w-64 h-64 bg-white/5 rounded-full"
+            style={{ transform: [{ scale: 1.5 }] }}
+          />
+
+          {/* Back button */}
+          <View className="flex-row items-center mb-6 opacity-90">
             <SkeletonBox
-              width={70}
+              width={60}
               height={20}
               borderRadius={4}
               style={{ opacity: 0.5 }}
             />
           </View>
-          {/* Patient name */}
-          <SkeletonBox
-            width="60%"
-            height={28}
-            borderRadius={4}
-            style={{ opacity: 0.7 }}
-          />
-          <View className="mt-2">
-            <SkeletonBox
-              width="40%"
-              height={18}
-              borderRadius={4}
-              style={{ opacity: 0.5 }}
-            />
-          </View>
-          {/* Status badge + due date */}
-          <View className="flex-row items-center mt-2">
-            <SkeletonBox
-              width={60}
-              height={24}
-              borderRadius={12}
-              style={{ opacity: 0.5 }}
-            />
-            <View className="ml-3">
+
+          {/* Name and AOG badge row */}
+          <View className="flex-row justify-between items-start">
+            <View className="flex-1">
+              {/* Patient name */}
               <SkeletonBox
-                width={100}
+                width="70%"
+                height={32}
+                borderRadius={4}
+                style={{ opacity: 0.7 }}
+              />
+              {/* Baby icon + label */}
+              <View className="flex-row items-center gap-2 mt-2">
+                <SkeletonBox
+                  width={14}
+                  height={14}
+                  borderRadius={7}
+                  style={{ opacity: 0.5 }}
+                />
+                <SkeletonBox
+                  width={80}
+                  height={16}
+                  borderRadius={4}
+                  style={{ opacity: 0.5 }}
+                />
+              </View>
+            </View>
+            {/* AOG Badge placeholder */}
+            <View
+              className="bg-white/20 items-center justify-center border border-white/10"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+              }}
+            >
+              <SkeletonBox
+                width={28}
                 height={16}
                 borderRadius={4}
                 style={{ opacity: 0.5 }}
               />
             </View>
           </View>
-        </View>
 
-        {/* Stats row */}
-        <View className="flex-row px-4 -mt-4">
-          <SkeletonStatCard size="sm" />
-          <SkeletonStatCard size="sm" />
-          <SkeletonStatCard size="sm" />
-        </View>
-
-        {/* Add Entry Button placeholder */}
-        <View className="px-6 mt-6">
-          <SkeletonBox width="100%" height={48} borderRadius={12} />
-        </View>
-
-        {/* Doctor Notes section */}
-        <View className="px-6 mt-6">
-          <View className="flex-row justify-between items-center mb-3">
-            <SkeletonBox width={120} height={20} borderRadius={4} />
-            <SkeletonBox width={50} height={28} borderRadius={8} />
+          {/* Status badge + due date */}
+          <View className="flex-row items-center gap-3 mt-5">
+            <SkeletonBox
+              width={70}
+              height={26}
+              borderRadius={13}
+              style={{ opacity: 0.5 }}
+            />
+            <SkeletonBox
+              width={110}
+              height={26}
+              borderRadius={13}
+              style={{ opacity: 0.4 }}
+            />
           </View>
-          <View className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-            <SkeletonBox width="90%" height={14} borderRadius={4} />
-            <View className="mt-2">
-              <SkeletonBox width="70%" height={14} borderRadius={4} />
+        </View>
+
+        {/* Content */}
+        <View className="px-5 -mt-8 relative z-20 pb-24">
+          {/* Tab Bar */}
+          <View className="mb-6">
+            <SkeletonTabBar />
+          </View>
+
+          {/* Timeline */}
+          <View style={styles.timelineContainer}>
+            {/* Vertical Timeline Line */}
+            <View style={styles.timelineLine} />
+
+            {/* First Entry (expanded) */}
+            <View style={styles.entryRow}>
+              <View style={styles.entryContent}>
+                <View style={styles.dateBadgeContainer}>
+                  <SkeletonTimelineDateBadge isActive />
+                </View>
+                <SkeletonTimelineEntryCard variant="expanded" />
+              </View>
+            </View>
+
+            {/* Second Entry (compact) */}
+            <View style={styles.entryRow}>
+              <View style={styles.entryContent}>
+                <View style={styles.dateBadgeContainer}>
+                  <SkeletonTimelineDateBadge />
+                </View>
+                <SkeletonTimelineEntryCard variant="compact" />
+              </View>
+            </View>
+
+            {/* Third Entry (compact) */}
+            <View style={styles.entryRow}>
+              <View style={styles.entryContent}>
+                <View style={styles.dateBadgeContainer}>
+                  <SkeletonTimelineDateBadge />
+                </View>
+                <SkeletonTimelineEntryCard variant="compact" />
+              </View>
             </View>
           </View>
-        </View>
-
-        {/* Active Medications section */}
-        <View className="px-6 mt-6">
-          <View className="mb-3">
-            <SkeletonBox width={150} height={20} borderRadius={4} />
-          </View>
-          <SkeletonMedicationCard />
-          <View className="mt-3">
-            <SkeletonMedicationCard />
-          </View>
-        </View>
-
-        {/* Visit History section */}
-        <View className="px-6 mt-8 mb-8">
-          <SkeletonBox width={100} height={22} borderRadius={4} />
-          {/* Date selector */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="mt-3 mb-4"
-          >
-            {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} className="mr-2">
-                <SkeletonBox width={56} height={64} borderRadius={12} />
-              </View>
-            ))}
-          </ScrollView>
-          {/* Entry card */}
-          <SkeletonEntryCard />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -125,3 +161,31 @@ export function DoctorBookletDetailSkeleton() {
     </SkeletonProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  timelineContainer: {
+    position: "relative",
+  },
+  timelineLine: {
+    position: "absolute",
+    left: 27,
+    top: 16,
+    bottom: 0,
+    width: 2,
+    backgroundColor: "rgba(51, 65, 85, 0.5)",
+    zIndex: 0,
+  },
+  entryRow: {
+    position: "relative",
+    paddingBottom: 32,
+    zIndex: 10,
+  },
+  entryContent: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
+  },
+  dateBadgeContainer: {
+    minWidth: 56,
+  },
+});

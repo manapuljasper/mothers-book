@@ -34,6 +34,7 @@ export {
   useLabsByBooklet,
   useLabsByEntry,
   usePendingLabs,
+  usePendingLabsByDoctor,
   useCreateLabRequest,
   useUpdateLabStatus,
   useDeleteLabRequest,

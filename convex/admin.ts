@@ -211,19 +211,26 @@ export const listMedicationCatalog = query({
     await requireSuperAdmin(ctx);
 
     const limit = args.limit ?? 100;
-    let query = ctx.db.query("medicationCatalog");
+    let medications;
 
     if (args.category) {
-      query = ctx.db
+      medications = await ctx.db
         .query("medicationCatalog")
-        .withIndex("by_category", (q) => q.eq("category", args.category!));
+        .withIndex("by_category", (q) => q.eq("category", args.category!))
+        .order("desc")
+        .take(limit);
     } else if (args.activeOnly) {
-      query = ctx.db
+      medications = await ctx.db
         .query("medicationCatalog")
-        .withIndex("by_active", (q) => q.eq("isActive", true));
+        .withIndex("by_active", (q) => q.eq("isActive", true))
+        .order("desc")
+        .take(limit);
+    } else {
+      medications = await ctx.db
+        .query("medicationCatalog")
+        .order("desc")
+        .take(limit);
     }
-
-    let medications = await query.order("desc").take(limit);
 
     // Apply search filter
     if (args.searchQuery) {
@@ -328,19 +335,26 @@ export const listLabCatalog = query({
     await requireSuperAdmin(ctx);
 
     const limit = args.limit ?? 100;
-    let query = ctx.db.query("labCatalog");
+    let labs;
 
     if (args.category) {
-      query = ctx.db
+      labs = await ctx.db
         .query("labCatalog")
-        .withIndex("by_category", (q) => q.eq("category", args.category!));
+        .withIndex("by_category", (q) => q.eq("category", args.category!))
+        .order("desc")
+        .take(limit);
     } else if (args.activeOnly) {
-      query = ctx.db
+      labs = await ctx.db
         .query("labCatalog")
-        .withIndex("by_active", (q) => q.eq("isActive", true));
+        .withIndex("by_active", (q) => q.eq("isActive", true))
+        .order("desc")
+        .take(limit);
+    } else {
+      labs = await ctx.db
+        .query("labCatalog")
+        .order("desc")
+        .take(limit);
     }
-
-    let labs = await query.order("desc").take(limit);
 
     // Apply search filter
     if (args.searchQuery) {

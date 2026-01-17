@@ -146,7 +146,8 @@ export default defineSchema({
     .index("by_booklet", ["bookletId"])
     .index("by_entry", ["medicalEntryId"])
     .index("by_status", ["status"])
-    .index("by_booklet_status", ["bookletId", "status"]),
+    .index("by_booklet_status", ["bookletId", "status"])
+    .index("by_doctor_status", ["requestedByDoctorId", "status"]),
 
   // Medications
   medications: defineTable({

@@ -7,30 +7,37 @@ interface AOGBadgeProps {
   size?: "sm" | "md" | "lg";
 }
 
-export function AOGBadge({ aog, size = "md" }: AOGBadgeProps) {
-  // Format AOG to short form if needed (e.g., "28 weeks" -> "28w")
-  const shortAOG = aog
-    .replace(/\s*weeks?/i, "w")
-    .replace(/\s*days?/i, "d")
-    .replace(/\s+/g, "");
+const SIZE_CONFIG = {
+  sm: { minWidth: 40, height: 40, padding: 8 },
+  md: { minWidth: 48, height: 48, padding: 10 },
+  lg: { minWidth: 56, height: 56, padding: 12 },
+};
 
-  const sizeClasses = {
-    sm: "w-10 h-10",
-    md: "w-12 h-12",
-    lg: "w-14 h-14",
-  };
+export function AOGBadge({ aog, size = "md" }: AOGBadgeProps) {
+  // Format AOG to short form with space between weeks and days
+  // e.g., "28 weeks 4 days" -> "28w 4d", "28weeks4days" -> "28w 4d"
+  const shortAOG = aog
+    .replace(/\s*weeks?\s*/i, "w ")
+    .replace(/\s*days?/i, "d")
+    .trim();
 
   const textClasses = {
     sm: "text-sm",
-    md: "text-lg",
-    lg: "text-xl",
+    md: "text-base",
+    lg: "text-lg",
   };
+
+  const config = SIZE_CONFIG[size];
+  const isLongText = shortAOG.length > 4;
 
   return (
     <View
-      className={`${sizeClasses[size]} bg-white/20 rounded-full items-center justify-center border border-white/10`}
+      className="bg-white/20 items-center justify-center border border-white/10"
       style={{
-        // Glassmorphism effect - backdrop blur doesn't work well in RN, so we use opacity
+        minWidth: config.minWidth,
+        height: config.height,
+        paddingHorizontal: isLongText ? config.padding : 0,
+        borderRadius: config.height / 2,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,

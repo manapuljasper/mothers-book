@@ -177,7 +177,7 @@ export function BookletDetailContent({
   return (
     <View className="flex-1 bg-blue-500">
       <ScrollView
-        className="flex-1 bg-slate-900"
+        className="flex-1 bg-gray-50 dark:bg-slate-900"
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
