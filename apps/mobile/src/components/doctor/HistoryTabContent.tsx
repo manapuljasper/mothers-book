@@ -84,6 +84,9 @@ export function HistoryTabContent({
                 followUpDate={entry.followUpDate}
                 hasNotes={hasNotes}
                 hasMedications={hasMeds}
+                clinicName={entry.clinicName}
+                notes={entry.notes}
+                recommendations={entry.recommendations}
                 variant={isFirst ? "expanded" : "compact"}
                 faded={!isFirst}
                 onPress={() => handleEntryPress(entry.id)}

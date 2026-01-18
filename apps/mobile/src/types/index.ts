@@ -4,6 +4,7 @@ export type { UserRole, User, DoctorProfile, MotherProfile } from './user.types'
 // Booklet types
 export type {
   BookletStatus,
+  MedicalHistoryItem,
   MotherBooklet,
   BookletAccess,
   BookletWithAccess,

@@ -147,3 +147,14 @@ export function isAfter(date1: DateInput, date2: DateInput): boolean {
 export function parseISO(dateString: string): Date {
   return dayjs(dateString).toDate();
 }
+
+/**
+ * Format remaining days as a human-readable string
+ */
+export function formatDaysRemaining(days: number | null): string {
+  if (days === null) return "no end date";
+  if (days < 0) return "ended";
+  if (days === 0) return "ends today";
+  if (days === 1) return "1 day left";
+  return `${days} days left`;
+}

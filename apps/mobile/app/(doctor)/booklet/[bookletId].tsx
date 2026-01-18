@@ -23,8 +23,14 @@ import {
   HistoryTabContent,
   MedsTabContent,
   LabsTabContent,
+  PatientIdEditor,
 } from "@/components/doctor";
-import type { Medication, LabRequestWithDoctor } from "@/types";
+import {
+  MedicalBackgroundSection,
+  AddAllergyModal,
+  AddMedicalHistoryModal,
+} from "@/components/medical";
+import type { Medication, LabRequestWithDoctor, MedicalHistoryItem } from "@/types";
 import { LabAttachmentViewer } from "@/components/shared/LabAttachmentViewer";
 import {
   useBookletByIdWithMother,
@@ -33,6 +39,8 @@ import {
   useMedicationsByBooklet,
   useUpdateBooklet,
   useUpdateMedication,
+  useAccessPatientId,
+  useUpdatePatientId,
 } from "@/hooks";
 
 export default function DoctorBookletDetailScreen() {
@@ -52,6 +60,10 @@ export default function DoctorBookletDetailScreen() {
   // Mutation hooks
   const updateBooklet = useUpdateBooklet();
   const updateMedication = useUpdateMedication();
+  const updatePatientId = useUpdatePatientId();
+
+  // Patient ID query
+  const patientId = useAccessPatientId(bookletId, doctorProfile?._id);
 
   // Local state
   const [isSavingNotes, setIsSavingNotes] = useState(false);
@@ -65,6 +77,9 @@ export default function DoctorBookletDetailScreen() {
     null
   );
   const [viewingLabAttachments, setViewingLabAttachments] = useState<LabRequestWithDoctor | null>(null);
+  const [showAddAllergyModal, setShowAddAllergyModal] = useState(false);
+  const [showAddMedicalHistoryModal, setShowAddMedicalHistoryModal] = useState(false);
+  const [isSavingAllergies, setIsSavingAllergies] = useState(false);
 
   const isLoading =
     currentUser === undefined ||
@@ -175,6 +190,79 @@ export default function DoctorBookletDetailScreen() {
     }
   };
 
+  // Allergy and Medical History handlers
+  const handleAddAllergy = async (allergy: string) => {
+    if (!booklet) return;
+    setIsSavingAllergies(true);
+    try {
+      const currentAllergies = booklet.allergies || [];
+      await updateBooklet({
+        id: booklet.id,
+        updates: { allergies: [...currentAllergies, allergy] },
+      });
+    } catch {
+      Alert.alert("Error", "Failed to add allergy.");
+    } finally {
+      setIsSavingAllergies(false);
+    }
+  };
+
+  const handleRemoveAllergy = async (allergies: string[]) => {
+    if (!booklet) return;
+    setIsSavingAllergies(true);
+    try {
+      await updateBooklet({
+        id: booklet.id,
+        updates: { allergies },
+      });
+    } catch {
+      Alert.alert("Error", "Failed to remove allergy.");
+    } finally {
+      setIsSavingAllergies(false);
+    }
+  };
+
+  const handleAddMedicalHistory = async (item: MedicalHistoryItem) => {
+    if (!booklet) return;
+    setIsSavingAllergies(true);
+    try {
+      const currentHistory = booklet.medicalHistory || [];
+      await updateBooklet({
+        id: booklet.id,
+        updates: { medicalHistory: [...currentHistory, item] },
+      });
+    } catch {
+      Alert.alert("Error", "Failed to add medical history.");
+    } finally {
+      setIsSavingAllergies(false);
+    }
+  };
+
+  const handleRemoveMedicalHistory = async (history: MedicalHistoryItem[]) => {
+    if (!booklet) return;
+    setIsSavingAllergies(true);
+    try {
+      await updateBooklet({
+        id: booklet.id,
+        updates: { medicalHistory: history },
+      });
+    } catch {
+      Alert.alert("Error", "Failed to remove medical history.");
+    } finally {
+      setIsSavingAllergies(false);
+    }
+  };
+
+  // Patient ID handler
+  const handleSavePatientId = async (newPatientId: string | undefined) => {
+    if (!booklet || !doctorProfile) return;
+    await updatePatientId({
+      bookletId: booklet.id,
+      doctorId: doctorProfile._id,
+      patientId: newPatientId,
+    });
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-blue-500" edges={[]}>
       <ScrollView
@@ -211,17 +299,24 @@ export default function DoctorBookletDetailScreen() {
               <Text className="text-3xl font-bold text-white tracking-tight">
                 {booklet.motherName}
               </Text>
-              <View className="flex-row items-center gap-2 mt-1">
-                <Baby size={14} color="#bfdbfe" strokeWidth={1.5} />
-                <Text className="text-blue-100 font-medium">
-                  {booklet.label}
-                </Text>
+              <View className="flex-row items-center gap-3 mt-1">
+                <View className="flex-row items-center gap-1.5">
+                  <Baby size={14} color="#bfdbfe" strokeWidth={1.5} />
+                  <Text className="text-blue-100 font-medium">
+                    {booklet.label}
+                  </Text>
+                </View>
+                <PatientIdEditor
+                  patientId={patientId ?? undefined}
+                  onSave={handleSavePatientId}
+                  compact
+                />
               </View>
             </View>
             {currentAOG && <AOGBadge aog={currentAOG} size="md" />}
           </View>
 
-          <View className="flex-row items-center gap-3 mt-5">
+          <View className="flex-row items-center gap-3 mt-5 flex-wrap">
             <StatusBadge status={booklet.status} showDot glassmorphism />
             {/* Risk Level Badge */}
             {booklet.currentRiskLevel && (
@@ -289,6 +384,20 @@ export default function DoctorBookletDetailScreen() {
               onViewAttachments={setViewingLabAttachments}
             />
           )}
+
+          {activeTab === "medical" && (
+            <View className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-4">
+              <MedicalBackgroundSection
+                allergies={booklet.allergies}
+                medicalHistory={booklet.medicalHistory}
+                editable={true}
+                onAllergiesChange={handleRemoveAllergy}
+                onMedicalHistoryChange={handleRemoveMedicalHistory}
+                onAddAllergy={() => setShowAddAllergyModal(true)}
+                onAddMedicalHistory={() => setShowAddMedicalHistoryModal(true)}
+              />
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -343,6 +452,20 @@ export default function DoctorBookletDetailScreen() {
         visible={!!viewingLabAttachments}
         onClose={() => setViewingLabAttachments(null)}
         lab={viewingLabAttachments}
+      />
+
+      <AddAllergyModal
+        visible={showAddAllergyModal}
+        onClose={() => setShowAddAllergyModal(false)}
+        onAdd={handleAddAllergy}
+        existingAllergies={booklet.allergies}
+      />
+
+      <AddMedicalHistoryModal
+        visible={showAddMedicalHistoryModal}
+        onClose={() => setShowAddMedicalHistoryModal(false)}
+        onAdd={handleAddMedicalHistory}
+        existingConditions={booklet.medicalHistory}
       />
     </SafeAreaView>
   );

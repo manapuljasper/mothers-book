@@ -14,7 +14,7 @@ import {
 
 // ========== Medical Entries ==========
 
-// List entries by booklet with doctor info
+// List entries by booklet with doctor and clinic info
 export const listEntriesByBooklet = query({
   args: { bookletId: v.id("booklets") },
   handler: async (ctx, args) => {
@@ -24,31 +24,64 @@ export const listEntriesByBooklet = query({
       .order("desc")
       .collect();
 
-    // Fetch doctor info for each entry
-    const entriesWithDoctor = await Promise.all(
+    // Fetch doctor and clinic info for each entry
+    const entriesWithDetails = await Promise.all(
       entries.map(async (entry) => {
         const doctorProfile = await ctx.db.get(entry.doctorId);
         const user = doctorProfile
           ? await ctx.db.get(doctorProfile.userId)
           : null;
 
+        // Fetch clinic info if present
+        let clinicName: string | undefined;
+        let clinicAddress: string | undefined;
+        if (entry.clinicId) {
+          const clinic = await ctx.db.get(entry.clinicId);
+          clinicName = clinic?.name;
+          clinicAddress = clinic?.address;
+        }
+
         return {
           ...entry,
           doctorName: user?.fullName || "Unknown",
           doctorSpecialization: doctorProfile?.specialization,
+          clinicName,
+          clinicAddress,
         };
       })
     );
 
-    return entriesWithDoctor;
+    return entriesWithDetails;
   },
 });
 
-// Get entry by ID
+// Get entry by ID with doctor and clinic info
 export const getEntryById = query({
   args: { id: v.id("medicalEntries") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const entry = await ctx.db.get(args.id);
+    if (!entry) return null;
+
+    // Fetch doctor info
+    const doctorProfile = await ctx.db.get(entry.doctorId);
+    const user = doctorProfile ? await ctx.db.get(doctorProfile.userId) : null;
+
+    // Fetch clinic info if present
+    let clinicName: string | undefined;
+    let clinicAddress: string | undefined;
+    if (entry.clinicId) {
+      const clinic = await ctx.db.get(entry.clinicId);
+      clinicName = clinic?.name;
+      clinicAddress = clinic?.address;
+    }
+
+    return {
+      ...entry,
+      doctorName: user?.fullName || "Unknown",
+      doctorSpecialization: doctorProfile?.specialization,
+      clinicName,
+      clinicAddress,
+    };
   },
 });
 
@@ -57,6 +90,7 @@ export const createEntry = mutation({
   args: {
     bookletId: v.id("booklets"),
     doctorId: v.id("doctorProfiles"),
+    clinicId: v.optional(v.id("doctorClinics")),
     entryType: entryTypeValidator,
     visitDate: v.number(),
     notes: v.string(),
@@ -75,6 +109,7 @@ export const createEntry = mutation({
     const entryId = await ctx.db.insert("medicalEntries", {
       bookletId: args.bookletId,
       doctorId: args.doctorId,
+      clinicId: args.clinicId,
       entryType: args.entryType,
       visitDate: args.visitDate,
       notes: args.notes,
@@ -99,6 +134,7 @@ export const createEntry = mutation({
 export const updateEntry = mutation({
   args: {
     id: v.id("medicalEntries"),
+    clinicId: v.optional(v.id("doctorClinics")),
     entryType: v.optional(entryTypeValidator),
     visitDate: v.optional(v.number()),
     notes: v.optional(v.string()),
@@ -443,6 +479,7 @@ export const createEntryWithItems = mutation({
     // Entry fields
     bookletId: v.id("booklets"),
     doctorId: v.id("doctorProfiles"),
+    clinicId: v.optional(v.id("doctorClinics")),
     entryType: entryTypeValidator,
     visitDate: v.number(),
     notes: v.string(),
@@ -466,6 +503,7 @@ export const createEntryWithItems = mutation({
     const entryId = await ctx.db.insert("medicalEntries", {
       bookletId: args.bookletId,
       doctorId: args.doctorId,
+      clinicId: args.clinicId,
       entryType: args.entryType,
       visitDate: args.visitDate,
       notes: args.notes,
@@ -544,6 +582,7 @@ export const updateEntryWithItems = mutation({
     // Entry ID to update
     entryId: v.id("medicalEntries"),
     // Entry fields (all optional for updates)
+    clinicId: v.optional(v.id("doctorClinics")),
     entryType: v.optional(entryTypeValidator),
     visitDate: v.optional(v.number()),
     notes: v.optional(v.string()),
@@ -575,6 +614,7 @@ export const updateEntryWithItems = mutation({
 
     // 1. Update entry fields
     const entryUpdates: Record<string, unknown> = {};
+    if (args.clinicId !== undefined) entryUpdates.clinicId = args.clinicId;
     if (args.entryType !== undefined) entryUpdates.entryType = args.entryType;
     if (args.visitDate !== undefined) entryUpdates.visitDate = args.visitDate;
     if (args.notes !== undefined) entryUpdates.notes = args.notes;

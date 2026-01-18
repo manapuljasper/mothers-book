@@ -9,7 +9,10 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
@@ -25,6 +28,7 @@ import {
   FlaskConical,
   ChevronDown,
   ChevronRight,
+  Stethoscope,
 } from "lucide-react-native";
 import {
   useCurrentUser,
@@ -36,12 +40,40 @@ import {
   useIncrementUsageByName,
   useMedicationsByEntry,
   useLabsByEntry,
+  useClinicsByDoctor,
+  usePrimaryClinic,
+  useAccessPatientId,
 } from "@/hooks";
-import { computeAOG, formatDate, getDateString, generateId } from "@/utils";
-import { VitalInput, LoadingScreen, AnimatedCollapsible } from "@/components/ui";
-import { MedicationForm, hasUnfinishedMedicationForm } from "@/components/doctor/MedicationForm";
-import { LabRequestForm, hasUnfinishedLabForm } from "@/components/doctor/LabRequestForm";
-import type { MedicalEntryWithDoctor, PendingMedication, PendingLabRequest } from "@/types";
+import {
+  computeAOG,
+  formatDate,
+  getDateString,
+  generateId,
+  calculateAge,
+} from "@/utils";
+import {
+  VitalInput,
+  LoadingScreen,
+  AnimatedCollapsible,
+} from "@/components/ui";
+import {
+  MedicationForm,
+  hasUnfinishedMedicationForm,
+} from "@/components/doctor/MedicationForm";
+import {
+  LabRequestForm,
+  hasUnfinishedLabForm,
+} from "@/components/doctor/LabRequestForm";
+import { SOAPSectionWrapper } from "@/components/doctor/SOAPSectionWrapper";
+import { ClinicSelector } from "@/components/doctor/ClinicSelector";
+import { ActiveMedicationsManager } from "@/components/doctor/ActiveMedicationsManager";
+import { AllergyWarningBanner } from "@/components/medical";
+import { Id } from "@convex/_generated/dataModel";
+import type {
+  MedicalEntryWithDoctor,
+  PendingMedication,
+  PendingLabRequest,
+} from "@/types";
 
 export default function AddEntryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
@@ -54,11 +86,29 @@ export default function AddEntryScreen() {
   const booklet = useBookletByIdWithMother(bookletId);
   const entries = useEntriesByBooklet(bookletId);
 
+  // Clinic hooks
+  const clinics = useClinicsByDoctor(doctorProfile?._id);
+  const primaryClinic = usePrimaryClinic(doctorProfile?._id);
+
+  // Patient ID query
+  const patientId = useAccessPatientId(bookletId, doctorProfile?._id);
+
   // Mutations
   const createEntryWithItems = useCreateEntryWithItems();
   const updateEntry = useUpdateEntry();
   const updateEntryWithItems = useUpdateEntryWithItems();
   const incrementUsage = useIncrementUsageByName();
+
+  // Clinic selection state
+  const [selectedClinicId, setSelectedClinicId] =
+    useState<Id<"doctorClinics"> | null>(null);
+
+  // Initialize clinic from primary clinic
+  useEffect(() => {
+    if (primaryClinic && !selectedClinicId) {
+      setSelectedClinicId(primaryClinic._id);
+    }
+  }, [primaryClinic, selectedClinicId]);
 
   // Form state
   const [entryDate, setEntryDate] = useState(new Date());
@@ -67,17 +117,23 @@ export default function AddEntryScreen() {
   const [bpValue, setBpValue] = useState("");
   const [weight, setWeight] = useState("");
   const [fhr, setFhr] = useState("");
-  const [notes, setNotes] = useState("");
-  const [instructions, setInstructions] = useState("");
+  const [notes, setNotes] = useState(""); // Subjective - Chief Complaint/History
+  const [diagnosis, setDiagnosis] = useState(""); // Assessment - Diagnosis
+  const [instructions, setInstructions] = useState(""); // Plan - Recommendations
   const [riskLevel, setRiskLevel] = useState<"low" | "high">("low");
   const [followUpDate, setFollowUpDate] = useState<Date | null>(null);
   const [tempFollowUpDate, setTempFollowUpDate] = useState(new Date());
   const [showFollowUpPicker, setShowFollowUpPicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showAllergyDetails, setShowAllergyDetails] = useState(false);
 
   // Medications and Lab Requests state
-  const [pendingMedications, setPendingMedications] = useState<PendingMedication[]>([]);
-  const [pendingLabRequests, setPendingLabRequests] = useState<PendingLabRequest[]>([]);
+  const [pendingMedications, setPendingMedications] = useState<
+    PendingMedication[]
+  >([]);
+  const [pendingLabRequests, setPendingLabRequests] = useState<
+    PendingLabRequest[]
+  >([]);
   const [medicationsExpanded, setMedicationsExpanded] = useState(false);
   const [labsExpanded, setLabsExpanded] = useState(false);
 
@@ -86,12 +142,19 @@ export default function AddEntryScreen() {
   const [existingItemsLoaded, setExistingItemsLoaded] = useState(false);
 
   // Fetch existing medications and labs when editing
-  const existingMedications = useMedicationsByEntry(editingEntryId ?? undefined);
+  const existingMedications = useMedicationsByEntry(
+    editingEntryId ?? undefined
+  );
   const existingLabRequests = useLabsByEntry(editingEntryId ?? undefined);
 
   // Populate pending medications when editing
   useEffect(() => {
-    if (editingEntryId && existingMedications && existingMedications.length > 0 && !existingItemsLoaded) {
+    if (
+      editingEntryId &&
+      existingMedications &&
+      existingMedications.length > 0 &&
+      !existingItemsLoaded
+    ) {
       // Parse dosage string "400 mg" -> amount="400", unit="mg"
       const pendingFromExisting = existingMedications.map((med) => {
         const dosageParts = med.dosage?.match(/^(\d+\.?\d*)\s*(.*)$/) || [];
@@ -114,7 +177,12 @@ export default function AddEntryScreen() {
 
   // Populate pending labs when editing
   useEffect(() => {
-    if (editingEntryId && existingLabRequests && existingLabRequests.length > 0 && !existingItemsLoaded) {
+    if (
+      editingEntryId &&
+      existingLabRequests &&
+      existingLabRequests.length > 0 &&
+      !existingItemsLoaded
+    ) {
       const pendingFromExisting = existingLabRequests.map((lab) => ({
         id: generateId(),
         name: lab.description, // Labs use 'description' as name
@@ -129,9 +197,7 @@ export default function AddEntryScreen() {
   }, [editingEntryId, existingLabRequests, existingItemsLoaded]);
 
   const isLoading =
-    currentUser === undefined ||
-    booklet === undefined ||
-    entries === undefined;
+    currentUser === undefined || booklet === undefined || entries === undefined;
 
   // Find entry by date
   const findEntryByDate = (date: Date): MedicalEntryWithDoctor | null => {
@@ -149,22 +215,35 @@ export default function AddEntryScreen() {
     : null;
 
   // Extract just the weeks from AOG (e.g., "32 weeks, 3 days" -> "32")
-  const aogWeeks = computedAOG
-    ? computedAOG.split(" ")[0]
-    : null;
+  const aogWeeks = computedAOG ? computedAOG.split(" ")[0] : null;
 
   // Patient info for context bar
   const patientInfo = booklet
     ? {
         name: booklet.motherName,
         status: booklet.status,
+        age: booklet.motherBirthdate
+          ? calculateAge(booklet.motherBirthdate)
+          : null,
+        patientId: patientId ?? undefined,
       }
     : null;
+
+  // Prepare clinic list for selector
+  const clinicList = useMemo(() => {
+    if (!clinics) return [];
+    return clinics.map((c) => ({
+      id: c._id,
+      name: c.name,
+      isPrimary: c.isPrimary,
+    }));
+  }, [clinics]);
 
   // Check if form has unsaved data
   const hasUnsavedChanges = () => {
     return (
       notes !== "" ||
+      diagnosis !== "" ||
       instructions !== "" ||
       bpValue !== "" ||
       weight !== "" ||
@@ -188,7 +267,10 @@ export default function AddEntryScreen() {
     setPendingMedications((prev) => prev.filter((m) => m.id !== id));
   };
 
-  const handleUpdateMedication = (id: string, updates: Partial<PendingMedication>) => {
+  const handleUpdateMedication = (
+    id: string,
+    updates: Partial<PendingMedication>
+  ) => {
     setPendingMedications((prev) =>
       prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
     );
@@ -219,10 +301,15 @@ export default function AddEntryScreen() {
     setWeight(entry.vitals?.weight?.toString() || "");
     setFhr(entry.vitals?.fetalHeartRate?.toString() || "");
     setNotes(entry.notes || "");
+    setDiagnosis(entry.diagnosis || "");
     setInstructions(entry.recommendations || "");
     setRiskLevel(entry.riskLevel || "low");
     setFollowUpDate(entry.followUpDate ? new Date(entry.followUpDate) : null);
     setEditingEntryId(entry.id);
+    // Set clinic from the entry (if it has one)
+    if (entry.clinicId) {
+      setSelectedClinicId(entry.clinicId as Id<"doctorClinics">);
+    }
   };
 
   // Clear form
@@ -231,6 +318,7 @@ export default function AddEntryScreen() {
     setWeight("");
     setFhr("");
     setNotes("");
+    setDiagnosis("");
     setInstructions("");
     setRiskLevel("low");
     setFollowUpDate(null);
@@ -238,6 +326,10 @@ export default function AddEntryScreen() {
     setExistingItemsLoaded(false);
     setPendingMedications([]);
     setPendingLabRequests([]);
+    // Reset clinic to primary
+    if (primaryClinic) {
+      setSelectedClinicId(primaryClinic._id);
+    }
   };
 
   // Handle date picker open
@@ -367,16 +459,20 @@ export default function AddEntryScreen() {
 
         await updateEntryWithItems({
           entryId: editingEntryId,
+          clinicId: selectedClinicId ?? undefined,
           entryType: "prenatal_checkup",
           notes,
+          diagnosis: diagnosis || undefined,
           recommendations: instructions || undefined,
           riskLevel,
           vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
           followUpDate: followUpDate ? followUpDate.getTime() : undefined,
           newMedications: newMeds.length > 0 ? newMeds : undefined,
           newLabRequests: newLabs.length > 0 ? newLabs : undefined,
-          removeMedicationIds: removedMedIds.length > 0 ? removedMedIds : undefined,
-          removeLabRequestIds: removedLabIds.length > 0 ? removedLabIds : undefined,
+          removeMedicationIds:
+            removedMedIds.length > 0 ? removedMedIds : undefined,
+          removeLabRequestIds:
+            removedLabIds.length > 0 ? removedLabIds : undefined,
         });
 
         // Track usage for new items
@@ -405,15 +501,19 @@ export default function AddEntryScreen() {
         await createEntryWithItems({
           bookletId,
           doctorId: doctorProfile._id,
+          clinicId: selectedClinicId ?? undefined,
           entryType: "prenatal_checkup",
           visitDate: entryDate,
           notes,
+          diagnosis: diagnosis || undefined,
           recommendations: instructions || undefined,
           riskLevel,
           vitals: Object.keys(entryVitals).length > 0 ? entryVitals : undefined,
           followUpDate: followUpDate ? followUpDate.getTime() : undefined,
-          medications: pendingMedications.length > 0 ? pendingMedications : undefined,
-          labRequests: pendingLabRequests.length > 0 ? pendingLabRequests : undefined,
+          medications:
+            pendingMedications.length > 0 ? pendingMedications : undefined,
+          labRequests:
+            pendingLabRequests.length > 0 ? pendingLabRequests : undefined,
         });
 
         // Track usage for favorites (async, don't block)
@@ -505,7 +605,21 @@ export default function AddEntryScreen() {
             </Text>
           </View>
           <View style={styles.patientInfo}>
-            <Text style={styles.patientName}>{patientInfo.name}</Text>
+            <View style={styles.patientNameRow}>
+              <Text style={styles.patientName}>
+                {patientInfo.name}
+                {patientInfo.age !== null && (
+                  <Text style={styles.patientAge}>, {patientInfo.age} y/o</Text>
+                )}
+              </Text>
+              {patientInfo.patientId && (
+                <View style={styles.patientIdBadge}>
+                  <Text style={styles.patientIdText}>
+                    #{patientInfo.patientId}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
           <View
             style={[
@@ -533,277 +647,338 @@ export default function AddEntryScreen() {
         </View>
       )}
 
+      {/* Clinic Selector */}
+      {clinicList.length > 0 && (
+        <ClinicSelector
+          clinics={clinicList}
+          selectedClinicId={selectedClinicId}
+          onSelectClinic={setSelectedClinicId}
+        />
+      )}
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Entry Date Section */}
-        <Text style={styles.sectionLabel}>ENTRY DATE</Text>
-        <TouchableOpacity
-          onPress={handleOpenDatePicker}
-          style={styles.datePickerButton}
-          activeOpacity={0.7}
-        >
-          <CalendarDays size={20} color="#3b82f6" strokeWidth={1.5} />
-          <Text style={styles.datePickerText}>
-            {formatDate(entryDate, "long")}
-          </Text>
-        </TouchableOpacity>
-        {showDatePicker && (
-          <View style={styles.datePickerContainer}>
-            <DateTimePicker
-              value={tempDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              maximumDate={new Date()}
-              onChange={handleDateChange}
-              themeVariant="dark"
-            />
-            {Platform.OS === "ios" && (
-              <TouchableOpacity
-                onPress={handleDatePickerDone}
-                style={styles.datePickerDoneButton}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.datePickerDoneText}>Done</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Allergy Warning Banner */}
+        {booklet?.allergies && booklet.allergies.length > 0 && (
+          <AllergyWarningBanner
+            allergies={booklet.allergies}
+            expanded={showAllergyDetails}
+            onPress={() => setShowAllergyDetails(!showAllergyDetails)}
+          />
         )}
 
-        {/* Vitals Section */}
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>VITALS</Text>
-        <View style={styles.vitalsGrid}>
-          <View style={styles.vitalItem}>
-            <VitalInput
-              label="BP (mmHg)"
-              value={bpValue}
-              onChangeText={setBpValue}
-              placeholder="120/80"
-              icon={Heart}
-              iconColor="#f43f5e"
-            />
-          </View>
-          <View style={styles.vitalItem}>
-            <VitalInput
-              label="Weight (kg)"
-              value={weight}
-              onChangeText={setWeight}
-              placeholder="65"
-              icon={Scale}
-              iconColor="#60a5fa"
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.vitalItem}>
-            <VitalInput
-              label="FHR (bpm)"
-              value={fhr}
-              onChangeText={setFhr}
-              placeholder="140"
-              icon={Baby}
-              iconColor="#f472b6"
-              keyboardType="numeric"
-            />
-          </View>
-          {/* AOG Display (computed from today's date, not editable) */}
-          <View style={styles.vitalItem}>
-            <Text style={styles.inputLabel}>AOG (weeks)</Text>
-            <View style={styles.aogDisplay}>
-              <Calendar size={20} color="#a78bfa" strokeWidth={1.5} />
-              <Text style={styles.aogValue}>{aogWeeks || "—"}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Divider */}
-        <View style={styles.divider} />
-
-        {/* Clinical Notes Section */}
-        <Text style={styles.sectionLabel}>CLINICAL NOTES</Text>
-        <TextInput
-          style={styles.textArea}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Enter clinical observations..."
-          placeholderTextColor="#4b5563"
-          multiline
-          numberOfLines={5}
-          textAlignVertical="top"
-        />
-
-        {/* Risk Level Toggle */}
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>RISK LEVEL</Text>
-        <View style={styles.riskToggleContainer}>
-          <TouchableOpacity
-            onPress={() => setRiskLevel("low")}
-            style={[
-              styles.riskToggleButton,
-              riskLevel === "low" && styles.riskToggleLowActive,
-            ]}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.riskToggleText,
-                riskLevel === "low" && styles.riskToggleLowActiveText,
-              ]}
-            >
-              LR
-            </Text>
-            <Text
-              style={[
-                styles.riskToggleLabel,
-                riskLevel === "low" && styles.riskToggleLowActiveText,
-              ]}
-            >
-              Low Risk
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setRiskLevel("high")}
-            style={[
-              styles.riskToggleButton,
-              riskLevel === "high" && styles.riskToggleHighActive,
-            ]}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.riskToggleText,
-                riskLevel === "high" && styles.riskToggleHighActiveText,
-              ]}
-            >
-              HR
-            </Text>
-            <Text
-              style={[
-                styles.riskToggleLabel,
-                riskLevel === "high" && styles.riskToggleHighActiveText,
-              ]}
-            >
-              High Risk
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Plan Section (formerly Instructions) */}
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>PLAN</Text>
-        <TextInput
-          style={styles.textArea}
-          value={instructions}
-          onChangeText={setInstructions}
-          placeholder="Add plan, prescriptions or advice..."
-          placeholderTextColor="#4b5563"
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-        />
-
-        {/* Divider before collapsible sections */}
-        <View style={styles.divider} />
-
-        {/* Medications Section (Collapsible) */}
-        <TouchableOpacity
-          onPress={() => setMedicationsExpanded(!medicationsExpanded)}
-          style={styles.collapsibleHeader}
-          activeOpacity={0.7}
-        >
-          <View style={styles.collapsibleHeaderLeft}>
-            <Pill size={18} color="#22c55e" strokeWidth={1.5} />
-            <Text style={styles.collapsibleHeaderText}>
-              Medications {pendingMedications.length > 0 ? `(${pendingMedications.length})` : "(Optional)"}
-            </Text>
-          </View>
-          {medicationsExpanded ? (
-            <ChevronDown size={20} color="#6b7280" strokeWidth={1.5} />
-          ) : (
-            <ChevronRight size={20} color="#6b7280" strokeWidth={1.5} />
-          )}
-        </TouchableOpacity>
-        <AnimatedCollapsible expanded={medicationsExpanded}>
-          <View style={styles.collapsibleContent}>
-            <MedicationForm
-              doctorId={doctorProfile?._id}
-              pendingMeds={pendingMedications}
-              onAddMedication={handleAddMedication}
-              onRemoveMedication={handleRemoveMedication}
-              onUpdateMedication={handleUpdateMedication}
-              defaultEndDate={followUpDate}
-            />
-          </View>
-        </AnimatedCollapsible>
-
-        {/* Lab Requests Section (Collapsible) */}
-        <TouchableOpacity
-          onPress={() => setLabsExpanded(!labsExpanded)}
-          style={[styles.collapsibleHeader, { marginTop: 12 }]}
-          activeOpacity={0.7}
-        >
-          <View style={styles.collapsibleHeaderLeft}>
-            <FlaskConical size={18} color="#3b82f6" strokeWidth={1.5} />
-            <Text style={styles.collapsibleHeaderText}>
-              Lab Requests {pendingLabRequests.length > 0 ? `(${pendingLabRequests.length})` : "(Optional)"}
-            </Text>
-          </View>
-          {labsExpanded ? (
-            <ChevronDown size={20} color="#6b7280" strokeWidth={1.5} />
-          ) : (
-            <ChevronRight size={20} color="#6b7280" strokeWidth={1.5} />
-          )}
-        </TouchableOpacity>
-        <AnimatedCollapsible expanded={labsExpanded}>
-          <View style={styles.collapsibleContent}>
-            <LabRequestForm
-              doctorId={doctorProfile?._id}
-              pendingLabs={pendingLabRequests}
-              onAddLab={handleAddLabRequest}
-              onRemoveLab={handleRemoveLabRequest}
-              onUpdateLab={handleUpdateLab}
-            />
-          </View>
-        </AnimatedCollapsible>
-
-        {/* Next Visitation Section */}
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>
-          NEXT VISITATION (OPTIONAL)
-        </Text>
-        <View style={styles.followUpContainer}>
-          <TouchableOpacity
-            onPress={handleOpenFollowUpPicker}
-            style={[
-              styles.datePickerButton,
-              followUpDate && styles.datePickerButtonSelected,
-            ]}
-            activeOpacity={0.7}
-          >
-            <CalendarClock
-              size={20}
-              color={followUpDate ? "#10b981" : "#6b7280"}
-              strokeWidth={1.5}
-            />
-            <Text
-              style={[
-                styles.datePickerText,
-                !followUpDate && styles.datePickerPlaceholder,
-              ]}
-            >
-              {followUpDate
-                ? formatDate(followUpDate, "long")
-                : "Select next visit date"}
-            </Text>
-          </TouchableOpacity>
-          {followUpDate && (
+        {/* Entry Date Section */}
+        <Text style={styles.sectionLabel}>ENTRY DATE</Text>
+        {__DEV__ ? (
+          // Dev mode: Allow date selection for testing
+          <>
             <TouchableOpacity
-              onPress={clearFollowUpDate}
-              style={styles.clearButton}
+              onPress={handleOpenDatePicker}
+              style={styles.datePickerButton}
               activeOpacity={0.7}
             >
-              <X size={18} color="#94a3b8" strokeWidth={2} />
+              <CalendarDays size={20} color="#3b82f6" strokeWidth={1.5} />
+              <Text style={styles.datePickerText}>
+                {formatDate(entryDate, "long")}
+              </Text>
             </TouchableOpacity>
-          )}
+            {showDatePicker && (
+              <View style={styles.datePickerContainer}>
+                <DateTimePicker
+                  value={tempDate}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  maximumDate={new Date()}
+                  onChange={handleDateChange}
+                  themeVariant="dark"
+                />
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity
+                    onPress={handleDatePickerDone}
+                    style={styles.datePickerDoneButton}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.datePickerDoneText}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </>
+        ) : (
+          // Production: Read-only date display (plain text)
+          <Text style={styles.readOnlyDateText}>
+            {formatDate(entryDate, "long")}
+          </Text>
+        )}
+
+        {/* ===== S - SUBJECTIVE ===== */}
+        <View style={{ marginTop: 24 }}>
+          <SOAPSectionWrapper section="subjective">
+            <TextInput
+              style={styles.textArea}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Chief complaint, patient history, symptoms..."
+              placeholderTextColor="#4b5563"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </SOAPSectionWrapper>
         </View>
+
+        {/* ===== O - OBJECTIVE ===== */}
+        <View style={{ marginTop: 24 }}>
+          <SOAPSectionWrapper section="objective">
+            <View style={styles.vitalsGrid}>
+              <View style={styles.vitalItem}>
+                <VitalInput
+                  label="BP (mmHg)"
+                  value={bpValue}
+                  onChangeText={setBpValue}
+                  placeholder="120/80"
+                  icon={Heart}
+                />
+              </View>
+              <View style={styles.vitalItem}>
+                <VitalInput
+                  label="Weight (kg)"
+                  value={weight}
+                  onChangeText={setWeight}
+                  placeholder="65"
+                  icon={Scale}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.vitalItem}>
+                <VitalInput
+                  label="FHR (bpm)"
+                  value={fhr}
+                  onChangeText={setFhr}
+                  placeholder="140"
+                  icon={Baby}
+                  keyboardType="numeric"
+                />
+              </View>
+              {/* AOG Display (computed from today's date, not editable) */}
+              <View style={styles.vitalItem}>
+                <Text style={styles.inputLabel}>AOG (weeks)</Text>
+                <View style={styles.aogDisplay}>
+                  <Calendar size={18} color="#14b8a6" strokeWidth={1.5} />
+                  <Text style={styles.aogValue}>{aogWeeks || "—"}</Text>
+                </View>
+              </View>
+            </View>
+          </SOAPSectionWrapper>
+        </View>
+
+        {/* ===== A - ASSESSMENT ===== */}
+        <View style={{ marginTop: 24 }}>
+          <SOAPSectionWrapper section="assessment">
+            {/* Diagnosis Field */}
+            <TextInput
+              style={[styles.textArea, { minHeight: 80 }]}
+              value={diagnosis}
+              onChangeText={setDiagnosis}
+              placeholder="Diagnosis, clinical impression..."
+              placeholderTextColor="#4b5563"
+              multiline
+              numberOfLines={2}
+              textAlignVertical="top"
+            />
+            {/* Risk Level Toggle */}
+            <View style={[styles.riskToggleContainer, { marginTop: 12 }]}>
+              <TouchableOpacity
+                onPress={() => setRiskLevel("low")}
+                style={[
+                  styles.riskToggleButton,
+                  riskLevel === "low" && styles.riskToggleLowActive,
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.riskToggleText,
+                    riskLevel === "low" && styles.riskToggleLowActiveText,
+                  ]}
+                >
+                  LR
+                </Text>
+                <Text
+                  style={[
+                    styles.riskToggleLabel,
+                    riskLevel === "low" && styles.riskToggleLowActiveText,
+                  ]}
+                >
+                  Low Risk
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setRiskLevel("high")}
+                style={[
+                  styles.riskToggleButton,
+                  riskLevel === "high" && styles.riskToggleHighActive,
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.riskToggleText,
+                    riskLevel === "high" && styles.riskToggleHighActiveText,
+                  ]}
+                >
+                  HR
+                </Text>
+                <Text
+                  style={[
+                    styles.riskToggleLabel,
+                    riskLevel === "high" && styles.riskToggleHighActiveText,
+                  ]}
+                >
+                  High Risk
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </SOAPSectionWrapper>
+        </View>
+
+        {/* ===== P - PLAN ===== */}
+        <View style={{ marginTop: 24 }}>
+          <SOAPSectionWrapper section="plan">
+            {/* Recommendations */}
+            <TextInput
+              style={styles.textArea}
+              value={instructions}
+              onChangeText={setInstructions}
+              placeholder="Treatment plan, recommendations, advice..."
+              placeholderTextColor="#4b5563"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+
+            {/* Active Medications (ongoing from previous visits) */}
+            {bookletId && (
+              <View style={{ marginTop: 12 }}>
+                <ActiveMedicationsManager
+                  bookletId={bookletId}
+                  defaultExtendDate={followUpDate}
+                />
+              </View>
+            )}
+
+            {/* Medications Section (Collapsible) */}
+            <TouchableOpacity
+              onPress={() => setMedicationsExpanded(!medicationsExpanded)}
+              style={[styles.collapsibleHeader, { marginTop: 12 }]}
+              activeOpacity={0.7}
+            >
+              <View style={styles.collapsibleHeaderLeft}>
+                <Pill size={18} color="#22c55e" strokeWidth={1.5} />
+                <Text style={styles.collapsibleHeaderText}>
+                  New Medications{" "}
+                  {pendingMedications.length > 0
+                    ? `(${pendingMedications.length})`
+                    : "(Optional)"}
+                </Text>
+              </View>
+              {medicationsExpanded ? (
+                <ChevronDown size={20} color="#6b7280" strokeWidth={1.5} />
+              ) : (
+                <ChevronRight size={20} color="#6b7280" strokeWidth={1.5} />
+              )}
+            </TouchableOpacity>
+            <AnimatedCollapsible expanded={medicationsExpanded}>
+              <View style={styles.collapsibleContent}>
+                <MedicationForm
+                  doctorId={doctorProfile?._id}
+                  pendingMeds={pendingMedications}
+                  onAddMedication={handleAddMedication}
+                  onRemoveMedication={handleRemoveMedication}
+                  onUpdateMedication={handleUpdateMedication}
+                  defaultEndDate={followUpDate}
+                />
+              </View>
+            </AnimatedCollapsible>
+
+            {/* Lab Requests Section (Collapsible) */}
+            <TouchableOpacity
+              onPress={() => setLabsExpanded(!labsExpanded)}
+              style={[styles.collapsibleHeader, { marginTop: 12 }]}
+              activeOpacity={0.7}
+            >
+              <View style={styles.collapsibleHeaderLeft}>
+                <FlaskConical size={18} color="#3b82f6" strokeWidth={1.5} />
+                <Text style={styles.collapsibleHeaderText}>
+                  Lab Requests{" "}
+                  {pendingLabRequests.length > 0
+                    ? `(${pendingLabRequests.length})`
+                    : "(Optional)"}
+                </Text>
+              </View>
+              {labsExpanded ? (
+                <ChevronDown size={20} color="#6b7280" strokeWidth={1.5} />
+              ) : (
+                <ChevronRight size={20} color="#6b7280" strokeWidth={1.5} />
+              )}
+            </TouchableOpacity>
+            <AnimatedCollapsible expanded={labsExpanded}>
+              <View style={styles.collapsibleContent}>
+                <LabRequestForm
+                  doctorId={doctorProfile?._id}
+                  pendingLabs={pendingLabRequests}
+                  onAddLab={handleAddLabRequest}
+                  onRemoveLab={handleRemoveLabRequest}
+                  onUpdateLab={handleUpdateLab}
+                />
+              </View>
+            </AnimatedCollapsible>
+
+            {/* Follow-up Date (inside Plan section) */}
+            <Text style={[styles.sectionLabel, { marginTop: 16 }]}>
+              FOLLOW-UP VISIT
+            </Text>
+            <View style={styles.followUpContainer}>
+              <TouchableOpacity
+                onPress={handleOpenFollowUpPicker}
+                style={[
+                  styles.datePickerButton,
+                  followUpDate && styles.datePickerButtonSelected,
+                ]}
+                activeOpacity={0.7}
+              >
+                <CalendarClock
+                  size={20}
+                  color={followUpDate ? "#10b981" : "#6b7280"}
+                  strokeWidth={1.5}
+                />
+                <Text
+                  style={[
+                    styles.datePickerText,
+                    !followUpDate && styles.datePickerPlaceholder,
+                  ]}
+                >
+                  {followUpDate
+                    ? formatDate(followUpDate, "long")
+                    : "Select next visit date"}
+                </Text>
+              </TouchableOpacity>
+              {followUpDate && (
+                <TouchableOpacity
+                  onPress={clearFollowUpDate}
+                  style={styles.clearButton}
+                  activeOpacity={0.7}
+                >
+                  <X size={18} color="#94a3b8" strokeWidth={2} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </SOAPSectionWrapper>
+        </View>
+        {/* End of Plan Section */}
         {showFollowUpPicker && (
           <View style={styles.datePickerContainer}>
             <DateTimePicker
@@ -912,10 +1087,32 @@ const styles = StyleSheet.create({
   patientInfo: {
     flex: 1,
   },
+  patientNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
+  },
   patientName: {
     fontSize: 14,
     fontWeight: "600",
     color: "#ffffff",
+  },
+  patientAge: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#94a3b8",
+  },
+  patientIdBadge: {
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  patientIdText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#60a5fa",
   },
   statusBadge: {
     flexDirection: "row",
@@ -963,10 +1160,10 @@ const styles = StyleSheet.create({
     width: "48%",
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "500",
     color: "#ffffff",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   aogDisplay: {
     flexDirection: "row",
@@ -974,15 +1171,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#192433",
     borderWidth: 1,
     borderColor: "#324867",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 40,
     gap: 8,
   },
   aogValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
-    color: "#a78bfa",
+    color: "#14b8a6",
   },
   divider: {
     height: 1,
@@ -1014,6 +1211,11 @@ const styles = StyleSheet.create({
   datePickerText: {
     fontSize: 16,
     fontWeight: "500",
+    color: "#ffffff",
+  },
+  readOnlyDateText: {
+    fontSize: 16,
+    fontWeight: "600",
     color: "#ffffff",
   },
   datePickerContainer: {

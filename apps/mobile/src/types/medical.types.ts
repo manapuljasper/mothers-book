@@ -27,6 +27,7 @@ export interface MedicalEntry {
   id: string;
   bookletId: string;
   doctorId: string;
+  clinicId?: string; // Which clinic the visit occurred at
   entryType: EntryType;
   visitDate: Date;
   notes: string;
@@ -68,6 +69,8 @@ export interface LabRequestWithDoctor extends LabRequest {
 export interface MedicalEntryWithDoctor extends MedicalEntry {
   doctorName: string;
   doctorSpecialization?: string;
+  clinicName?: string;
+  clinicAddress?: string;
 }
 
 export const ENTRY_TYPE_LABELS: Record<EntryType, string> = {

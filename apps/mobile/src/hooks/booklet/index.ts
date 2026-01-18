@@ -29,6 +29,8 @@ function transformBooklet(doc: Doc<"booklets">): MotherBooklet {
       : undefined,
     currentRiskLevel: doc.currentRiskLevel,
     notes: doc.notes,
+    allergies: doc.allergies,
+    medicalHistory: doc.medicalHistory,
   };
 }
 
@@ -58,6 +60,7 @@ export function useBookletByIdWithMother(id: string | undefined) {
     return {
       ...transformBooklet(result),
       motherName: result.motherName,
+      motherBirthdate: result.motherBirthdate,
       lastVisitDate: result.lastVisitDate
         ? new Date(result.lastVisitDate)
         : undefined,
@@ -82,11 +85,12 @@ export function useBookletsByMother(
 }
 
 export function useBookletsByDoctor(
-  doctorId: Id<"doctorProfiles"> | undefined
+  doctorId: Id<"doctorProfiles"> | undefined,
+  clinicId?: Id<"doctorClinics">
 ) {
   const result = useQuery(
     api.booklets.listByDoctor,
-    doctorId ? { doctorId } : "skip"
+    doctorId ? { doctorId, clinicId } : "skip"
   );
   return useMemo(() => {
     if (result === undefined) return undefined;
@@ -104,6 +108,13 @@ export function useBookletsByDoctor(
             ? new Date(doc.nextAppointment)
             : undefined,
           hasEntries: doc.hasEntries ?? false,
+          // Entry summary data
+          latestVitals: doc.latestVitals,
+          activeMedicationCount: doc.activeMedicationCount,
+          pendingLabCount: doc.pendingLabCount,
+          hasAllergies: doc.hasAllergies,
+          // Doctor's patient ID
+          patientId: doc.patientId,
         })
       );
   }, [result]);
@@ -159,6 +170,12 @@ export function useUpdateBooklet() {
       expectedDueDate?: number;
       actualDeliveryDate?: number;
       notes?: string;
+      allergies?: string[];
+      medicalHistory?: Array<{
+        condition: string;
+        notes?: string;
+        diagnosedYear?: number;
+      }>;
     };
   }) => {
     const result = await mutation({
@@ -190,6 +207,39 @@ export function useRevokeDoctorAccess() {
     return await mutation({
       bookletId: args.bookletId as Id<"booklets">,
       doctorId: args.doctorId as Id<"doctorProfiles">,
+    });
+  };
+}
+
+// Patient ID hooks
+
+export function useAccessPatientId(
+  bookletId: string | undefined,
+  doctorId: string | undefined
+) {
+  return useQuery(
+    api.booklets.getAccessPatientId,
+    bookletId && doctorId
+      ? {
+          bookletId: bookletId as Id<"booklets">,
+          doctorId: doctorId as Id<"doctorProfiles">,
+        }
+      : "skip"
+  );
+}
+
+export function useUpdatePatientId() {
+  const mutation = useMutation(api.booklets.updateAccessPatientId);
+
+  return async (args: {
+    bookletId: string;
+    doctorId: string;
+    patientId?: string;
+  }) => {
+    return await mutation({
+      bookletId: args.bookletId as Id<"booklets">,
+      doctorId: args.doctorId as Id<"doctorProfiles">,
+      patientId: args.patientId,
     });
   };
 }

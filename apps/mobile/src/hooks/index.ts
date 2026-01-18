@@ -24,6 +24,8 @@ export {
   useUpdateBooklet,
   useGrantDoctorAccess,
   useRevokeDoctorAccess,
+  useAccessPatientId,
+  useUpdatePatientId,
 } from "./booklet";
 
 // Medical hooks

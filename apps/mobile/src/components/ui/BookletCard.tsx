@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import { AlertTriangle } from "lucide-react-native";
+import { AlertTriangle, Pill, FlaskConical, Activity, ShieldAlert } from "lucide-react-native";
 import { CardPressable } from "./AnimatedPressable";
 import { formatDate, formatRelativeDate } from "../../utils";
 import type { MotherBooklet, BookletWithMother } from "../../types";
@@ -26,6 +26,51 @@ const statusColors = {
     text: "text-gray-500 dark:text-gray-400",
   },
 };
+
+// Compact vitals summary component
+function VitalsSummaryBadges({ vitals }: { vitals: BookletWithMother["latestVitals"] }) {
+  if (!vitals) return null;
+
+  const badges = [];
+
+  if (vitals.bloodPressure) {
+    badges.push(
+      <View key="bp" className="flex-row items-center bg-rose-50 dark:bg-rose-900/30 px-2 py-1 rounded-md">
+        <Text className="text-rose-600 dark:text-rose-400 text-xs font-medium">
+          BP {vitals.bloodPressure}
+        </Text>
+      </View>
+    );
+  }
+
+  if (vitals.weight) {
+    badges.push(
+      <View key="wt" className="flex-row items-center bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
+        <Text className="text-blue-600 dark:text-blue-400 text-xs font-medium">
+          {vitals.weight}kg
+        </Text>
+      </View>
+    );
+  }
+
+  if (vitals.aog) {
+    badges.push(
+      <View key="aog" className="flex-row items-center bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md">
+        <Text className="text-purple-600 dark:text-purple-400 text-xs font-medium">
+          AOG {vitals.aog}w
+        </Text>
+      </View>
+    );
+  }
+
+  if (badges.length === 0) return null;
+
+  return (
+    <View className="flex-row flex-wrap gap-1.5 mt-2">
+      {badges}
+    </View>
+  );
+}
 
 export function BookletCard({
   booklet,
@@ -102,32 +147,70 @@ export function BookletCard({
 
       {/* Additional info for doctor view */}
       {isDoctor && hasMotherName && (
-        <View className="flex-row mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-          <View className="flex-1">
-            <Text className="text-gray-300 dark:text-gray-500 text-xs">
-              Last Visit
-            </Text>
-            <Text className="text-gray-600 dark:text-gray-300 text-sm">
-              {(booklet as BookletWithMother).lastVisitDate
-                ? formatRelativeDate(
-                    (booklet as BookletWithMother).lastVisitDate!
-                  )
-                : "—"}
-            </Text>
+        <>
+          {/* Latest Vitals Summary */}
+          <VitalsSummaryBadges vitals={(booklet as BookletWithMother).latestVitals} />
+
+          {/* Quick indicators row */}
+          {((booklet as BookletWithMother).activeMedicationCount ?? 0) > 0 ||
+          ((booklet as BookletWithMother).pendingLabCount ?? 0) > 0 ||
+          (booklet as BookletWithMother).hasAllergies ? (
+            <View className="flex-row items-center gap-3 mt-2">
+              {(booklet as BookletWithMother).hasAllergies && (
+                <View className="flex-row items-center gap-1">
+                  <ShieldAlert size={12} color="#f59e0b" strokeWidth={2} />
+                  <Text className="text-amber-600 dark:text-amber-400 text-xs font-medium">
+                    Allergies
+                  </Text>
+                </View>
+              )}
+              {((booklet as BookletWithMother).activeMedicationCount ?? 0) > 0 && (
+                <View className="flex-row items-center gap-1">
+                  <Pill size={12} color="#22c55e" strokeWidth={2} />
+                  <Text className="text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                    {(booklet as BookletWithMother).activeMedicationCount} meds
+                  </Text>
+                </View>
+              )}
+              {((booklet as BookletWithMother).pendingLabCount ?? 0) > 0 && (
+                <View className="flex-row items-center gap-1">
+                  <FlaskConical size={12} color="#3b82f6" strokeWidth={2} />
+                  <Text className="text-blue-600 dark:text-blue-400 text-xs font-medium">
+                    {(booklet as BookletWithMother).pendingLabCount} pending
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {/* Visit dates row */}
+          <View className="flex-row mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <View className="flex-1">
+              <Text className="text-gray-300 dark:text-gray-500 text-xs">
+                Last Visit
+              </Text>
+              <Text className="text-gray-600 dark:text-gray-300 text-sm">
+                {(booklet as BookletWithMother).lastVisitDate
+                  ? formatRelativeDate(
+                      (booklet as BookletWithMother).lastVisitDate!
+                    )
+                  : "—"}
+              </Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-gray-300 dark:text-gray-500 text-xs">
+                Next Appointment
+              </Text>
+              <Text className="text-gray-600 dark:text-gray-300 text-sm">
+                {(booklet as BookletWithMother).nextAppointment
+                  ? formatRelativeDate(
+                      (booklet as BookletWithMother).nextAppointment!
+                    )
+                  : "—"}
+              </Text>
+            </View>
           </View>
-          <View className="flex-1">
-            <Text className="text-gray-300 dark:text-gray-500 text-xs">
-              Next Appointment
-            </Text>
-            <Text className="text-gray-600 dark:text-gray-300 text-sm">
-              {(booklet as BookletWithMother).nextAppointment
-                ? formatRelativeDate(
-                    (booklet as BookletWithMother).nextAppointment!
-                  )
-                : "—"}
-            </Text>
-          </View>
-        </View>
+        </>
       )}
 
       {/* Notes for mother view */}

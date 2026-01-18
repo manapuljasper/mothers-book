@@ -77,6 +77,17 @@ export default defineSchema({
     currentRiskLevel: v.optional(v.union(v.literal("low"), v.literal("high"))), // Synced from latest entry
     notes: v.optional(v.string()),
     hasEntries: v.optional(v.boolean()), // True after first medical entry is created
+    // Allergies & Medical History
+    allergies: v.optional(v.array(v.string())), // e.g., ["Penicillin", "Sulfa drugs"]
+    medicalHistory: v.optional(
+      v.array(
+        v.object({
+          condition: v.string(), // e.g., "Hypertension", "Diabetes"
+          notes: v.optional(v.string()),
+          diagnosedYear: v.optional(v.number()),
+        })
+      )
+    ),
   })
     .index("by_mother", ["motherId"])
     .index("by_status", ["status"]),
@@ -87,6 +98,7 @@ export default defineSchema({
     doctorId: v.id("doctorProfiles"),
     grantedAt: v.number(),
     revokedAt: v.optional(v.number()),
+    patientId: v.optional(v.string()), // Doctor's internal patient ID for this booklet
   })
     .index("by_booklet", ["bookletId"])
     .index("by_doctor", ["doctorId"])
@@ -96,6 +108,7 @@ export default defineSchema({
   medicalEntries: defineTable({
     bookletId: v.id("booklets"),
     doctorId: v.id("doctorProfiles"),
+    clinicId: v.optional(v.id("doctorClinics")), // Which clinic the visit occurred at
     entryType: v.union(
       v.literal("prenatal_checkup"),
       v.literal("postnatal_checkup"),
@@ -127,7 +140,8 @@ export default defineSchema({
   })
     .index("by_booklet", ["bookletId"])
     .index("by_doctor", ["doctorId"])
-    .index("by_booklet_date", ["bookletId", "visitDate"]),
+    .index("by_booklet_date", ["bookletId", "visitDate"])
+    .index("by_clinic", ["clinicId"]),
 
   // Lab requests
   labRequests: defineTable({

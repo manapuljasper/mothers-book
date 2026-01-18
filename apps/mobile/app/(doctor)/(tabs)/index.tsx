@@ -7,6 +7,7 @@ import {
   useBookletsByDoctor,
   useEntriesByDoctorToday,
 } from "@/hooks";
+import { formatTime } from "@/utils";
 import { EmptyState, DoctorDashboardSkeleton } from "@/components/ui";
 import {
   DoctorDashboardHeader,
@@ -23,6 +24,7 @@ interface QueuePatient {
   queueNumber: string;
   visitReason: string;
   riskLevel?: RiskLevel;
+  completedTime?: string;
 }
 
 export default function DoctorDashboard() {
@@ -88,7 +90,7 @@ export default function DoctorDashboard() {
   const doneQueuePatients: QueuePatient[] = donePatients
     .slice(0, 5)
     .map((booklet, index) => {
-      const entry = todayEntries.find((e) => e.bookletId === booklet.id);
+      const entry = todayEntries.find((e: { bookletId: string }) => e.bookletId === booklet.id);
       return {
         id: booklet.id,
         name: booklet.motherName,
@@ -106,6 +108,7 @@ export default function DoctorDashboard() {
                   ? "Lab Review"
                   : "Consultation",
         riskLevel: booklet.currentRiskLevel,
+        completedTime: entry?.visitDate ? formatTime(entry.visitDate) : undefined,
       };
     });
 
@@ -202,6 +205,7 @@ export default function DoctorDashboard() {
                       queueNumber={patient.queueNumber}
                       onPress={() => handlePatientPress(patient.bookletId)}
                       riskLevel={patient.riskLevel}
+                      completedTime={patient.completedTime}
                     />
                   ))}
                 </View>

@@ -20,6 +20,12 @@ interface TimelineEntryCardProps {
   followUpDate?: Date | string;
   hasNotes?: boolean;
   hasMedications?: boolean;
+  /** Clinic name for the visit */
+  clinicName?: string;
+  /** Doctor's notes text (for preview) */
+  notes?: string;
+  /** Recommendations/plan text (for preview in expanded mode) */
+  recommendations?: string;
   /** Expanded shows vitals in grid format, compact shows inline icons */
   variant?: "expanded" | "compact";
   /** Lower opacity for older entries */
@@ -57,6 +63,9 @@ export function TimelineEntryCard({
   followUpDate,
   hasNotes = false,
   hasMedications = false,
+  clinicName,
+  notes,
+  recommendations,
   variant = "compact",
   faded = false,
   onPress,
@@ -65,6 +74,20 @@ export function TimelineEntryCard({
   const timeStr = formatTime(dateObj);
 
   const hasVitals = vitals && (vitals.bloodPressure || vitals.weight || vitals.aog);
+
+  // Truncate notes for preview (first ~60 chars)
+  const notesPreview = notes && notes.trim()
+    ? notes.trim().length > 60
+      ? notes.trim().substring(0, 60).trim() + "..."
+      : notes.trim()
+    : null;
+
+  // Truncate recommendations for preview (first ~80 chars)
+  const planPreview = recommendations && recommendations.trim()
+    ? recommendations.trim().length > 80
+      ? recommendations.trim().substring(0, 80).trim() + "..."
+      : recommendations.trim()
+    : null;
 
   return (
     <CardPressable
@@ -82,6 +105,11 @@ export function TimelineEntryCard({
           <Text className="text-xs text-gray-500 dark:text-slate-400 font-medium">
             {doctorName} • {timeStr}
           </Text>
+          {clinicName && (
+            <Text className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">
+              {clinicName}
+            </Text>
+          )}
         </View>
         <ChevronRight size={20} color="#9ca3af" strokeWidth={1.5} />
       </View>
@@ -138,6 +166,27 @@ export function TimelineEntryCard({
               </Text>
             </View>
           )}
+        </View>
+      )}
+
+      {/* Notes Preview */}
+      {notesPreview && (
+        <View className="mt-2 bg-gray-50 dark:bg-slate-700/50 rounded-lg px-3 py-2">
+          <Text className="text-xs text-gray-600 dark:text-slate-300" numberOfLines={2}>
+            {notesPreview}
+          </Text>
+        </View>
+      )}
+
+      {/* Plan Preview (expanded mode only) */}
+      {planPreview && variant === "expanded" && (
+        <View className="mt-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2 border border-amber-100 dark:border-amber-800/30">
+          <Text className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-0.5">
+            Plan
+          </Text>
+          <Text className="text-xs text-amber-700 dark:text-amber-300" numberOfLines={2}>
+            {planPreview}
+          </Text>
         </View>
       )}
 

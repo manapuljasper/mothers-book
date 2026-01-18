@@ -12,6 +12,8 @@ interface PatientCardProps {
   faded?: boolean;
   /** Risk level indicator */
   riskLevel?: RiskLevel;
+  /** Time when patient was seen (for done patients) */
+  completedTime?: string;
 }
 
 export function PatientCard({
@@ -21,6 +23,7 @@ export function PatientCard({
   onPress,
   faded = false,
   riskLevel,
+  completedTime,
 }: PatientCardProps) {
   const containerOpacity = faded ? "opacity-80" : "";
 
@@ -44,9 +47,16 @@ export function PatientCard({
         <Text className="text-base font-bold text-gray-900 dark:text-slate-100">
           {patientName}
         </Text>
-        <Text className="text-sm text-gray-500 dark:text-slate-400">
-          {visitReason}
-        </Text>
+        <View className="flex-row items-center gap-2">
+          <Text className="text-sm text-gray-500 dark:text-slate-400">
+            {visitReason}
+          </Text>
+          {completedTime && (
+            <Text className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              {completedTime}
+            </Text>
+          )}
+        </View>
       </View>
 
       {/* Risk Level Badge or Indicator dot */}

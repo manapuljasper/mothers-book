@@ -6,6 +6,9 @@ export { MedicationCard } from "./MedicationCard";
 export { LabRequestCard } from "./LabRequestCard";
 export { VitalsDisplay } from "./VitalsDisplay";
 
+// Medical components (allergies, history, SOAP)
+export * from "./medical";
+
 // Doctor-specific components
 export * from "./doctor";
 

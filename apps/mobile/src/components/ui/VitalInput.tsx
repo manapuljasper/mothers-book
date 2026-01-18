@@ -19,7 +19,7 @@ export function VitalInput({
   onChangeText,
   placeholder,
   icon: Icon,
-  iconColor = "#64748b", // slate-500 default
+  iconColor = "#14b8a6", // teal-500 default
   keyboardType = "default",
   maxLength,
 }: VitalInputProps) {
@@ -28,7 +28,7 @@ export function VitalInput({
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputWrapper}>
         <Icon
-          size={20}
+          size={18}
           color={iconColor}
           strokeWidth={1.5}
           style={styles.icon}
@@ -49,10 +49,10 @@ export function VitalInput({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 6,
+    gap: 4,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "500",
     color: "#ffffff",
   },
@@ -62,16 +62,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#192433",
     borderWidth: 1,
     borderColor: "#324867",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 40,
   },
   icon: {
     marginRight: 8,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
     color: "#ffffff",
   },

@@ -1,12 +1,13 @@
 import { View, Text, ScrollView, TextInput, Pressable } from "react-native";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "expo-router";
 import { Search, Users, QrCode, UserPlus } from "lucide-react-native";
 import { useThemeStore } from "@/stores";
-import { useCurrentUser, useBookletsByDoctor, useResponsive } from "@/hooks";
+import { useCurrentUser, useBookletsByDoctor, useClinicsByDoctor, useResponsive } from "@/hooks";
 import { CardPressable, EmptyState, BookletCard, PatientListSkeleton } from "@/components/ui";
 import { MasterDetail } from "@/components/layout";
-import { BookletDetailContent } from "@/components/doctor";
+import { BookletDetailContent, ClinicFilter } from "@/components/doctor";
+import { Id } from "@convex/_generated/dataModel";
 
 export default function PatientsScreen() {
   const router = useRouter();
@@ -17,8 +18,23 @@ export default function PatientsScreen() {
   const { isTablet } = useResponsive();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBookletId, setSelectedBookletId] = useState<string | null>(null);
+  const [selectedClinicId, setSelectedClinicId] = useState<Id<"doctorClinics"> | null>(null);
 
-  const patientBooklets = useBookletsByDoctor(doctorProfile?._id) ?? [];
+  // Get doctor's clinics for filter
+  const clinics = useClinicsByDoctor(doctorProfile?._id);
+  const clinicList = useMemo(() => {
+    if (!clinics) return [];
+    return clinics.map((c) => ({
+      id: c._id,
+      name: c.name,
+    }));
+  }, [clinics]);
+
+  // Get booklets, optionally filtered by clinic
+  const patientBooklets = useBookletsByDoctor(
+    doctorProfile?._id,
+    selectedClinicId ?? undefined
+  ) ?? [];
 
   // Filter by search query
   const filteredBooklets = patientBooklets.filter(
@@ -69,6 +85,13 @@ export default function PatientsScreen() {
           </Pressable>
         </View>
       </View>
+
+      {/* Clinic Filter */}
+      <ClinicFilter
+        clinics={clinicList}
+        selectedClinicId={selectedClinicId}
+        onSelectClinic={setSelectedClinicId}
+      />
 
       {/* Patient List */}
       <ScrollView className="flex-1 px-6 py-4">

@@ -35,6 +35,8 @@ type ConvexEntry = {
   attachments?: string[];
   doctorName?: string;
   doctorSpecialization?: string;
+  clinicName?: string;
+  clinicAddress?: string;
 };
 
 function transformEntry(doc: ConvexEntry): MedicalEntryWithDoctor {
@@ -54,6 +56,8 @@ function transformEntry(doc: ConvexEntry): MedicalEntryWithDoctor {
     createdAt: new Date(doc._creationTime),
     doctorName: doc.doctorName || "Unknown",
     doctorSpecialization: doc.doctorSpecialization,
+    clinicName: doc.clinicName,
+    clinicAddress: doc.clinicAddress,
   };
 }
 
@@ -328,6 +332,7 @@ export function useCreateEntryWithItems() {
   return async (args: {
     bookletId: string;
     doctorId: Id<"doctorProfiles">;
+    clinicId?: Id<"doctorClinics">;
     entryType: MedicalEntry["entryType"];
     visitDate: Date | number;
     notes: string;
@@ -361,6 +366,7 @@ export function useCreateEntryWithItems() {
     return await mutation({
       bookletId: args.bookletId as Id<"booklets">,
       doctorId: args.doctorId,
+      clinicId: args.clinicId,
       entryType: args.entryType,
       visitDate: args.visitDate instanceof Date ? args.visitDate.getTime() : args.visitDate,
       notes: args.notes,
@@ -384,6 +390,7 @@ export function useUpdateEntryWithItems() {
 
   return async (args: {
     entryId: string;
+    clinicId?: Id<"doctorClinics">;
     entryType?: MedicalEntry["entryType"];
     visitDate?: Date | number;
     notes?: string;
@@ -418,6 +425,7 @@ export function useUpdateEntryWithItems() {
 
     return await mutation({
       entryId: args.entryId as Id<"medicalEntries">,
+      clinicId: args.clinicId,
       entryType: args.entryType,
       visitDate: args.visitDate instanceof Date ? args.visitDate.getTime() : args.visitDate,
       notes: args.notes,
