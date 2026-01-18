@@ -72,6 +72,9 @@ type ConvexLab = {
   completedDate?: number;
   results?: string;
   notes?: string;
+  // Lab result attachments
+  attachments?: Id<"_storage">[];
+  uploadedByMotherId?: Id<"motherProfiles">;
   // Joined fields from listLabsByBooklet
   doctorName?: string;
   doctorSpecialty?: string;
@@ -91,6 +94,8 @@ function transformLab(doc: ConvexLab): LabRequestWithDoctor {
     completedDate: doc.completedDate ? new Date(doc.completedDate) : undefined,
     results: doc.results,
     notes: doc.notes,
+    attachments: doc.attachments?.map((id) => id as string),
+    uploadedByMotherId: doc.uploadedByMotherId as string | undefined,
     createdAt: new Date(doc._creationTime),
     doctorName: doc.doctorName,
     doctorSpecialty: doc.doctorSpecialty,
@@ -428,4 +433,44 @@ export function useUpdateEntryWithItems() {
       removeLabRequestIds: args.removeLabRequestIds?.map((id) => id as Id<"labRequests">),
     });
   };
+}
+
+// ========== Lab Result Upload Hooks ==========
+
+/**
+ * Generate upload URL for lab result attachment
+ */
+export function useGenerateLabUploadUrl() {
+  const mutation = useMutation(api.medical.generateLabUploadUrl);
+  return mutation;
+}
+
+/**
+ * Upload lab result with attachments
+ */
+export function useUploadLabResult() {
+  const mutation = useMutation(api.medical.uploadLabResult);
+
+  return async (args: {
+    labId: string;
+    storageIds: string[];
+    motherId: string;
+  }) => {
+    const result = await mutation({
+      labId: args.labId as Id<"labRequests">,
+      storageIds: args.storageIds as Id<"_storage">[],
+      motherId: args.motherId as Id<"motherProfiles">,
+    });
+    return result ? transformLab(result as ConvexLab) : null;
+  };
+}
+
+/**
+ * Get signed URLs for lab attachments
+ */
+export function useLabAttachmentUrls(labId: string | undefined) {
+  return useQuery(
+    api.medical.getLabAttachmentUrls,
+    labId ? { labId: labId as Id<"labRequests"> } : "skip"
+  );
 }

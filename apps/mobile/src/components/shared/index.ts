@@ -1,0 +1,1 @@
+export { LabAttachmentViewer } from "./LabAttachmentViewer";

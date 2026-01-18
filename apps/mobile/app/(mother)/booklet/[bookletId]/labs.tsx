@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { ChevronLeft, FlaskConical, Paperclip } from "lucide-react-native";
+import { ChevronLeft, FlaskConical, Paperclip, ImageIcon } from "lucide-react-native";
 import { useBookletById, useLabsByBooklet } from "@/hooks";
 import { CardPressable, LoadingScreen } from "@/components/ui";
-import { LabRequestCard } from "@/components";
+import { LabRequestCard, LabUploadModal, LabAttachmentViewer } from "@/components";
+import type { LabRequestWithDoctor } from "@/types";
 
 export default function LabHistoryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
@@ -17,11 +19,34 @@ export default function LabHistoryScreen() {
   const booklet = useBookletById(bookletId);
   const labs = useLabsByBooklet(bookletId) ?? [];
 
+  // Upload modal state
+  const [selectedLab, setSelectedLab] = useState<LabRequestWithDoctor | null>(null);
+  const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
+  // Attachment viewer state
+  const [viewingLab, setViewingLab] = useState<LabRequestWithDoctor | null>(null);
+
   const isLoading = booklet === undefined || labs === undefined;
+
+  const handleOpenUploadModal = (lab: LabRequestWithDoctor) => {
+    setSelectedLab(lab);
+    setIsUploadModalVisible(true);
+  };
+
+  const handleCloseUploadModal = () => {
+    setIsUploadModalVisible(false);
+    setSelectedLab(null);
+  };
+
+  const handleViewAttachments = (lab: LabRequestWithDoctor) => {
+    setViewingLab(lab);
+  };
 
   if (isLoading) {
     return <LoadingScreen color="#ec4899" />;
   }
+
+  // Get mother profile ID from booklet
+  const motherId = booklet?.motherId;
 
   return (
     <SafeAreaView className="flex-1 bg-purple-500" edges={[]}>
@@ -62,17 +87,27 @@ export default function LabHistoryScreen() {
                   <LabRequestCard
                     lab={lab}
                     action={
-                      <Pressable
-                        onPress={() => {
-                          // Attachment functionality not implemented yet
-                        }}
-                        className="flex-row items-center"
-                      >
-                        <Paperclip size={14} color="#a855f7" strokeWidth={1.5} />
-                        <Text className="text-purple-500 text-sm font-medium ml-2">
-                          Add Attachment
-                        </Text>
-                      </Pressable>
+                      lab.status === "pending" ? (
+                        <Pressable
+                          onPress={() => handleOpenUploadModal(lab)}
+                          className="flex-row items-center"
+                        >
+                          <Paperclip size={14} color="#a855f7" strokeWidth={1.5} />
+                          <Text className="text-purple-500 text-sm font-medium ml-2">
+                            Add Results
+                          </Text>
+                        </Pressable>
+                      ) : lab.status === "completed" && lab.attachments && lab.attachments.length > 0 ? (
+                        <Pressable
+                          onPress={() => handleViewAttachments(lab)}
+                          className="flex-row items-center"
+                        >
+                          <ImageIcon size={14} color="#a855f7" strokeWidth={1.5} />
+                          <Text className="text-purple-500 text-sm font-medium ml-2">
+                            View ({lab.attachments.length})
+                          </Text>
+                        </Pressable>
+                      ) : null
                     }
                   />
                 </View>
@@ -81,6 +116,24 @@ export default function LabHistoryScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Upload Modal */}
+      {motherId && (
+        <LabUploadModal
+          visible={isUploadModalVisible}
+          onClose={handleCloseUploadModal}
+          lab={selectedLab}
+          motherId={motherId}
+          onUploadComplete={handleCloseUploadModal}
+        />
+      )}
+
+      {/* Attachment Viewer */}
+      <LabAttachmentViewer
+        visible={!!viewingLab}
+        onClose={() => setViewingLab(null)}
+        lab={viewingLab}
+      />
     </SafeAreaView>
   );
 }

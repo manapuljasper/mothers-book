@@ -28,7 +28,8 @@ import {
   MedsTabContent,
   LabsTabContent,
 } from "@/components/doctor";
-import type { Medication } from "@/types";
+import { LabAttachmentViewer } from "@/components/shared";
+import type { Medication, LabRequestWithDoctor } from "@/types";
 import {
   useBookletByIdWithMother,
   useEntriesByBooklet,
@@ -74,6 +75,8 @@ export function BookletDetailContent({
   const [editingMedication, setEditingMedication] = useState<Medication | null>(
     null
   );
+  const [viewingLabAttachments, setViewingLabAttachments] =
+    useState<LabRequestWithDoctor | null>(null);
 
   const isLoading =
     currentUser === undefined ||
@@ -280,7 +283,12 @@ export function BookletDetailContent({
             />
           )}
 
-          {activeTab === "labs" && <LabsTabContent labs={allLabs} />}
+          {activeTab === "labs" && (
+            <LabsTabContent
+              labs={allLabs}
+              onViewAttachments={setViewingLabAttachments}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -323,6 +331,12 @@ export function BookletDetailContent({
         onClose={() => setEditingMedication(null)}
         onSave={handleUpdateMedication}
         isSaving={isSavingMedication}
+      />
+
+      <LabAttachmentViewer
+        visible={!!viewingLabAttachments}
+        onClose={() => setViewingLabAttachments(null)}
+        lab={viewingLabAttachments}
       />
     </View>
   );

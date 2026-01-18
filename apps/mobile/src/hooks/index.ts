@@ -42,6 +42,10 @@ export {
   useEntriesByDoctorToday,
   useCreateEntryWithItems,
   useUpdateEntryWithItems,
+  // Lab result upload hooks
+  useGenerateLabUploadUrl,
+  useUploadLabResult,
+  useLabAttachmentUrls,
 } from "./medical";
 export type { EntryWithPatientDetails } from "./medical";
 

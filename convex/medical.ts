@@ -341,6 +341,75 @@ export const deleteLab = mutation({
   },
 });
 
+// ========== Lab Result Upload ==========
+
+// Generate upload URL for lab result attachment
+export const generateLabUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Upload lab result with attachments
+export const uploadLabResult = mutation({
+  args: {
+    labId: v.id("labRequests"),
+    storageIds: v.array(v.id("_storage")),
+    motherId: v.id("motherProfiles"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthorized");
+    }
+
+    // Verify the lab exists
+    const lab = await ctx.db.get(args.labId);
+    if (!lab) {
+      throw new Error("Lab request not found");
+    }
+
+    // Update the lab request with attachments, mark as completed
+    await ctx.db.patch(args.labId, {
+      attachments: args.storageIds,
+      uploadedByMotherId: args.motherId,
+      status: "completed",
+      completedDate: Date.now(),
+    });
+
+    return await ctx.db.get(args.labId);
+  },
+});
+
+// Get signed URLs for lab attachments
+export const getLabAttachmentUrls = query({
+  args: { labId: v.id("labRequests") },
+  handler: async (ctx, args) => {
+    const lab = await ctx.db.get(args.labId);
+    if (!lab || !lab.attachments || lab.attachments.length === 0) {
+      return [];
+    }
+
+    const urls = await Promise.all(
+      lab.attachments.map(async (storageId) => {
+        const url = await ctx.storage.getUrl(storageId);
+        return {
+          storageId,
+          url,
+        };
+      })
+    );
+
+    return urls.filter((item) => item.url !== null);
+  },
+});
+
 // ========== Create Entry With Items ==========
 
 // Medication item validator

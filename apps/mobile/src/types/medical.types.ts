@@ -53,6 +53,9 @@ export interface LabRequest {
   completedDate?: Date;
   results?: string;
   notes?: string;
+  // Lab result attachments
+  attachments?: string[]; // Convex storage IDs
+  uploadedByMotherId?: string;
   createdAt: Date;
   updatedAt?: Date;
 }

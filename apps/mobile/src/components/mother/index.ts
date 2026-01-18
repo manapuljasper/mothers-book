@@ -1,0 +1,1 @@
+export { LabUploadModal } from "./LabUploadModal";

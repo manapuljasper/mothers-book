@@ -147,6 +147,9 @@ export default defineSchema({
     completedDate: v.optional(v.number()),
     results: v.optional(v.string()),
     notes: v.optional(v.string()),
+    // Lab result attachments
+    attachments: v.optional(v.array(v.id("_storage"))), // Convex storage IDs
+    uploadedByMotherId: v.optional(v.id("motherProfiles")),
   })
     .index("by_booklet", ["bookletId"])
     .index("by_entry", ["medicalEntryId"])

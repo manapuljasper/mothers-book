@@ -27,6 +27,9 @@ import {
   MedsTabContent,
   LabsTabContent,
 } from "@/components/doctor";
+import { LabUploadModal } from "@/components/mother";
+import { LabAttachmentViewer } from "@/components/shared";
+import type { LabRequestWithDoctor } from "@/types";
 
 export default function MotherBookletDetailScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
@@ -42,6 +45,19 @@ export default function MotherBookletDetailScreen() {
 
   // Local state
   const [activeTab, setActiveTab] = useState<BookletTab>("history");
+  const [selectedLabForUpload, setSelectedLabForUpload] = useState<LabRequestWithDoctor | null>(null);
+  const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
+  const [viewingLabAttachments, setViewingLabAttachments] = useState<LabRequestWithDoctor | null>(null);
+
+  const handleOpenUploadModal = (lab: LabRequestWithDoctor) => {
+    setSelectedLabForUpload(lab);
+    setIsUploadModalVisible(true);
+  };
+
+  const handleCloseUploadModal = () => {
+    setIsUploadModalVisible(false);
+    setSelectedLabForUpload(null);
+  };
 
   const isLoading =
     booklet === undefined ||
@@ -195,9 +211,33 @@ export default function MotherBookletDetailScreen() {
           )}
 
           {/* Labs Tab */}
-          {activeTab === "labs" && <LabsTabContent labs={allLabs} />}
+          {activeTab === "labs" && (
+            <LabsTabContent
+              labs={allLabs}
+              onUploadResult={handleOpenUploadModal}
+              onViewAttachments={setViewingLabAttachments}
+            />
+          )}
         </View>
       </ScrollView>
+
+      {/* Lab Upload Modal */}
+      {booklet?.motherId && (
+        <LabUploadModal
+          visible={isUploadModalVisible}
+          onClose={handleCloseUploadModal}
+          lab={selectedLabForUpload}
+          motherId={booklet.motherId}
+          onUploadComplete={handleCloseUploadModal}
+        />
+      )}
+
+      {/* Lab Attachment Viewer */}
+      <LabAttachmentViewer
+        visible={!!viewingLabAttachments}
+        onClose={() => setViewingLabAttachments(null)}
+        lab={viewingLabAttachments}
+      />
     </SafeAreaView>
   );
 }

@@ -1,12 +1,20 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Clock, Eye, Check, FlaskConical } from "lucide-react-native";
+import { Clock, Eye, Check, FlaskConical, ImageIcon, Upload } from "lucide-react-native";
 import { TimelineDateBadge } from "@/components/ui";
 import { formatDate, formatTime } from "@/utils";
 import type { LabRequestWithDoctor } from "@/types";
 
+// Check if lab has attachments
+function hasAttachments(lab: LabRequestWithDoctor): boolean {
+  return Boolean(lab.attachments && lab.attachments.length > 0);
+}
+
 interface LabsTabContentProps {
   labs: LabRequestWithDoctor[];
   onViewResults?: (lab: LabRequestWithDoctor) => void;
+  onViewAttachments?: (lab: LabRequestWithDoctor) => void;
+  /** For mothers: callback to upload results for pending labs */
+  onUploadResult?: (lab: LabRequestWithDoctor) => void;
 }
 
 // Group labs by requested date
@@ -39,7 +47,7 @@ function groupLabsByRequestedDate(labs: LabRequestWithDoctor[]): LabDateGroup[] 
   return groups;
 }
 
-export function LabsTabContent({ labs, onViewResults }: LabsTabContentProps) {
+export function LabsTabContent({ labs, onViewResults, onViewAttachments, onUploadResult }: LabsTabContentProps) {
   if (labs.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -79,6 +87,8 @@ export function LabsTabContent({ labs, onViewResults }: LabsTabContentProps) {
                   key={lab.id}
                   lab={lab}
                   onViewResults={onViewResults}
+                  onViewAttachments={onViewAttachments}
+                  onUploadResult={onUploadResult}
                   isFirst={labIndex === 0}
                 />
               ))}
@@ -99,10 +109,12 @@ export function LabsTabContent({ labs, onViewResults }: LabsTabContentProps) {
 interface TimelineLabCardProps {
   lab: LabRequestWithDoctor;
   onViewResults?: (lab: LabRequestWithDoctor) => void;
+  onViewAttachments?: (lab: LabRequestWithDoctor) => void;
+  onUploadResult?: (lab: LabRequestWithDoctor) => void;
   isFirst?: boolean;
 }
 
-function TimelineLabCard({ lab, onViewResults, isFirst }: TimelineLabCardProps) {
+function TimelineLabCard({ lab, onViewResults, onViewAttachments, onUploadResult, isFirst }: TimelineLabCardProps) {
   const isPending = lab.status === "pending";
   const isCompleted = lab.status === "completed";
   const isCancelled = lab.status === "cancelled";
@@ -157,12 +169,24 @@ function TimelineLabCard({ lab, onViewResults, isFirst }: TimelineLabCardProps) 
       {/* Footer */}
       <View style={styles.labCardFooter}>
         {isPending && (
-          <View style={styles.timeInfo}>
-            <Clock size={14} color="#64748b" strokeWidth={1.5} />
-            <Text style={styles.timeText}>
-              Requested: {formatTime(lab.requestedDate)}
-            </Text>
-          </View>
+          <>
+            <View style={styles.timeInfo}>
+              <Clock size={14} color="#64748b" strokeWidth={1.5} />
+              <Text style={styles.timeText}>
+                Requested: {formatTime(lab.requestedDate)}
+              </Text>
+            </View>
+            {onUploadResult && (
+              <TouchableOpacity
+                style={styles.uploadResultButton}
+                onPress={() => onUploadResult(lab)}
+                activeOpacity={0.7}
+              >
+                <Upload size={16} color="#a855f7" strokeWidth={1.5} />
+                <Text style={styles.uploadResultText}>Add Results</Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
 
         {isCompleted && (
@@ -175,14 +199,27 @@ function TimelineLabCard({ lab, onViewResults, isFirst }: TimelineLabCardProps) 
                 </Text>
               )}
             </View>
-            <TouchableOpacity
-              style={styles.viewResultsButton}
-              onPress={() => onViewResults?.(lab)}
-              activeOpacity={0.7}
-            >
-              <Eye size={16} color="#3b82f6" strokeWidth={1.5} />
-              <Text style={styles.viewResultsText}>View Results</Text>
-            </TouchableOpacity>
+            {hasAttachments(lab) ? (
+              <TouchableOpacity
+                style={styles.viewAttachmentsButton}
+                onPress={() => onViewAttachments?.(lab)}
+                activeOpacity={0.7}
+              >
+                <ImageIcon size={16} color="#a855f7" strokeWidth={1.5} />
+                <Text style={styles.viewAttachmentsText}>
+                  View ({lab.attachments?.length})
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.viewResultsButton}
+                onPress={() => onViewResults?.(lab)}
+                activeOpacity={0.7}
+              >
+                <Eye size={16} color="#3b82f6" strokeWidth={1.5} />
+                <Text style={styles.viewResultsText}>View Results</Text>
+              </TouchableOpacity>
+            )}
           </>
         )}
 
@@ -391,6 +428,26 @@ const styles = StyleSheet.create({
   },
   viewResultsText: {
     color: "#3b82f6",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  viewAttachmentsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  viewAttachmentsText: {
+    color: "#a855f7",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  uploadResultButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  uploadResultText: {
+    color: "#a855f7",
     fontSize: 12,
     fontWeight: "600",
   },
