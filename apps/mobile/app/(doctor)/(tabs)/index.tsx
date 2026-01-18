@@ -130,21 +130,21 @@ export default function DoctorDashboard() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-[#101822]" edges={[]}>
+    <SafeAreaView className="flex-1 bg-doctor-500" edges={[]}>
       <ScrollView
-        className="flex-1"
+        className="flex-1 bg-gray-50 dark:bg-gray-900"
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Header with rounded bottom */}
         <DoctorDashboardHeader
           doctorName={doctorName}
           onAvatarPress={handleProfilePress}
         />
 
-        {/* Stats Row - 3 columns */}
-        <View className="px-6 mb-8">
-          <View className="flex-row gap-3">
+        {/* Stats Row - overlapping header */}
+        <View className="px-4 -mt-4 mb-8">
+          <View className="flex-row gap-2">
             <QueueStatCard value={totalPatients} label="Patients Today" />
             <QueueStatCard value={expectedCount} label="Expected" />
             <QueueStatCard value={doneCount} label="Done" />

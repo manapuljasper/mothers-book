@@ -94,12 +94,18 @@ export const listByDoctor = query({
           ? await ctx.db.get(motherProfile.userId)
           : null;
 
-        // Get latest medical entry for visit/followup dates and vitals
-        const latestEntry = await ctx.db
+        // Get latest medical entry by visit date for visit/followup dates and vitals
+        const entries = await ctx.db
           .query("medicalEntries")
           .withIndex("by_booklet", (q) => q.eq("bookletId", booklet._id))
-          .order("desc")
-          .first();
+          .collect();
+        // Sort by visitDate descending to get the most recent visit
+        const latestEntry = entries.sort((a, b) => b.visitDate - a.visitDate)[0];
+
+        // Get clinic name from latest entry
+        const clinic = latestEntry?.clinicId
+          ? await ctx.db.get(latestEntry.clinicId)
+          : null;
 
         // Get active medication count
         const activeMedications = await ctx.db
@@ -130,6 +136,8 @@ export const listByDoctor = query({
           hasAllergies: (booklet.allergies?.length ?? 0) > 0,
           // Doctor's patient ID for this booklet
           patientId: access.patientId,
+          // Clinic name from latest visit
+          clinicName: clinic?.name,
         };
       })
     );

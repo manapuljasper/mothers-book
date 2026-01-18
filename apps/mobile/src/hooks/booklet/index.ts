@@ -115,6 +115,8 @@ export function useBookletsByDoctor(
           hasAllergies: doc.hasAllergies,
           // Doctor's patient ID
           patientId: doc.patientId,
+          // Clinic name from latest visit
+          clinicName: doc.clinicName,
         })
       );
   }, [result]);

@@ -60,4 +60,6 @@ export interface BookletWithMother extends MotherBooklet {
   hasAllergies?: boolean;
   // Doctor's internal patient ID for this booklet
   patientId?: string;
+  // Clinic name from latest visit
+  clinicName?: string;
 }

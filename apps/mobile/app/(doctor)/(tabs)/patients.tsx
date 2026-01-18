@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Search, Users, QrCode, UserPlus } from "lucide-react-native";
 import { useThemeStore } from "@/stores";
 import { useCurrentUser, useBookletsByDoctor, useClinicsByDoctor, useResponsive } from "@/hooks";
-import { CardPressable, EmptyState, BookletCard, PatientListSkeleton } from "@/components/ui";
+import { CardPressable, EmptyState, BookletCard, PatientListSkeleton, SkeletonBookletCard, SkeletonProvider } from "@/components/ui";
 import { MasterDetail } from "@/components/layout";
 import { BookletDetailContent, ClinicFilter } from "@/components/doctor";
 import { Id } from "@convex/_generated/dataModel";
@@ -31,10 +31,12 @@ export default function PatientsScreen() {
   }, [clinics]);
 
   // Get booklets, optionally filtered by clinic
-  const patientBooklets = useBookletsByDoctor(
+  const patientBookletsQuery = useBookletsByDoctor(
     doctorProfile?._id,
     selectedClinicId ?? undefined
-  ) ?? [];
+  );
+  const isLoadingBooklets = patientBookletsQuery === undefined;
+  const patientBooklets = patientBookletsQuery ?? [];
 
   // Filter by search query
   const filteredBooklets = patientBooklets.filter(
@@ -43,7 +45,7 @@ export default function PatientsScreen() {
       b.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (currentUser === undefined || patientBooklets === undefined) {
+  if (currentUser === undefined) {
     return <PatientListSkeleton />;
   }
 
@@ -95,13 +97,27 @@ export default function PatientsScreen() {
 
       {/* Patient List */}
       <ScrollView className="flex-1 px-6 py-4">
-        {filteredBooklets.length === 0 ? (
+        {isLoadingBooklets ? (
+          <SkeletonProvider>
+            {[1, 2, 3, 4].map((i) => (
+              <SkeletonBookletCard key={i} variant="doctor" />
+            ))}
+          </SkeletonProvider>
+        ) : filteredBooklets.length === 0 ? (
           <View className="mt-4">
             {searchQuery ? (
               <EmptyState
                 icon={Search}
                 title="No results found"
                 description="Try a different search term"
+              />
+            ) : selectedClinicId ? (
+              <EmptyState
+                icon={Users}
+                iconColor="#3b82f6"
+                iconBgClassName="bg-blue-50 dark:bg-blue-900/30"
+                title="No patients at this clinic"
+                description="No patients have been seen at this clinic yet"
               />
             ) : (
               <View>

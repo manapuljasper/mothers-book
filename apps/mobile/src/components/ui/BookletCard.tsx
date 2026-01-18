@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import { AlertTriangle, Pill, FlaskConical, Activity, ShieldAlert } from "lucide-react-native";
+import { AlertTriangle, Pill, FlaskConical, Activity, ShieldAlert, MapPin } from "lucide-react-native";
 import { CardPressable } from "./AnimatedPressable";
 import { formatDate, formatRelativeDate } from "../../utils";
 import type { MotherBooklet, BookletWithMother } from "../../types";
@@ -103,7 +103,17 @@ export function BookletCard({
               : booklet.label}
           </Text>
           {isDoctor && hasMotherName ? (
-            <Text className="text-gray-400">{booklet.label}</Text>
+            <View className="flex-row items-center gap-2">
+              <Text className="text-gray-400">{booklet.label}</Text>
+              {(booklet as BookletWithMother).clinicName && (
+                <View className="flex-row items-center gap-1">
+                  <MapPin size={10} color="#6b7280" strokeWidth={2} />
+                  <Text className="text-gray-400 text-xs">
+                    {(booklet as BookletWithMother).clinicName}
+                  </Text>
+                </View>
+              )}
+            </View>
           ) : (
             booklet.expectedDueDate && (
               <Text className="text-pink-500 text-sm mt-1">

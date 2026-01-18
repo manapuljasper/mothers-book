@@ -70,9 +70,7 @@ export default function DoctorTabsLayout() {
           name="index"
           options={{
             title: "Dashboard",
-            headerTitle: () => (
-              <HeaderTitle title="Dashboard" subtitle="Patient overview" />
-            ),
+            headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <Home size={size} color={color} strokeWidth={1.5} />
             ),

@@ -33,22 +33,24 @@ export function DoctorDashboardHeader({
   const initials = getInitials(doctorName);
 
   return (
-    <View className="px-6 pb-6" style={{ paddingTop: 32 }}>
-      <View className="flex-row justify-between items-center">
-        {/* Left side - Greeting */}
-        <View className="flex-1">
-          <Text className="text-gray-500 dark:text-slate-400 text-sm font-medium leading-none mb-1">
-            {greeting}
+    <View
+      className="bg-doctor-500 pb-10 px-6 rounded-b-3xl"
+      style={{ paddingTop: insets.top + 12 }}
+    >
+      <View className="flex-row justify-between items-start">
+        <View>
+          <Text className="text-3xl font-bold text-white tracking-tight">
+            Dashboard
           </Text>
-          <Text className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-            {doctorName}
+          <Text className="text-white/90 text-sm mt-1">
+            {greeting} {doctorName}
           </Text>
         </View>
 
         {/* Right side - Avatar */}
         <CardPressable
           onPress={onAvatarPress}
-          className="h-12 w-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-slate-700"
+          className="h-10 w-10 rounded-full overflow-hidden border-2 border-white/30"
         >
           {avatarUrl ? (
             <Image
@@ -57,8 +59,8 @@ export function DoctorDashboardHeader({
               resizeMode="cover"
             />
           ) : (
-            <View className="h-full w-full bg-doctor-500 items-center justify-center">
-              <Text className="text-white font-bold text-base">{initials}</Text>
+            <View className="h-full w-full bg-white/20 items-center justify-center">
+              <Text className="text-white font-bold text-sm">{initials}</Text>
             </View>
           )}
         </CardPressable>
