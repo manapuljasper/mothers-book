@@ -49,6 +49,7 @@ export { DashboardHeader } from "./DashboardHeader";
 export { CurrentPregnancyCard } from "./CurrentPregnancyCard";
 export { MedicationDoseCard } from "./MedicationDoseCard";
 export { BabySizeCard } from "./BabySizeCard";
+export { PendingLabBanner } from "./PendingLabBanner";
 
 // Skeleton components
 export {

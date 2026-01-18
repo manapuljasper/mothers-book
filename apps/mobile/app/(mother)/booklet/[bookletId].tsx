@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { View, Text, ScrollView } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -12,6 +12,7 @@ import {
   useEntriesByBooklet,
   useLabsByBooklet,
   useMedicationsByBooklet,
+  useLabAttachmentUrls,
 } from "@/hooks";
 import { formatDate, calculateAOG } from "@/utils";
 import {
@@ -28,13 +29,18 @@ import {
   LabsTabContent,
 } from "@/components/doctor";
 import { LabUploadModal } from "@/components/mother";
-import { LabAttachmentViewer } from "@/components/shared";
 import type { LabRequestWithDoctor } from "@/types";
 
 export default function MotherBookletDetailScreen() {
-  const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
+  const { bookletId, tab } = useLocalSearchParams<{
+    bookletId: string;
+    tab?: string;
+  }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  // Determine initial tab from query param
+  const initialTab = (tab ?? "history") as BookletTab;
 
   // Convex query hooks
   const booklet = useBookletById(bookletId);
@@ -44,10 +50,44 @@ export default function MotherBookletDetailScreen() {
   const allLabs = useLabsByBooklet(bookletId) ?? [];
 
   // Local state
-  const [activeTab, setActiveTab] = useState<BookletTab>("history");
-  const [selectedLabForUpload, setSelectedLabForUpload] = useState<LabRequestWithDoctor | null>(null);
+  const [activeTab, setActiveTab] = useState<BookletTab>(initialTab);
+  const [selectedLabForUpload, setSelectedLabForUpload] =
+    useState<LabRequestWithDoctor | null>(null);
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
-  const [viewingLabAttachments, setViewingLabAttachments] = useState<LabRequestWithDoctor | null>(null);
+  const [pendingLabView, setPendingLabView] =
+    useState<LabRequestWithDoctor | null>(null);
+
+  // Fetch URLs for selected lab (for image viewer navigation)
+  const labAttachmentUrls = useLabAttachmentUrls(pendingLabView?.id);
+  const hasNavigatedRef = useRef(false);
+
+  // Navigate to image viewer when URLs are loaded
+  useEffect(() => {
+    if (pendingLabView && labAttachmentUrls && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      const urls = labAttachmentUrls
+        .map((item: { url: string | null }) => item.url)
+        .filter((url: string | null): url is string => url !== null);
+
+      if (urls.length > 0) {
+        router.push({
+          pathname: "/(mother)/image-viewer",
+          params: {
+            urls: JSON.stringify(urls),
+            title: pendingLabView.description,
+          },
+        });
+      }
+      setPendingLabView(null);
+    }
+  }, [pendingLabView, labAttachmentUrls, router]);
+
+  // Reset navigation flag when pendingLabView changes
+  useEffect(() => {
+    if (!pendingLabView) {
+      hasNavigatedRef.current = false;
+    }
+  }, [pendingLabView]);
 
   const handleOpenUploadModal = (lab: LabRequestWithDoctor) => {
     setSelectedLabForUpload(lab);
@@ -57,6 +97,10 @@ export default function MotherBookletDetailScreen() {
   const handleCloseUploadModal = () => {
     setIsUploadModalVisible(false);
     setSelectedLabForUpload(null);
+  };
+
+  const handleViewLabAttachments = (lab: LabRequestWithDoctor) => {
+    setPendingLabView(lab);
   };
 
   const isLoading =
@@ -176,7 +220,9 @@ export default function MotherBookletDetailScreen() {
                 {doctors.map((doctor) => (
                   <CardPressable
                     key={doctor.id}
-                    onPress={() => router.push(`/(mother)/view-doctor/${doctor.id}`)}
+                    onPress={() =>
+                      router.push(`/(mother)/view-doctor/${doctor.id}`)
+                    }
                     className="bg-slate-800 rounded-xl p-4 mr-3 border border-slate-700 min-w-[140px]"
                   >
                     <Text className="font-medium text-white">
@@ -215,7 +261,7 @@ export default function MotherBookletDetailScreen() {
             <LabsTabContent
               labs={allLabs}
               onUploadResult={handleOpenUploadModal}
-              onViewAttachments={setViewingLabAttachments}
+              onViewAttachments={handleViewLabAttachments}
             />
           )}
         </View>
@@ -231,13 +277,6 @@ export default function MotherBookletDetailScreen() {
           onUploadComplete={handleCloseUploadModal}
         />
       )}
-
-      {/* Lab Attachment Viewer */}
-      <LabAttachmentViewer
-        visible={!!viewingLabAttachments}
-        onClose={() => setViewingLabAttachments(null)}
-        lab={viewingLabAttachments}
-      />
     </SafeAreaView>
   );
 }

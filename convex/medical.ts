@@ -304,6 +304,66 @@ export const listPendingLabsByDoctor = query({
   },
 });
 
+// List pending labs for a mother (across all active booklets)
+export const listPendingLabsByMother = query({
+  args: { motherId: v.id("motherProfiles") },
+  handler: async (ctx, args) => {
+    // Get all active booklets for this mother
+    const booklets = await ctx.db
+      .query("booklets")
+      .withIndex("by_mother", (q) => q.eq("motherId", args.motherId))
+      .collect();
+
+    const activeBookletIds = booklets
+      .filter((b) => b.status === "active")
+      .map((b) => b._id);
+
+    if (activeBookletIds.length === 0) {
+      return [];
+    }
+
+    // Get pending labs for all active booklets
+    const allPendingLabs = await Promise.all(
+      activeBookletIds.map(async (bookletId) => {
+        return await ctx.db
+          .query("labRequests")
+          .withIndex("by_booklet_status", (q) =>
+            q.eq("bookletId", bookletId).eq("status", "pending")
+          )
+          .collect();
+      })
+    );
+
+    // Flatten and sort by creation time (most recent first)
+    const pendingLabs = allPendingLabs.flat().sort((a, b) => b._creationTime - a._creationTime);
+
+    // Fetch doctor info for each lab
+    const labsWithDoctor = await Promise.all(
+      pendingLabs.map(async (lab) => {
+        let doctorName: string | undefined;
+        let doctorSpecialty: string | undefined;
+
+        if (lab.requestedByDoctorId) {
+          const doctorProfile = await ctx.db.get(lab.requestedByDoctorId);
+          if (doctorProfile) {
+            const user = await ctx.db.get(doctorProfile.userId);
+            doctorName = user?.fullName || "Unknown";
+            doctorSpecialty = doctorProfile.specialization;
+          }
+        }
+
+        return {
+          ...lab,
+          doctorName,
+          doctorSpecialty,
+        };
+      })
+    );
+
+    return labsWithDoctor;
+  },
+});
+
 // Create lab request
 export const createLab = mutation({
   args: {

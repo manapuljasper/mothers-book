@@ -30,7 +30,7 @@ import {
 } from "@/hooks";
 import { formatDate, formatTime, computeAOG } from "@/utils";
 import { VitalCard, InstructionsCard, LoadingScreen } from "@/components/ui";
-import { SOAPSectionHeader } from "@/components/doctor/SOAPSectionHeader";
+import { SOAPSectionWrapper } from "@/components/doctor";
 import { ENTRY_TYPE_LABELS } from "@/types";
 
 export default function MotherEntryDetailScreen() {
@@ -225,8 +225,7 @@ export default function MotherEntryDetailScreen() {
         {/* ===== SOAP SECTIONS ===== */}
 
         {/* S - Subjective (Chief Complaint/Notes) */}
-        <View style={{ marginBottom: 20 }}>
-          <SOAPSectionHeader section="subjective" />
+        <SOAPSectionWrapper section="subjective">
           <View
             style={{
               backgroundColor: colors.cardBg,
@@ -247,11 +246,10 @@ export default function MotherEntryDetailScreen() {
               {entry.notes?.trim() || "No notes recorded"}
             </Text>
           </View>
-        </View>
+        </SOAPSectionWrapper>
 
         {/* O - Objective (Vitals) */}
-        <View style={{ marginBottom: 20 }}>
-          <SOAPSectionHeader section="objective" />
+        <SOAPSectionWrapper section="objective">
           {(entry.vitals?.bloodPressure ||
             entry.vitals?.weight ||
             entry.vitals?.fetalHeartRate ||
@@ -264,7 +262,7 @@ export default function MotherEntryDetailScreen() {
                     value={entry.vitals.bloodPressure}
                     unit="mmHg"
                     icon={Heart}
-                    iconColor="#f43f5e"
+                    iconColor="#14b8a6"
                   />
                 </View>
               )}
@@ -275,7 +273,7 @@ export default function MotherEntryDetailScreen() {
                     value={entry.vitals.weight}
                     unit="kg"
                     icon={Scale}
-                    iconColor="#60a5fa"
+                    iconColor="#14b8a6"
                   />
                 </View>
               )}
@@ -286,7 +284,7 @@ export default function MotherEntryDetailScreen() {
                     value={entry.vitals.fetalHeartRate}
                     unit="bpm"
                     icon={Baby}
-                    iconColor="#f472b6"
+                    iconColor="#14b8a6"
                   />
                 </View>
               )}
@@ -299,7 +297,7 @@ export default function MotherEntryDetailScreen() {
                     }
                     unit="wks"
                     icon={Calendar}
-                    iconColor="#a78bfa"
+                    iconColor="#14b8a6"
                   />
                 </View>
               )}
@@ -325,12 +323,10 @@ export default function MotherEntryDetailScreen() {
               </Text>
             </View>
           )}
-        </View>
+        </SOAPSectionWrapper>
 
         {/* A - Assessment (Diagnosis & Risk Level) */}
-        <View style={{ marginBottom: 20 }}>
-          <SOAPSectionHeader section="assessment" />
-
+        <SOAPSectionWrapper section="assessment">
           {/* Risk Level Badge */}
           {entry.riskLevel && (
             <View
@@ -389,12 +385,10 @@ export default function MotherEntryDetailScreen() {
               {entry.diagnosis?.trim() || "No diagnosis recorded"}
             </Text>
           </View>
-        </View>
+        </SOAPSectionWrapper>
 
         {/* P - Plan (Recommendations, Follow-up, Medications, Labs) */}
-        <View style={{ marginBottom: 20 }}>
-          <SOAPSectionHeader section="plan" />
-
+        <SOAPSectionWrapper section="plan">
           {(entry.recommendations?.trim() || entry.followUpDate || (medications && medications.length > 0) || (labs && labs.length > 0)) ? (
             <>
               {/* Recommendations */}
@@ -640,7 +634,7 @@ export default function MotherEntryDetailScreen() {
               </Text>
             </View>
           )}
-        </View>
+        </SOAPSectionWrapper>
       </ScrollView>
     </View>
   );

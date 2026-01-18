@@ -5,12 +5,12 @@
  * Can be used standalone (with back button) or embedded in master-detail view.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft, Plus, Baby, Users, AlertTriangle } from "lucide-react-native";
-import { useCurrentUser } from "@/hooks";
+import { useCurrentUser, useLabAttachmentUrls } from "@/hooks";
 import { formatDate } from "@/utils";
 import {
   CardPressable,
@@ -29,7 +29,6 @@ import {
   LabsTabContent,
   PatientIdEditor,
 } from "@/components/doctor";
-import { LabAttachmentViewer } from "@/components/shared";
 import {
   MedicalBackgroundSection,
   AddAllergyModal,
@@ -88,11 +87,47 @@ export function BookletDetailContent({
   const [editingMedication, setEditingMedication] = useState<Medication | null>(
     null
   );
-  const [viewingLabAttachments, setViewingLabAttachments] =
+  const [pendingLabView, setPendingLabView] =
     useState<LabRequestWithDoctor | null>(null);
   const [showAddAllergyModal, setShowAddAllergyModal] = useState(false);
   const [showAddMedicalHistoryModal, setShowAddMedicalHistoryModal] = useState(false);
   const [isSavingAllergies, setIsSavingAllergies] = useState(false);
+
+  // Fetch URLs for selected lab (for image viewer navigation)
+  const labAttachmentUrls = useLabAttachmentUrls(pendingLabView?.id);
+  const hasNavigatedRef = useRef(false);
+
+  // Navigate to image viewer when URLs are loaded
+  useEffect(() => {
+    if (pendingLabView && labAttachmentUrls && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      const urls = labAttachmentUrls
+        .map((item: { url: string | null }) => item.url)
+        .filter((url: string | null): url is string => url !== null);
+
+      if (urls.length > 0) {
+        router.push({
+          pathname: "/(doctor)/image-viewer",
+          params: {
+            urls: JSON.stringify(urls),
+            title: pendingLabView.description,
+          },
+        });
+      }
+      setPendingLabView(null);
+    }
+  }, [pendingLabView, labAttachmentUrls, router]);
+
+  // Reset navigation flag when pendingLabView changes
+  useEffect(() => {
+    if (!pendingLabView) {
+      hasNavigatedRef.current = false;
+    }
+  }, [pendingLabView]);
+
+  const handleViewLabAttachments = (lab: LabRequestWithDoctor) => {
+    setPendingLabView(lab);
+  };
 
   const isLoading =
     currentUser === undefined ||
@@ -382,7 +417,7 @@ export function BookletDetailContent({
           {activeTab === "labs" && (
             <LabsTabContent
               labs={allLabs}
-              onViewAttachments={setViewingLabAttachments}
+              onViewAttachments={handleViewLabAttachments}
             />
           )}
 
@@ -441,12 +476,6 @@ export function BookletDetailContent({
         onClose={() => setEditingMedication(null)}
         onSave={handleUpdateMedication}
         isSaving={isSavingMedication}
-      />
-
-      <LabAttachmentViewer
-        visible={!!viewingLabAttachments}
-        onClose={() => setViewingLabAttachments(null)}
-        lab={viewingLabAttachments}
       />
 
       <AddAllergyModal

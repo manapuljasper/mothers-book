@@ -15,9 +15,6 @@ export * from "./doctor";
 // Mother-specific components
 export * from "./mother";
 
-// Shared components
-export * from "./shared";
-
 // Navigation components
 export * from "./navigation";
 

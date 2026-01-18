@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -6,7 +6,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { ChevronLeft, Plus, Baby, Pencil, AlertTriangle } from "lucide-react-native";
-import { useCurrentUser } from "@/hooks";
+import { useCurrentUser, useLabAttachmentUrls } from "@/hooks";
 import { formatDate, calculateAOG } from "@/utils";
 import {
   CardPressable,
@@ -31,7 +31,6 @@ import {
   AddMedicalHistoryModal,
 } from "@/components/medical";
 import type { Medication, LabRequestWithDoctor, MedicalHistoryItem } from "@/types";
-import { LabAttachmentViewer } from "@/components/shared/LabAttachmentViewer";
 import {
   useBookletByIdWithMother,
   useEntriesByBooklet,
@@ -76,10 +75,46 @@ export default function DoctorBookletDetailScreen() {
   const [editingMedication, setEditingMedication] = useState<Medication | null>(
     null
   );
-  const [viewingLabAttachments, setViewingLabAttachments] = useState<LabRequestWithDoctor | null>(null);
+  const [pendingLabView, setPendingLabView] = useState<LabRequestWithDoctor | null>(null);
   const [showAddAllergyModal, setShowAddAllergyModal] = useState(false);
   const [showAddMedicalHistoryModal, setShowAddMedicalHistoryModal] = useState(false);
   const [isSavingAllergies, setIsSavingAllergies] = useState(false);
+
+  // Fetch URLs for selected lab (for image viewer navigation)
+  const labAttachmentUrls = useLabAttachmentUrls(pendingLabView?.id);
+  const hasNavigatedRef = useRef(false);
+
+  // Navigate to image viewer when URLs are loaded
+  useEffect(() => {
+    if (pendingLabView && labAttachmentUrls && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      const urls = labAttachmentUrls
+        .map((item: { url: string | null }) => item.url)
+        .filter((url: string | null): url is string => url !== null);
+
+      if (urls.length > 0) {
+        router.push({
+          pathname: "/(doctor)/image-viewer",
+          params: {
+            urls: JSON.stringify(urls),
+            title: pendingLabView.description,
+          },
+        });
+      }
+      setPendingLabView(null);
+    }
+  }, [pendingLabView, labAttachmentUrls, router]);
+
+  // Reset navigation flag when pendingLabView changes
+  useEffect(() => {
+    if (!pendingLabView) {
+      hasNavigatedRef.current = false;
+    }
+  }, [pendingLabView]);
+
+  const handleViewLabAttachments = (lab: LabRequestWithDoctor) => {
+    setPendingLabView(lab);
+  };
 
   const isLoading =
     currentUser === undefined ||
@@ -381,7 +416,7 @@ export default function DoctorBookletDetailScreen() {
           {activeTab === "labs" && (
             <LabsTabContent
               labs={allLabs}
-              onViewAttachments={setViewingLabAttachments}
+              onViewAttachments={handleViewLabAttachments}
             />
           )}
 
@@ -446,12 +481,6 @@ export default function DoctorBookletDetailScreen() {
         currentLMP={booklet.lastMenstrualPeriod}
         onSave={handleSaveLMP}
         isSaving={isSavingLMP}
-      />
-
-      <LabAttachmentViewer
-        visible={!!viewingLabAttachments}
-        onClose={() => setViewingLabAttachments(null)}
-        lab={viewingLabAttachments}
       />
 
       <AddAllergyModal

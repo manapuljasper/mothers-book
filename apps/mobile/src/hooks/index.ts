@@ -38,6 +38,7 @@ export {
   useLabsByEntry,
   usePendingLabs,
   usePendingLabsByDoctor,
+  usePendingLabsByMother,
   useCreateLabRequest,
   useUpdateLabStatus,
   useDeleteLabRequest,

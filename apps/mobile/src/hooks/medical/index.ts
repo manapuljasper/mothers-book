@@ -233,6 +233,17 @@ export function usePendingLabsByDoctor(doctorId: Id<"doctorProfiles"> | undefine
   }, [result]);
 }
 
+export function usePendingLabsByMother(motherId: Id<"motherProfiles"> | string | undefined) {
+  const result = useQuery(
+    api.medical.listPendingLabsByMother,
+    motherId ? { motherId: motherId as Id<"motherProfiles"> } : "skip"
+  );
+  return useMemo(() => {
+    if (result === undefined) return undefined;
+    return result.map((doc) => transformLab(doc as ConvexLab));
+  }, [result]);
+}
+
 export function useCreateLabRequest() {
   const mutation = useMutation(api.medical.createLab);
 

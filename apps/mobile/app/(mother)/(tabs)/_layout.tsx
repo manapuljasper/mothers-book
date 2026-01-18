@@ -6,7 +6,7 @@ import {
 } from "react-native-safe-area-context";
 import { Home, BookOpen, Pill, User } from "lucide-react-native";
 import { useThemeStore } from "../../../src/stores";
-import { useResponsive } from "../../../src/hooks";
+import { useResponsive, useCurrentUser, usePendingLabsByMother } from "../../../src/hooks";
 import { ResponsiveTabLayout } from "../../../src/components/layout";
 
 const HEADER_BASE_HEIGHT = 60;
@@ -26,6 +26,12 @@ export default function MotherTabsLayout() {
   const { colorScheme } = useThemeStore();
   const isDark = colorScheme === "dark";
   const { isTablet } = useResponsive();
+
+  // Get pending labs count for badge
+  const currentUser = useCurrentUser();
+  const motherProfile = currentUser?.motherProfile;
+  const pendingLabs = usePendingLabsByMother(motherProfile?._id) ?? [];
+  const pendingLabCount = pendingLabs.length;
 
   // On tablet, use sidebar navigation instead of bottom tabs
   if (isTablet) {
@@ -72,7 +78,16 @@ export default function MotherTabsLayout() {
             title: "Home",
             headerShown: false, // Hide header - we have a custom header
             tabBarIcon: ({ color, size }) => (
-              <Home size={size} color={color} strokeWidth={1.5} />
+              <View>
+                <Home size={size} color={color} strokeWidth={1.5} />
+                {pendingLabCount > 0 && (
+                  <View className="absolute -top-1 -right-2 bg-red-500 rounded-full min-w-4 h-4 items-center justify-center px-1">
+                    <Text className="text-white text-[10px] font-bold">
+                      {pendingLabCount > 9 ? "9+" : pendingLabCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
             ),
           }}
         />
@@ -81,7 +96,7 @@ export default function MotherTabsLayout() {
           options={{
             title: "Booklet",
             headerTitle: () => (
-              <HeaderTitle title="Booklets" subtitle="Your pregnancy records" />
+              <HeaderTitle title="My Pregnancy" subtitle="Your booklet dashboard" />
             ),
             tabBarIcon: ({ color, size }) => (
               <BookOpen size={size} color={color} strokeWidth={1.5} />

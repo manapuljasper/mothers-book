@@ -19,6 +19,10 @@ export default function DoctorLayout() {
         name="patients/add"
         options={{ presentation: "modal", animation: "slide_from_bottom" }}
       />
+      <Stack.Screen
+        name="image-viewer"
+        options={{ presentation: "modal", animation: "slide_from_bottom" }}
+      />
     </Stack>
   );
 }

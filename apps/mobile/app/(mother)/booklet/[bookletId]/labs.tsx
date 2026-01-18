@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -6,9 +6,9 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { ChevronLeft, FlaskConical, Paperclip, ImageIcon } from "lucide-react-native";
-import { useBookletById, useLabsByBooklet } from "@/hooks";
+import { useBookletById, useLabsByBooklet, useLabAttachmentUrls } from "@/hooks";
 import { CardPressable, LoadingScreen } from "@/components/ui";
-import { LabRequestCard, LabUploadModal, LabAttachmentViewer } from "@/components";
+import { LabRequestCard, LabUploadModal } from "@/components";
 import type { LabRequestWithDoctor } from "@/types";
 
 export default function LabHistoryScreen() {
@@ -22,8 +22,40 @@ export default function LabHistoryScreen() {
   // Upload modal state
   const [selectedLab, setSelectedLab] = useState<LabRequestWithDoctor | null>(null);
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
-  // Attachment viewer state
-  const [viewingLab, setViewingLab] = useState<LabRequestWithDoctor | null>(null);
+  // Lab view state for navigation
+  const [pendingLabView, setPendingLabView] = useState<LabRequestWithDoctor | null>(null);
+
+  // Fetch URLs for selected lab
+  const labAttachmentUrls = useLabAttachmentUrls(pendingLabView?.id);
+  const hasNavigatedRef = useRef(false);
+
+  // Navigate to image viewer when URLs are loaded
+  useEffect(() => {
+    if (pendingLabView && labAttachmentUrls && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      const urls = labAttachmentUrls
+        .map((item: { url: string | null }) => item.url)
+        .filter((url: string | null): url is string => url !== null);
+
+      if (urls.length > 0) {
+        router.push({
+          pathname: "/(mother)/image-viewer",
+          params: {
+            urls: JSON.stringify(urls),
+            title: pendingLabView.description,
+          },
+        });
+      }
+      setPendingLabView(null);
+    }
+  }, [pendingLabView, labAttachmentUrls, router]);
+
+  // Reset navigation flag when pendingLabView changes
+  useEffect(() => {
+    if (!pendingLabView) {
+      hasNavigatedRef.current = false;
+    }
+  }, [pendingLabView]);
 
   const isLoading = booklet === undefined || labs === undefined;
 
@@ -38,7 +70,7 @@ export default function LabHistoryScreen() {
   };
 
   const handleViewAttachments = (lab: LabRequestWithDoctor) => {
-    setViewingLab(lab);
+    setPendingLabView(lab);
   };
 
   if (isLoading) {
@@ -127,13 +159,6 @@ export default function LabHistoryScreen() {
           onUploadComplete={handleCloseUploadModal}
         />
       )}
-
-      {/* Attachment Viewer */}
-      <LabAttachmentViewer
-        visible={!!viewingLab}
-        onClose={() => setViewingLab(null)}
-        lab={viewingLab}
-      />
     </SafeAreaView>
   );
 }
