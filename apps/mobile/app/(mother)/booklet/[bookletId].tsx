@@ -213,7 +213,7 @@ export default function MotherBookletDetailScreen() {
           {/* My Doctors Section - show at top of history tab */}
           {activeTab === "history" && doctors.length > 0 && (
             <View className="mb-6">
-              <Text className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+              <Text className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                 My Doctors
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -223,12 +223,12 @@ export default function MotherBookletDetailScreen() {
                     onPress={() =>
                       router.push(`/(mother)/view-doctor/${doctor.id}`)
                     }
-                    className="bg-slate-800 rounded-xl p-4 mr-3 border border-slate-700 min-w-[140px]"
+                    className="bg-white dark:bg-slate-800 rounded-xl p-4 mr-3 border border-gray-200 dark:border-slate-700 min-w-[140px]"
                   >
-                    <Text className="font-medium text-white">
+                    <Text className="font-medium text-gray-900 dark:text-white">
                       {doctor.fullName}
                     </Text>
-                    <Text className="text-slate-400 text-xs mt-1">
+                    <Text className="text-gray-500 dark:text-slate-400 text-xs mt-1">
                       {doctor.specialization || "OB-GYN"}
                     </Text>
                   </CardPressable>

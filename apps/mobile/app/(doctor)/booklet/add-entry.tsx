@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  useColorScheme,
 } from "react-native";
 import {
   SafeAreaView,
@@ -79,6 +80,10 @@ export default function AddEntryScreen() {
   const { bookletId } = useLocalSearchParams<{ bookletId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const colors = getColors(isDark);
+  const styles = createStyles(colors);
 
   // Data hooks
   const currentUser = useCurrentUser();
@@ -722,7 +727,7 @@ export default function AddEntryScreen() {
               value={notes}
               onChangeText={setNotes}
               placeholder="Chief complaint, patient history, symptoms..."
-              placeholderTextColor="#4b5563"
+              placeholderTextColor={colors.placeholderText}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -784,7 +789,7 @@ export default function AddEntryScreen() {
               value={diagnosis}
               onChangeText={setDiagnosis}
               placeholder="Diagnosis, clinical impression..."
-              placeholderTextColor="#4b5563"
+              placeholderTextColor={colors.placeholderText}
               multiline
               numberOfLines={2}
               textAlignVertical="top"
@@ -854,7 +859,7 @@ export default function AddEntryScreen() {
               value={instructions}
               onChangeText={setInstructions}
               placeholder="Treatment plan, recommendations, advice..."
-              placeholderTextColor="#4b5563"
+              placeholderTextColor={colors.placeholderText}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -1008,318 +1013,357 @@ export default function AddEntryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#101822",
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  errorText: {
-    color: "#94a3b8",
-    fontSize: 16,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
-  },
-  cancelButton: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#92a9c9",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#ffffff",
-  },
-  saveButton: {
-    backgroundColor: "#3b82f6",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: "#3b82f6",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#64748b",
-    shadowOpacity: 0,
-  },
-  saveButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  patientBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "rgba(25, 36, 51, 0.5)",
-    gap: 12,
-  },
-  patientAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#3b82f6",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  patientAvatarText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  patientInfo: {
-    flex: 1,
-  },
-  patientNameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  patientName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  patientAge: {
-    fontSize: 14,
-    fontWeight: "400",
-    color: "#94a3b8",
-  },
-  patientIdBadge: {
-    backgroundColor: "rgba(59, 130, 246, 0.2)",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  patientIdText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#60a5fa",
-  },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-  },
-  statusActive: {
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
-  },
-  statusInactive: {
-    backgroundColor: "rgba(107, 114, 128, 0.1)",
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  statusTextActive: {
-    color: "#10b981",
-  },
-  statusTextInactive: {
-    color: "#6b7280",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#92a9c9",
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  vitalsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  vitalItem: {
-    width: "48%",
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#ffffff",
-    marginBottom: 4,
-  },
-  aogDisplay: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#192433",
-    borderWidth: 1,
-    borderColor: "#324867",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    height: 40,
-    gap: 8,
-  },
-  aogValue: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#14b8a6",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#1e293b",
-    marginVertical: 24,
-  },
-  textArea: {
-    backgroundColor: "#192433",
-    borderWidth: 1,
-    borderColor: "#324867",
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: "#ffffff",
-    minHeight: 120,
-    lineHeight: 24,
-  },
-  datePickerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#192433",
-    borderWidth: 1,
-    borderColor: "#324867",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-  },
-  datePickerText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#ffffff",
-  },
-  readOnlyDateText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  datePickerContainer: {
-    backgroundColor: "#192433",
-    borderRadius: 12,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "#324867",
-    overflow: "hidden",
-  },
-  datePickerDoneButton: {
-    alignItems: "center",
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#324867",
-  },
-  datePickerDoneText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#3b82f6",
-  },
-  followUpContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  datePickerButtonSelected: {
-    borderColor: "#10b981",
-  },
-  datePickerPlaceholder: {
-    color: "#6b7280",
-  },
-  clearButton: {
-    width: 40,
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#192433",
-    borderWidth: 1,
-    borderColor: "#324867",
-    borderRadius: 12,
-  },
-  collapsibleHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#192433",
-    borderWidth: 1,
-    borderColor: "#324867",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  collapsibleHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  collapsibleHeaderText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#ffffff",
-  },
-  collapsibleContent: {
-    marginTop: 8,
-  },
-  riskToggleContainer: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  riskToggleButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#192433",
-    borderWidth: 1,
-    borderColor: "#324867",
-    borderRadius: 12,
-    paddingVertical: 14,
-    gap: 8,
-  },
-  riskToggleLowActive: {
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
-    borderColor: "#22c55e",
-  },
-  riskToggleHighActive: {
-    backgroundColor: "rgba(239, 68, 68, 0.15)",
-    borderColor: "#ef4444",
-  },
-  riskToggleText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#6b7280",
-  },
-  riskToggleLowActiveText: {
-    color: "#22c55e",
-  },
-  riskToggleHighActiveText: {
-    color: "#ef4444",
-  },
-  riskToggleLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#6b7280",
-  },
-});
+// Dynamic color palette based on color scheme
+interface ColorPalette {
+  containerBg: string;
+  headerBorder: string;
+  cancelText: string;
+  headerTitle: string;
+  patientBarBg: string;
+  patientAvatarBorder: string;
+  patientName: string;
+  patientAge: string;
+  sectionLabel: string;
+  inputLabel: string;
+  inputBg: string;
+  inputBorder: string;
+  inputText: string;
+  placeholderText: string;
+}
+
+function getColors(isDark: boolean): ColorPalette {
+  return {
+    containerBg: isDark ? "#101822" : "#ffffff",
+    headerBorder: isDark ? "#1e293b" : "#e5e7eb",
+    cancelText: isDark ? "#92a9c9" : "#6b7280",
+    headerTitle: isDark ? "#ffffff" : "#111827",
+    patientBarBg: isDark ? "rgba(25, 36, 51, 0.5)" : "rgba(249, 250, 251, 0.8)",
+    patientAvatarBorder: isDark ? "#334155" : "#e5e7eb",
+    patientName: isDark ? "#ffffff" : "#111827",
+    patientAge: isDark ? "#94a3b8" : "#6b7280",
+    sectionLabel: isDark ? "#92a9c9" : "#6b7280",
+    inputLabel: isDark ? "#ffffff" : "#374151",
+    inputBg: isDark ? "#192433" : "#f9fafb",
+    inputBorder: isDark ? "#324867" : "#d1d5db",
+    inputText: isDark ? "#ffffff" : "#111827",
+    placeholderText: isDark ? "#4b5563" : "#9ca3af",
+  };
+}
+
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.containerBg,
+    },
+    errorContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    errorText: {
+      color: "#94a3b8",
+      fontSize: 16,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.headerBorder,
+    },
+    cancelButton: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.cancelText,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: colors.headerTitle,
+    },
+    saveButton: {
+      backgroundColor: "#3b82f6",
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      shadowColor: "#3b82f6",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    saveButtonDisabled: {
+      backgroundColor: "#64748b",
+      shadowOpacity: 0,
+    },
+    saveButtonText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: "#ffffff",
+    },
+    patientBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.patientBarBg,
+      gap: 12,
+    },
+    patientAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "#3b82f6",
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: colors.patientAvatarBorder,
+    },
+    patientAvatarText: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: "#ffffff",
+    },
+    patientInfo: {
+      flex: 1,
+    },
+    patientNameRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 6,
+    },
+    patientName: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.patientName,
+    },
+    patientAge: {
+      fontSize: 14,
+      fontWeight: "400",
+      color: colors.patientAge,
+    },
+    patientIdBadge: {
+      backgroundColor: "rgba(59, 130, 246, 0.2)",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    patientIdText: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: "#60a5fa",
+    },
+    statusBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      gap: 4,
+    },
+    statusActive: {
+      backgroundColor: "rgba(16, 185, 129, 0.1)",
+    },
+    statusInactive: {
+      backgroundColor: "rgba(107, 114, 128, 0.1)",
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: "500",
+    },
+    statusTextActive: {
+      color: "#10b981",
+    },
+    statusTextInactive: {
+      color: "#6b7280",
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    sectionLabel: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.sectionLabel,
+      letterSpacing: 0.5,
+      marginBottom: 12,
+    },
+    vitalsGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 12,
+    },
+    vitalItem: {
+      width: "48%",
+    },
+    inputLabel: {
+      fontSize: 13,
+      fontWeight: "500",
+      color: colors.inputLabel,
+      marginBottom: 4,
+    },
+    aogDisplay: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      height: 40,
+      gap: 8,
+    },
+    aogValue: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: "#14b8a6",
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.headerBorder,
+      marginVertical: 24,
+    },
+    textArea: {
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+      padding: 16,
+      fontSize: 16,
+      color: colors.inputText,
+      minHeight: 120,
+      lineHeight: 24,
+    },
+    datePickerButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      gap: 12,
+    },
+    datePickerText: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.inputText,
+    },
+    readOnlyDateText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.inputText,
+    },
+    datePickerContainer: {
+      backgroundColor: colors.inputBg,
+      borderRadius: 12,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      overflow: "hidden",
+    },
+    datePickerDoneButton: {
+      alignItems: "center",
+      paddingVertical: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.inputBorder,
+    },
+    datePickerDoneText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: "#3b82f6",
+    },
+    followUpContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    datePickerButtonSelected: {
+      borderColor: "#10b981",
+    },
+    datePickerPlaceholder: {
+      color: colors.placeholderText,
+    },
+    clearButton: {
+      width: 40,
+      height: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+    },
+    collapsibleHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    collapsibleHeaderLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    collapsibleHeaderText: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.inputText,
+    },
+    collapsibleContent: {
+      marginTop: 8,
+    },
+    riskToggleContainer: {
+      flexDirection: "row",
+      gap: 12,
+    },
+    riskToggleButton: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.inputBg,
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 12,
+      paddingVertical: 14,
+      gap: 8,
+    },
+    riskToggleLowActive: {
+      backgroundColor: "rgba(34, 197, 94, 0.15)",
+      borderColor: "#22c55e",
+    },
+    riskToggleHighActive: {
+      backgroundColor: "rgba(239, 68, 68, 0.15)",
+      borderColor: "#ef4444",
+    },
+    riskToggleText: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: "#6b7280",
+    },
+    riskToggleLowActiveText: {
+      color: "#22c55e",
+    },
+    riskToggleHighActiveText: {
+      color: "#ef4444",
+    },
+    riskToggleLabel: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: "#6b7280",
+    },
+  });
+}

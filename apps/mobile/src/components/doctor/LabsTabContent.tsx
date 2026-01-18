@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from "react-native";
 import { Clock, Eye, Check, FlaskConical, ImageIcon, Upload } from "lucide-react-native";
 import { TimelineDateBadge } from "@/components/ui";
 import { formatDate, formatTime } from "@/utils";
@@ -48,6 +48,11 @@ function groupLabsByRequestedDate(labs: LabRequestWithDoctor[]): LabDateGroup[] 
 }
 
 export function LabsTabContent({ labs, onViewResults, onViewAttachments, onUploadResult }: LabsTabContentProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const colors = getColors(isDark);
+  const styles = createStyles(colors);
+
   if (labs.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -90,6 +95,7 @@ export function LabsTabContent({ labs, onViewResults, onViewAttachments, onUploa
                   onViewAttachments={onViewAttachments}
                   onUploadResult={onUploadResult}
                   isFirst={labIndex === 0}
+                  isDark={isDark}
                 />
               ))}
             </View>
@@ -112,9 +118,12 @@ interface TimelineLabCardProps {
   onViewAttachments?: (lab: LabRequestWithDoctor) => void;
   onUploadResult?: (lab: LabRequestWithDoctor) => void;
   isFirst?: boolean;
+  isDark?: boolean;
 }
 
-function TimelineLabCard({ lab, onViewResults, onViewAttachments, onUploadResult, isFirst }: TimelineLabCardProps) {
+function TimelineLabCard({ lab, onViewResults, onViewAttachments, onUploadResult, isFirst, isDark = true }: TimelineLabCardProps) {
+  const colors = getColors(isDark);
+  const styles = createStyles(colors);
   const isPending = lab.status === "pending";
   const isCompleted = lab.status === "completed";
   const isCancelled = lab.status === "cancelled";
@@ -233,240 +242,269 @@ function TimelineLabCard({ lab, onViewResults, onViewAttachments, onUploadResult
   );
 }
 
-const styles = StyleSheet.create({
-  // Container & Timeline
-  container: {
-    position: "relative",
-  },
-  timelineLine: {
-    position: "absolute",
-    left: 27,
-    top: 16,
-    bottom: 40,
-    width: 2,
-    backgroundColor: "rgba(51, 65, 85, 0.5)",
-    zIndex: 0,
-  },
+// Dynamic color palette based on color scheme
+interface ColorPalette {
+  cardBg: string;
+  cardBorder: string;
+  textPrimary: string;
+  textSecondary: string;
+  timelineLine: string;
+  footerBorder: string;
+  endOfRecordsBg: string;
+  cancelledCardBg: string;
+  cancelledBorder: string;
+}
 
-  // Empty State
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 48,
-  },
-  emptyIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "rgba(100, 116, 139, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  emptyText: {
-    color: "#94a3b8",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  emptySubtext: {
-    color: "#64748b",
-    fontSize: 14,
-    marginTop: 4,
-  },
+function getColors(isDark: boolean): ColorPalette {
+  return {
+    cardBg: isDark ? "#1e293b" : "#ffffff",
+    cardBorder: isDark ? "#334155" : "#e5e7eb",
+    textPrimary: isDark ? "#ffffff" : "#111827",
+    textSecondary: isDark ? "#64748b" : "#6b7280",
+    timelineLine: isDark ? "rgba(51, 65, 85, 0.5)" : "rgba(209, 213, 219, 0.8)",
+    footerBorder: isDark ? "rgba(51, 65, 85, 0.5)" : "rgba(229, 231, 235, 1)",
+    endOfRecordsBg: isDark ? "#0f172a" : "#f9fafb",
+    cancelledCardBg: isDark ? "rgba(30, 41, 59, 0.5)" : "rgba(249, 250, 251, 0.8)",
+    cancelledBorder: isDark ? "rgba(51, 65, 85, 0.5)" : "rgba(229, 231, 235, 0.8)",
+  };
+}
 
-  // Date Groups
-  dateGroup: {
-    marginBottom: 8,
-  },
-  entryRow: {
-    position: "relative",
-    paddingBottom: 16,
-    zIndex: 10,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 16,
-  },
-  dateBadgeContainer: {
-    minWidth: 56,
-  },
-  labCardsContainer: {
-    flex: 1,
-  },
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
+    // Container & Timeline
+    container: {
+      position: "relative",
+    },
+    timelineLine: {
+      position: "absolute",
+      left: 27,
+      top: 16,
+      bottom: 40,
+      width: 2,
+      backgroundColor: colors.timelineLine,
+      zIndex: 0,
+    },
 
-  // Lab Card
-  labCard: {
-    backgroundColor: "#1e293b",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#334155",
-    marginBottom: 8,
-  },
-  labCardSubsequent: {
-    marginTop: 0,
-  },
-  labCardCancelled: {
-    backgroundColor: "rgba(30, 41, 59, 0.5)",
-    borderColor: "rgba(51, 65, 85, 0.5)",
-    opacity: 0.6,
-  },
-  labCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  labCardTitleContainer: {
-    flex: 1,
-    marginRight: 12,
-  },
-  labName: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  labNameCancelled: {
-    color: "#94a3b8",
-  },
-  labDoctor: {
-    color: "#64748b",
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 2,
-  },
+    // Empty State
+    emptyContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 48,
+    },
+    emptyIconContainer: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: "rgba(100, 116, 139, 0.1)",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 16,
+    },
+    emptyText: {
+      color: "#94a3b8",
+      fontSize: 16,
+      fontWeight: "600",
+    },
+    emptySubtext: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      marginTop: 4,
+    },
 
-  // Status Badges
-  pendingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
-  },
-  pendingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#f59e0b",
-  },
-  pendingBadgeText: {
-    color: "#f59e0b",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  completedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
-  },
-  completedBadgeText: {
-    color: "#10b981",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  cancelledBadge: {
-    backgroundColor: "rgba(100, 116, 139, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(100, 116, 139, 0.3)",
-  },
-  cancelledBadgeText: {
-    color: "#64748b",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
+    // Date Groups
+    dateGroup: {
+      marginBottom: 8,
+    },
+    entryRow: {
+      position: "relative",
+      paddingBottom: 16,
+      zIndex: 10,
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 16,
+    },
+    dateBadgeContainer: {
+      minWidth: 56,
+    },
+    labCardsContainer: {
+      flex: 1,
+    },
 
-  // Footer
-  labCardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(51, 65, 85, 0.5)",
-  },
-  timeInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  timeText: {
-    color: "#64748b",
-    fontSize: 12,
-  },
-  completedInfo: {
-    flexDirection: "column",
-  },
-  refText: {
-    color: "#64748b",
-    fontSize: 12,
-  },
-  completedDateText: {
-    color: "#4ade80",
-    fontSize: 11,
-    marginTop: 2,
-  },
-  viewResultsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  viewResultsText: {
-    color: "#3b82f6",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  viewAttachmentsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  viewAttachmentsText: {
-    color: "#a855f7",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  uploadResultButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  uploadResultText: {
-    color: "#a855f7",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  cancelledText: {
-    color: "#475569",
-    fontSize: 11,
-  },
+    // Lab Card
+    labCard: {
+      backgroundColor: colors.cardBg,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      marginBottom: 8,
+    },
+    labCardSubsequent: {
+      marginTop: 0,
+    },
+    labCardCancelled: {
+      backgroundColor: colors.cancelledCardBg,
+      borderColor: colors.cancelledBorder,
+      opacity: 0.6,
+    },
+    labCardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+    },
+    labCardTitleContainer: {
+      flex: 1,
+      marginRight: 12,
+    },
+    labName: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: "700",
+    },
+    labNameCancelled: {
+      color: "#94a3b8",
+    },
+    labDoctor: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontWeight: "500",
+      marginTop: 2,
+    },
 
-  // End of Records
-  endOfRecords: {
-    alignItems: "center",
-    marginTop: 8,
-    paddingBottom: 16,
-  },
-  endOfRecordsText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#475569",
-    backgroundColor: "#0f172a",
-    paddingHorizontal: 8,
-  },
-});
+    // Status Badges
+    pendingBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: "rgba(245, 158, 11, 0.15)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: "rgba(245, 158, 11, 0.3)",
+    },
+    pendingDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: "#f59e0b",
+    },
+    pendingBadgeText: {
+      color: "#f59e0b",
+      fontSize: 10,
+      fontWeight: "700",
+      letterSpacing: 0.5,
+    },
+    completedBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: "rgba(16, 185, 129, 0.15)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: "rgba(16, 185, 129, 0.3)",
+    },
+    completedBadgeText: {
+      color: "#10b981",
+      fontSize: 10,
+      fontWeight: "700",
+      letterSpacing: 0.5,
+    },
+    cancelledBadge: {
+      backgroundColor: "rgba(100, 116, 139, 0.15)",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: "rgba(100, 116, 139, 0.3)",
+    },
+    cancelledBadgeText: {
+      color: colors.textSecondary,
+      fontSize: 10,
+      fontWeight: "700",
+      letterSpacing: 0.5,
+    },
+
+    // Footer
+    labCardFooter: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.footerBorder,
+    },
+    timeInfo: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    timeText: {
+      color: colors.textSecondary,
+      fontSize: 12,
+    },
+    completedInfo: {
+      flexDirection: "column",
+    },
+    refText: {
+      color: colors.textSecondary,
+      fontSize: 12,
+    },
+    completedDateText: {
+      color: "#4ade80",
+      fontSize: 11,
+      marginTop: 2,
+    },
+    viewResultsButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    viewResultsText: {
+      color: "#3b82f6",
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    viewAttachmentsButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    viewAttachmentsText: {
+      color: "#a855f7",
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    uploadResultButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    uploadResultText: {
+      color: "#a855f7",
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    cancelledText: {
+      color: "#475569",
+      fontSize: 11,
+    },
+
+    // End of Records
+    endOfRecords: {
+      alignItems: "center",
+      marginTop: 8,
+      paddingBottom: 16,
+    },
+    endOfRecordsText: {
+      fontSize: 12,
+      fontWeight: "500",
+      color: "#475569",
+      backgroundColor: colors.endOfRecordsBg,
+      paddingHorizontal: 8,
+    },
+  });
+}

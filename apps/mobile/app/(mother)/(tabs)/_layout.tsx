@@ -45,7 +45,7 @@ export default function MotherTabsLayout() {
   // On phone, use standard bottom tabs
   return (
     <SafeAreaView
-      className="flex-1 bg-gray-50 dark:bg-gray-900"
+      className="flex-1 bg-white dark:bg-gray-900"
       edges={["bottom"]}
     >
       <Tabs
