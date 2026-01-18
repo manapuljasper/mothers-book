@@ -44,6 +44,7 @@ import {
   useClinicsByDoctor,
   usePrimaryClinic,
   useAccessPatientId,
+  useActiveMedications,
 } from "@/hooks";
 import {
   computeAOG,
@@ -74,6 +75,7 @@ import type {
   MedicalEntryWithDoctor,
   PendingMedication,
   PendingLabRequest,
+  MedicationWithLogs,
 } from "@/types";
 
 export default function AddEntryScreen() {
@@ -152,6 +154,16 @@ export default function AddEntryScreen() {
   );
   const existingLabRequests = useLabsByEntry(editingEntryId ?? undefined);
 
+  // Fetch active medications for the booklet (to prevent duplicates in MedicationForm)
+  const activeMedications = useActiveMedications(bookletId);
+
+  // Filter active medications to exclude those from the entry being edited
+  const filteredActiveMedications = useMemo(() => {
+    if (!activeMedications) return undefined;
+    if (!editingEntryId) return activeMedications;
+    return activeMedications.filter((m: MedicationWithLogs) => m.medicalEntryId !== editingEntryId);
+  }, [activeMedications, editingEntryId]);
+
   // Populate pending medications when editing
   useEffect(() => {
     if (
@@ -214,13 +226,10 @@ export default function AddEntryScreen() {
   // Check if current date has an existing entry
   const isEdit = editingEntryId !== null;
 
-  // Computed AOG based on today's date (not entry date)
-  const computedAOG = booklet?.expectedDueDate
+  // Computed AOG based on today's date (includes weeks and days, e.g., "8w 6d")
+  const aogDisplay = booklet?.expectedDueDate
     ? computeAOG(booklet.expectedDueDate, new Date())
     : null;
-
-  // Extract just the weeks from AOG (e.g., "32 weeks, 3 days" -> "32")
-  const aogWeeks = computedAOG ? computedAOG.split(" ")[0] : null;
 
   // Patient info for context bar
   const patientInfo = booklet
@@ -438,7 +447,7 @@ export default function AddEntryScreen() {
       if (bpValue) entryVitals.bloodPressure = bpValue;
       if (weight) entryVitals.weight = parseFloat(weight);
       if (fhr) entryVitals.fetalHeartRate = parseInt(fhr);
-      if (aogWeeks) entryVitals.aog = aogWeeks;
+      if (aogDisplay) entryVitals.aog = aogDisplay;
 
       if (isEdit && editingEntryId) {
         // Update existing entry with medications and labs
@@ -770,10 +779,10 @@ export default function AddEntryScreen() {
               </View>
               {/* AOG Display (computed from today's date, not editable) */}
               <View style={styles.vitalItem}>
-                <Text style={styles.inputLabel}>AOG (weeks)</Text>
+                <Text style={styles.inputLabel}>AOG</Text>
                 <View style={styles.aogDisplay}>
                   <Calendar size={18} color="#14b8a6" strokeWidth={1.5} />
-                  <Text style={styles.aogValue}>{aogWeeks || "—"}</Text>
+                  <Text style={styles.aogValue}>{aogDisplay || "—"}</Text>
                 </View>
               </View>
             </View>
@@ -871,6 +880,7 @@ export default function AddEntryScreen() {
                 <ActiveMedicationsManager
                   bookletId={bookletId}
                   defaultExtendDate={followUpDate}
+                  editingEntryId={editingEntryId ?? undefined}
                 />
               </View>
             )}
@@ -905,6 +915,7 @@ export default function AddEntryScreen() {
                   onRemoveMedication={handleRemoveMedication}
                   onUpdateMedication={handleUpdateMedication}
                   defaultEndDate={followUpDate}
+                  activeMedications={filteredActiveMedications}
                 />
               </View>
             </AnimatedCollapsible>

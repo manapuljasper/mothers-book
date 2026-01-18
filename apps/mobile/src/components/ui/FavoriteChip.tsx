@@ -1,5 +1,5 @@
 import { Text, Pressable } from "react-native";
-import { Plus } from "lucide-react-native";
+import { Plus, LucideIcon } from "lucide-react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,8 +11,9 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 interface FavoriteChipProps {
   label: string;
   onPress: () => void;
-  color?: "green" | "blue" | "amber";
+  color?: "green" | "blue" | "amber" | "gray";
   disabled?: boolean;
+  icon?: LucideIcon;
 }
 
 const colorClasses = {
@@ -34,6 +35,12 @@ const colorClasses = {
     text: "text-amber-700 dark:text-amber-300",
     iconColor: "#f59e0b",
   },
+  gray: {
+    bg: "bg-gray-50 dark:bg-gray-800",
+    border: "border-gray-200 dark:border-gray-600",
+    text: "text-gray-500 dark:text-gray-400",
+    iconColor: "#9ca3af",
+  },
 };
 
 export function FavoriteChip({
@@ -41,19 +48,23 @@ export function FavoriteChip({
   onPress,
   color = "green",
   disabled = false,
+  icon: Icon,
 }: FavoriteChipProps) {
   const scale = useSharedValue(1);
   const colors = colorClasses[color];
+  const IconComponent = Icon || Plus;
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
   const handlePressIn = () => {
+    if (disabled) return;
     scale.value = withTiming(0.95, { duration: 100 });
   };
 
   const handlePressOut = () => {
+    if (disabled) return;
     scale.value = withTiming(1, { duration: 100 });
   };
 
@@ -64,9 +75,9 @@ export function FavoriteChip({
       onPressOut={handlePressOut}
       disabled={disabled}
       style={animatedStyle}
-      className={`flex-row items-center px-3 py-2 rounded-full border mr-2 mb-2 ${colors.bg} ${colors.border} ${disabled ? "opacity-50" : ""}`}
+      className={`flex-row items-center px-3 py-2 rounded-full border mr-2 mb-2 ${colors.bg} ${colors.border} ${disabled ? "opacity-60" : ""}`}
     >
-      <Plus size={14} color={colors.iconColor} strokeWidth={2} />
+      <IconComponent size={14} color={colors.iconColor} strokeWidth={2} />
       <Text className={`ml-1.5 text-sm font-medium ${colors.text}`}>
         {label}
       </Text>

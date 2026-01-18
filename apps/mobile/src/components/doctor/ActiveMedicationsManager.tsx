@@ -6,7 +6,7 @@
  * - Stop the medication early
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { View, Text, Pressable, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
@@ -27,13 +27,23 @@ interface ActiveMedicationsManagerProps {
   bookletId: string;
   /** Default end date for extensions (e.g., follow-up date) */
   defaultExtendDate?: Date | null;
+  /** When editing an entry, exclude medications from that entry (they appear in Prescriptions section) */
+  editingEntryId?: string;
 }
 
 export function ActiveMedicationsManager({
   bookletId,
   defaultExtendDate,
+  editingEntryId,
 }: ActiveMedicationsManagerProps) {
-  const activeMeds = useActiveMedications(bookletId);
+  const activeMedsRaw = useActiveMedications(bookletId);
+
+  // Filter out medications from the entry being edited (they appear in Prescriptions section)
+  const activeMeds = useMemo(() => {
+    if (!activeMedsRaw) return undefined;
+    if (!editingEntryId) return activeMedsRaw;
+    return activeMedsRaw.filter((med: MedicationWithLogs) => med.medicalEntryId !== editingEntryId);
+  }, [activeMedsRaw, editingEntryId]);
   const updateMedication = useUpdateMedication();
   const deactivateMedication = useDeactivateMedication();
 

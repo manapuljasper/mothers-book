@@ -57,7 +57,7 @@ function VitalsSummaryBadges({ vitals }: { vitals: BookletWithMother["latestVita
     badges.push(
       <View key="aog" className="flex-row items-center bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md">
         <Text className="text-purple-600 dark:text-purple-400 text-xs font-medium">
-          AOG {vitals.aog}w
+          AOG {vitals.aog}
         </Text>
       </View>
     );

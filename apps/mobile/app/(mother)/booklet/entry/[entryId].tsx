@@ -292,10 +292,7 @@ export default function MotherEntryDetailScreen() {
                 <View style={{ width: "48%" }}>
                   <VitalCard
                     label="AOG"
-                    value={
-                      aog.replace("w", "").replace("d", "").trim().split(" ")[0]
-                    }
-                    unit="wks"
+                    value={aog}
                     icon={Calendar}
                     iconColor="#14b8a6"
                   />

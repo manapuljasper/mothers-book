@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Edit3,
+  Check,
 } from "lucide-react-native";
 import { Id } from "@convex/_generated/dataModel";
 import { useMedicationFavorites, useSearchMedicationCatalog } from "@/hooks";
@@ -24,6 +25,7 @@ import {
   type MedicationFrequency,
   type DoctorFavorite,
   type MedicationCatalogItem,
+  type MedicationWithLogs,
 } from "@/types";
 
 export type { PendingMedication };
@@ -35,6 +37,8 @@ interface MedicationFormProps {
   onUpdateMedication?: (id: string, updates: Partial<PendingMedication>) => void;
   defaultEndDate?: Date | null;
   doctorId?: Id<"doctorProfiles">;
+  /** Active medications from other entries (to prevent duplicates) */
+  activeMedications?: MedicationWithLogs[];
 }
 
 export function MedicationForm({
@@ -44,10 +48,23 @@ export function MedicationForm({
   onUpdateMedication,
   defaultEndDate,
   doctorId,
+  activeMedications,
 }: MedicationFormProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [expandedMedId, setExpandedMedId] = useState<string | null>(null);
+
+  // Helper to check if medication name is already added
+  const isMedicationAlreadyAdded = (name: string): "pending" | "active" | false => {
+    const lowerName = name.toLowerCase().trim();
+    if (pendingMeds.some(m => m.name.toLowerCase().trim() === lowerName)) {
+      return "pending";
+    }
+    if (activeMedications?.some(m => m.name.toLowerCase().trim() === lowerName)) {
+      return "active";
+    }
+    return false;
+  };
 
   const [currentMed, setCurrentMed] = useState({
     name: "",
@@ -66,6 +83,11 @@ export function MedicationForm({
 
   // Quick add from favorite - uses saved defaults
   const quickAddFromFavorite = (fav: DoctorFavorite) => {
+    // Don't add if already in pending or active
+    if (isMedicationAlreadyAdded(fav.name)) {
+      return;
+    }
+
     const endDate = defaultEndDate || undefined;
 
     onAddMedication({
@@ -82,6 +104,11 @@ export function MedicationForm({
 
   // Quick add from catalog search result
   const quickAddFromCatalog = (item: MedicationCatalogItem) => {
+    // Don't add if already in pending or active
+    if (isMedicationAlreadyAdded(item.name)) {
+      return;
+    }
+
     const endDate = defaultEndDate || undefined;
 
     // Fix: Properly extract dosage unit with fallbacks
@@ -112,6 +139,13 @@ export function MedicationForm({
   const handleAddMedToPending = () => {
     if (!currentMed.name || !currentMed.dosageAmount) return;
 
+    // Check for duplicates
+    const alreadyAdded = isMedicationAlreadyAdded(currentMed.name);
+    if (alreadyAdded) {
+      // Don't add - the UI will show validation state
+      return;
+    }
+
     const endDate = currentMed.endDate || defaultEndDate || undefined;
 
     onAddMedication({
@@ -133,6 +167,11 @@ export function MedicationForm({
     });
     setShowManualEntry(false);
   };
+
+  // Check if current manual entry name is a duplicate
+  const manualEntryDuplicateStatus = currentMed.name.trim()
+    ? isMedicationAlreadyAdded(currentMed.name)
+    : false;
 
   const handleMedEndDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
@@ -208,14 +247,19 @@ export function MedicationForm({
                   Quick Add from Favorites
                 </Text>
                 <View className="flex-row flex-wrap">
-                  {favorites.map((fav) => (
-                    <FavoriteChip
-                      key={fav.id}
-                      label={fav.name}
-                      color="green"
-                      onPress={() => quickAddFromFavorite(fav)}
-                    />
-                  ))}
+                  {favorites.map((fav) => {
+                    const alreadyAdded = isMedicationAlreadyAdded(fav.name);
+                    return (
+                      <FavoriteChip
+                        key={fav.id}
+                        label={fav.name}
+                        color={alreadyAdded ? "gray" : "green"}
+                        onPress={() => quickAddFromFavorite(fav)}
+                        disabled={!!alreadyAdded}
+                        icon={alreadyAdded ? Check : undefined}
+                      />
+                    );
+                  })}
                 </View>
               </View>
             ) : (
@@ -235,30 +279,48 @@ export function MedicationForm({
               </Text>
             ) : searchResults.length > 0 ? (
               <ScrollView style={{ maxHeight: 200 }}>
-                {searchResults.map((item, index) => (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => quickAddFromCatalog(item)}
-                    className={`flex-row items-center justify-between py-2 ${
-                      index < searchResults.length - 1
-                        ? "border-b border-gray-100 dark:border-gray-700"
-                        : ""
-                    }`}
-                  >
-                    <View className="flex-1">
-                      <Text className="font-medium text-gray-900 dark:text-white">
-                        {item.name}
-                      </Text>
-                      <Text className="text-gray-400 text-sm">
-                        {item.genericName}
-                        {item.dosage && item.dosageUnit && ` • ${item.dosage}${item.dosageUnit}`}
-                      </Text>
-                    </View>
-                    <View className="bg-green-500 rounded-full p-1.5 ml-2">
-                      <Plus size={14} color="white" strokeWidth={2.5} />
-                    </View>
-                  </Pressable>
-                ))}
+                {searchResults.map((item, index) => {
+                  const alreadyAdded = isMedicationAlreadyAdded(item.name);
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => quickAddFromCatalog(item)}
+                      disabled={!!alreadyAdded}
+                      className={`flex-row items-center justify-between py-2 ${
+                        index < searchResults.length - 1
+                          ? "border-b border-gray-100 dark:border-gray-700"
+                          : ""
+                      } ${alreadyAdded ? "opacity-60" : ""}`}
+                    >
+                      <View className="flex-1">
+                        <Text className={`font-medium ${alreadyAdded ? "text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-white"}`}>
+                          {item.name}
+                        </Text>
+                        <Text className="text-gray-400 text-sm">
+                          {alreadyAdded === "active"
+                            ? "Already active"
+                            : alreadyAdded === "pending"
+                            ? "Already added"
+                            : (
+                              <>
+                                {item.genericName}
+                                {item.dosage && item.dosageUnit && ` • ${item.dosage}${item.dosageUnit}`}
+                              </>
+                            )}
+                        </Text>
+                      </View>
+                      {alreadyAdded ? (
+                        <View className="bg-gray-200 dark:bg-gray-600 rounded-full p-1.5 ml-2">
+                          <Check size={14} color="#9ca3af" strokeWidth={2.5} />
+                        </View>
+                      ) : (
+                        <View className="bg-green-500 rounded-full p-1.5 ml-2">
+                          <Plus size={14} color="white" strokeWidth={2.5} />
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             ) : (
               <Text className="text-gray-400 text-sm text-center py-4">
@@ -293,12 +355,23 @@ export function MedicationForm({
               <View className="mb-3">
                 <Text className="text-gray-400 text-xs mb-1">Medication</Text>
                 <TextInput
-                  className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className={`border rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    manualEntryDuplicateStatus
+                      ? "border-amber-400 dark:border-amber-500"
+                      : "border-gray-200 dark:border-gray-600"
+                  }`}
                   placeholder="e.g., Folic Acid"
                   placeholderTextColor="#9ca3af"
                   value={currentMed.name}
                   onChangeText={(v) => setCurrentMed({ ...currentMed, name: v })}
                 />
+                {manualEntryDuplicateStatus && (
+                  <Text className="text-amber-600 dark:text-amber-400 text-xs mt-1">
+                    {manualEntryDuplicateStatus === "active"
+                      ? "This medication is already active"
+                      : "This medication is already in the list"}
+                  </Text>
+                )}
               </View>
 
               {/* Dosage amount and unit */}
@@ -446,21 +519,21 @@ export function MedicationForm({
 
               <Pressable
                 onPress={handleAddMedToPending}
-                disabled={!currentMed.name || !currentMed.dosageAmount}
+                disabled={!currentMed.name || !currentMed.dosageAmount || !!manualEntryDuplicateStatus}
                 className={`flex-row items-center justify-center py-2 rounded-lg ${
-                  currentMed.name && currentMed.dosageAmount
+                  currentMed.name && currentMed.dosageAmount && !manualEntryDuplicateStatus
                     ? "bg-green-500"
-                    : "bg-gray-200"
+                    : "bg-gray-200 dark:bg-gray-700"
                 }`}
               >
                 <Plus
                   size={16}
-                  color={currentMed.name && currentMed.dosageAmount ? "white" : "#9ca3af"}
+                  color={currentMed.name && currentMed.dosageAmount && !manualEntryDuplicateStatus ? "white" : "#9ca3af"}
                   strokeWidth={1.5}
                 />
                 <Text
                   className={`ml-1 font-medium ${
-                    currentMed.name && currentMed.dosageAmount
+                    currentMed.name && currentMed.dosageAmount && !manualEntryDuplicateStatus
                       ? "text-white"
                       : "text-gray-400"
                   }`}
