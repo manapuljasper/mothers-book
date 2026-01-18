@@ -221,11 +221,7 @@ export default function ViewDoctorProfileScreen() {
             <Phone
               size={18}
               color={
-                clinicContact
-                  ? isDark
-                    ? "#e5e7eb"
-                    : "#374151"
-                  : "#9ca3af"
+                clinicContact ? (isDark ? "#e5e7eb" : "#374151") : "#9ca3af"
               }
               strokeWidth={2}
             />
@@ -296,7 +292,7 @@ export default function ViewDoctorProfileScreen() {
                   "transparent",
                 ]
           }
-          style={{ paddingTop: insets.top }}
+          style={{ paddingTop: 16 }}
         >
           {/* Close Button */}
           <View className="flex-row items-center justify-end px-4 py-2">
@@ -304,7 +300,11 @@ export default function ViewDoctorProfileScreen() {
               onPress={() => router.back()}
               className="w-10 h-10 rounded-full bg-black/10 dark:bg-white/10 items-center justify-center active:bg-black/20 dark:active:bg-white/20"
             >
-              <X size={24} color={isDark ? "#ffffff" : "#374151"} strokeWidth={2} />
+              <X
+                size={24}
+                color={isDark ? "#ffffff" : "#374151"}
+                strokeWidth={2}
+              />
             </Pressable>
           </View>
 

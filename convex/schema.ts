@@ -76,6 +76,7 @@ export default defineSchema({
     actualDeliveryDate: v.optional(v.number()),
     currentRiskLevel: v.optional(v.union(v.literal("low"), v.literal("high"))), // Synced from latest entry
     notes: v.optional(v.string()),
+    hasEntries: v.optional(v.boolean()), // True after first medical entry is created
   })
     .index("by_mother", ["motherId"])
     .index("by_status", ["status"]),
@@ -277,7 +278,8 @@ export default defineSchema({
     .index("by_name", ["name"])
     .index("by_category", ["category"])
     .index("by_active", ["isActive"])
-    .searchIndex("search_name", { searchField: "name" }),
+    .searchIndex("search_name", { searchField: "name" })
+    .searchIndex("search_generic_name", { searchField: "genericName" }),
 
   // Lab Test Catalog (CMS for standard lab tests)
   labCatalog: defineTable({

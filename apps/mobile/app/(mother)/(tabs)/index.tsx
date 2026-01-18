@@ -97,9 +97,18 @@ export default function MotherHomeScreen() {
           />
         </View>
 
+        {/* Baby Size Fun Fact Card */}
+        {primaryBooklet?.lastMenstrualPeriod && (
+          <View className="mt-6" style={{ paddingHorizontal: select({ phone: 0, tablet: 16 }) }}>
+            <BabySizeCard
+              weeks={calculateAOGParts(primaryBooklet.lastMenstrualPeriod).weeks}
+            />
+          </View>
+        )}
+
         {/* Current Pregnancy Card */}
         {primaryBooklet && (
-          <View className="mt-6" style={{ paddingHorizontal: select({ phone: 0, tablet: 16 }) }}>
+          <View className="mt-4" style={{ paddingHorizontal: select({ phone: 0, tablet: 16 }) }}>
             <Text
               className="text-lg font-semibold text-gray-900 dark:text-white mb-2"
               style={{ paddingHorizontal: select({ phone: 24, tablet: 16 }) }}
@@ -110,15 +119,6 @@ export default function MotherHomeScreen() {
               booklet={primaryBooklet}
               assignedDoctor={primaryDoctor}
               onViewRecords={() => router.push(`/booklet/${primaryBooklet.id}`)}
-            />
-          </View>
-        )}
-
-        {/* Baby Size Fun Fact Card */}
-        {primaryBooklet?.lastMenstrualPeriod && (
-          <View className="mt-4" style={{ paddingHorizontal: select({ phone: 0, tablet: 16 }) }}>
-            <BabySizeCard
-              weeks={calculateAOGParts(primaryBooklet.lastMenstrualPeriod).weeks}
             />
           </View>
         )}

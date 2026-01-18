@@ -103,6 +103,7 @@ export function useBookletsByDoctor(
           nextAppointment: doc.nextAppointment
             ? new Date(doc.nextAppointment)
             : undefined,
+          hasEntries: doc.hasEntries ?? false,
         })
       );
   }, [result]);

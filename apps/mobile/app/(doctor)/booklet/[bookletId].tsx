@@ -24,7 +24,8 @@ import {
   MedsTabContent,
   LabsTabContent,
 } from "@/components/doctor";
-import type { Medication } from "@/types";
+import type { Medication, LabRequestWithDoctor } from "@/types";
+import { LabAttachmentViewer } from "@/components/shared/LabAttachmentViewer";
 import {
   useBookletByIdWithMother,
   useEntriesByBooklet,
@@ -63,6 +64,7 @@ export default function DoctorBookletDetailScreen() {
   const [editingMedication, setEditingMedication] = useState<Medication | null>(
     null
   );
+  const [viewingLabAttachments, setViewingLabAttachments] = useState<LabRequestWithDoctor | null>(null);
 
   const isLoading =
     currentUser === undefined ||
@@ -281,7 +283,12 @@ export default function DoctorBookletDetailScreen() {
             />
           )}
 
-          {activeTab === "labs" && <LabsTabContent labs={allLabs} />}
+          {activeTab === "labs" && (
+            <LabsTabContent
+              labs={allLabs}
+              onViewAttachments={setViewingLabAttachments}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -330,6 +337,12 @@ export default function DoctorBookletDetailScreen() {
         currentLMP={booklet.lastMenstrualPeriod}
         onSave={handleSaveLMP}
         isSaving={isSavingLMP}
+      />
+
+      <LabAttachmentViewer
+        visible={!!viewingLabAttachments}
+        onClose={() => setViewingLabAttachments(null)}
+        lab={viewingLabAttachments}
       />
     </SafeAreaView>
   );

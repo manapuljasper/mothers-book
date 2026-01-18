@@ -33,4 +33,5 @@ export interface BookletWithMother extends MotherBooklet {
   motherName: string;
   lastVisitDate?: Date;
   nextAppointment?: Date;
+  hasEntries?: boolean;
 }

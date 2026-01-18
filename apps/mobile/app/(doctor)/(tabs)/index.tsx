@@ -45,10 +45,31 @@ export default function DoctorDashboard() {
   const seenPatientIds = new Set(todayEntries.map((e) => e.bookletId));
   const donePatients = patientBooklets.filter((b) => seenPatientIds.has(b.id));
 
-  // Expected patients (not seen today)
-  const expectedPatients = patientBooklets.filter(
-    (b) => !seenPatientIds.has(b.id)
-  );
+  // Helper: check if a date is today
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  // Expected patients:
+  // - Brand new patients (no appointment AND no entries)
+  // - OR patients with appointment today
+  const expectedPatients = patientBooklets.filter((b) => {
+    // Already seen today - not expected
+    if (seenPatientIds.has(b.id)) return false;
+
+    // Brand new patient (no appointment AND no medical entries)
+    if (!b.nextAppointment && !b.hasEntries) return true;
+
+    // Has appointment today
+    if (b.nextAppointment && isToday(b.nextAppointment)) return true;
+
+    return false;
+  });
 
   // Queue data for expected patients
   const expectedQueuePatients: QueuePatient[] = expectedPatients

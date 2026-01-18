@@ -85,6 +85,12 @@ export const createEntry = mutation({
       attachments: args.attachments,
     });
 
+    // Mark booklet as having entries (only if not already set)
+    const booklet = await ctx.db.get(args.bookletId);
+    if (booklet && !booklet.hasEntries) {
+      await ctx.db.patch(args.bookletId, { hasEntries: true });
+    }
+
     return await ctx.db.get(entryId);
   },
 });
@@ -471,15 +477,23 @@ export const createEntryWithItems = mutation({
       attachments: args.attachments,
     });
 
-    // 2. Sync risk level to booklet (denormalized for quick access)
+    // 2. Sync risk level to booklet and mark as having entries
+    const booklet = await ctx.db.get(args.bookletId);
+    const bookletUpdates: { currentRiskLevel?: "low" | "high"; hasEntries?: boolean } = {};
     if (args.riskLevel) {
-      await ctx.db.patch(args.bookletId, { currentRiskLevel: args.riskLevel });
+      bookletUpdates.currentRiskLevel = args.riskLevel;
+    }
+    if (booklet && !booklet.hasEntries) {
+      bookletUpdates.hasEntries = true;
+    }
+    if (Object.keys(bookletUpdates).length > 0) {
+      await ctx.db.patch(args.bookletId, bookletUpdates);
     }
 
     const createdMedications: Id<"medications">[] = [];
     const createdLabRequests: Id<"labRequests">[] = [];
 
-    // 2. Create linked medications
+    // 3. Create linked medications
     if (args.medications && args.medications.length > 0) {
       for (const med of args.medications) {
         const medId = await ctx.db.insert("medications", {
@@ -498,7 +512,7 @@ export const createEntryWithItems = mutation({
       }
     }
 
-    // 3. Create linked lab requests
+    // 4. Create linked lab requests
     if (args.labRequests && args.labRequests.length > 0) {
       for (const lab of args.labRequests) {
         const labId = await ctx.db.insert("labRequests", {

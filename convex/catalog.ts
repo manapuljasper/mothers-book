@@ -50,7 +50,7 @@ export const listMedications = query({
 });
 
 /**
- * Search medications by name using full-text search.
+ * Search medications by name and generic name using full-text search.
  */
 export const searchMedications = query({
   args: {
@@ -64,13 +64,35 @@ export const searchMedications = query({
 
     const limit = args.limit ?? 20;
 
-    const results = await ctx.db
+    // Search by brand name
+    const nameResults = await ctx.db
       .query("medicationCatalog")
       .withSearchIndex("search_name", (q) => q.search("name", args.query))
       .filter((q) => q.eq(q.field("isActive"), true))
       .take(limit);
 
-    return results;
+    // Search by generic name
+    const genericResults = await ctx.db
+      .query("medicationCatalog")
+      .withSearchIndex("search_generic_name", (q) =>
+        q.search("genericName", args.query)
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .take(limit);
+
+    // Combine and deduplicate results
+    const seenIds = new Set(nameResults.map((m) => m._id));
+    const combined = [...nameResults];
+
+    for (const med of genericResults) {
+      if (!seenIds.has(med._id)) {
+        combined.push(med);
+        seenIds.add(med._id);
+      }
+    }
+
+    // Return up to limit results
+    return combined.slice(0, limit);
   },
 });
 

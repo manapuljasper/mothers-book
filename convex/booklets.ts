@@ -91,6 +91,7 @@ export const listByDoctor = query({
           motherName: user?.fullName || user?.name || "Unknown",
           lastVisitDate: latestEntry?.visitDate,
           nextAppointment: latestEntry?.followUpDate,
+          hasEntries: booklet.hasEntries ?? false,
         };
       })
     );
