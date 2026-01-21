@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.manapuljasper.mothersbook"
+      "bundleIdentifier": "com.manapuljasper.mothersbook",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -40,6 +43,12 @@
       "expo-router",
       "expo-secure-store"
     ],
-    "scheme": "mothers-book"
+    "scheme": "mothers-book",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c4cae7d1-eb6a-4933-85b2-2e2cbe3a46bc"
+      }
+    }
   }
 }

@@ -77,7 +77,7 @@ export function ScheduleTable({ patients, onViewBook }: ScheduleTableProps) {
                 <td className="px-8 py-5 text-right">
                   {patient.bookletId ? (
                     <Link
-                      href={`/doctor/booklet/${patient.bookletId}`}
+                      href={`/doctor/mothers/${patient.bookletId}`}
                       className="btn-outline text-xs font-semibold px-4 py-2 rounded inline-block"
                     >
                       View Mother&apos;s Book
@@ -129,7 +129,7 @@ export function ScheduleTable({ patients, onViewBook }: ScheduleTableProps) {
             <div className="pt-2">
               {patient.bookletId ? (
                 <Link
-                  href={`/doctor/booklet/${patient.bookletId}`}
+                  href={`/doctor/mothers/${patient.bookletId}`}
                   className="btn-outline text-xs font-semibold px-4 py-2 rounded inline-block w-full text-center"
                 >
                   View Mother&apos;s Book

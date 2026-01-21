@@ -3,3 +3,8 @@ export { StatCard } from "./StatCard";
 export { Sidebar } from "./Sidebar";
 export { ScheduleTable } from "./ScheduleTable";
 export { PageHeader } from "./PageHeader";
+export { SearchInput } from "./SearchInput";
+export { Badge } from "./Badge";
+export { Tabs, TabsList, TabsTrigger, TabsContent } from "./Tabs";
+export { Modal } from "./Modal";
+export { Collapsible } from "./Collapsible";
