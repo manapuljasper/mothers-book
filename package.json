@@ -6,6 +6,7 @@
     "apps/*"
   ],
   "scripts": {
+    "postinstall": "npx convex codegen",
     "mobile": "yarn workspace @mothers-book/mobile start",
     "mobile:ios": "yarn workspace @mothers-book/mobile ios",
     "mobile:android": "yarn workspace @mothers-book/mobile android",

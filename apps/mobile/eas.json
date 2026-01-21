@@ -4,11 +4,7 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "base": {
-      "prebuildCommand": "cd ../.. && npx convex codegen"
-    },
     "development": {
-      "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
@@ -19,7 +15,6 @@
       }
     },
     "preview": {
-      "extends": "base",
       "distribution": "internal",
       "ios": {
         "resourceClass": "m-medium"
@@ -29,7 +24,6 @@
       }
     },
     "production": {
-      "extends": "base",
       "distribution": "internal",
       "autoIncrement": true,
       "ios": {
