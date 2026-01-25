@@ -20,6 +20,9 @@ export type { SOAPSection } from "./SOAPSectionHeader";
 // Active medications management
 export { ActiveMedicationsManager } from "./ActiveMedicationsManager";
 
+// Medication modal
+export { AddMedicationModal } from "./AddMedicationModal";
+
 // Clinic components
 export { ClinicFilter } from "./ClinicFilter";
 export { ClinicSelector } from "./ClinicSelector";

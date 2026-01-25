@@ -16,6 +16,7 @@ import { Id } from "@convex/_generated/dataModel";
 import { useLabFavorites, useSearchLabCatalog } from "@/hooks";
 import { formatDate } from "@/utils";
 import { FavoriteChip } from "@/components/ui";
+import { useThemeColors } from "@/theme";
 import type { PendingLabRequest, LabPriority, DoctorFavorite, LabCatalogItem } from "@/types";
 
 const PRIORITY_OPTIONS: { value: LabPriority; label: string }[] = [
@@ -39,6 +40,7 @@ export function LabRequestForm({
   onUpdateLab,
   doctorId,
 }: LabRequestFormProps) {
+  const colors = useThemeColors();
   const [searchQuery, setSearchQuery] = useState("");
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [expandedLabId, setExpandedLabId] = useState<string | null>(null);
@@ -114,33 +116,49 @@ export function LabRequestForm({
 
   const isSearching = searchQuery.trim().length > 0;
 
-  const getPriorityBadgeColor = (priority: LabPriority) => {
-    switch (priority) {
-      case "urgent":
-        return "bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700";
-      case "stat":
-        return "bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-700";
-      default:
-        return "bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700";
+  // Get priority colors based on value
+  const getPriorityColors = (priority: LabPriority, isSelected: boolean) => {
+    if (!isSelected) {
+      return {
+        bg: colors.background,
+        border: colors.border,
+        text: colors.textMuted,
+      };
     }
-  };
-
-  const getPriorityTextColor = (priority: LabPriority) => {
     switch (priority) {
       case "urgent":
-        return "text-amber-700 dark:text-amber-300";
+        return {
+          bg: "#f59e0b",
+          border: "#f59e0b",
+          text: "white",
+        };
       case "stat":
-        return "text-red-700 dark:text-red-300";
+        return {
+          bg: colors.danger,
+          border: colors.danger,
+          text: "white",
+        };
       default:
-        return "text-gray-600 dark:text-gray-400";
+        return {
+          bg: colors.textMuted,
+          border: colors.textMuted,
+          text: "white",
+        };
     }
   };
 
   return (
-    <View className="border-t border-gray-100 dark:border-gray-700 pt-4 mt-2">
+    <View
+      style={{
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        paddingTop: 16,
+        marginTop: 8,
+      }}
+    >
       <View className="flex-row items-center mb-3">
-        <FlaskConical size={18} color="#3b82f6" strokeWidth={1.5} />
-        <Text className="text-gray-700 dark:text-gray-200 font-semibold ml-2">
+        <FlaskConical size={18} color={colors.textMuted} strokeWidth={1.5} />
+        <Text style={{ color: colors.text }} className="font-semibold ml-2">
           Lab Requests
         </Text>
       </View>
@@ -156,28 +174,53 @@ export function LabRequestForm({
               onToggleExpand={() => toggleExpanded(lab.id)}
               onRemove={() => onRemoveLab(lab.id)}
               onUpdate={onUpdateLab ? (updates) => onUpdateLab(lab.id, updates) : undefined}
-              getPriorityBadgeColor={getPriorityBadgeColor}
-              getPriorityTextColor={getPriorityTextColor}
+              colors={colors}
+              getPriorityColors={getPriorityColors}
             />
           ))}
         </View>
       )}
 
       {/* Search input - always visible */}
-      <View className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4">
-        <View className="flex-row items-center bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 mb-3">
-          <Search size={16} color="#9ca3af" strokeWidth={1.5} />
+      <View
+        style={{
+          backgroundColor: colors.surface,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 12,
+          padding: 16,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: colors.background,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            marginBottom: 12,
+          }}
+        >
+          <Search size={16} color={colors.textSubtle} strokeWidth={1.5} />
           <TextInput
-            className="flex-1 ml-2 text-gray-900 dark:text-white"
+            style={{
+              flex: 1,
+              marginLeft: 8,
+              color: colors.text,
+              fontSize: 14,
+            }}
             placeholder="Search lab tests..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textSubtle}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
           />
           {searchQuery.length > 0 && (
             <Pressable onPress={() => setSearchQuery("")}>
-              <X size={16} color="#9ca3af" strokeWidth={1.5} />
+              <X size={16} color={colors.textSubtle} strokeWidth={1.5} />
             </Pressable>
           )}
         </View>
@@ -186,12 +229,12 @@ export function LabRequestForm({
         {!isSearching && (
           <View>
             {favorites === undefined ? (
-              <Text className="text-gray-400 text-sm text-center py-2">
+              <Text style={{ color: colors.textSubtle }} className="text-sm text-center py-2">
                 Loading favorites...
               </Text>
             ) : favorites.length > 0 ? (
               <View>
-                <Text className="text-gray-400 text-xs mb-2 uppercase tracking-wide">
+                <Text style={{ color: colors.textSubtle }} className="text-xs mb-2 uppercase tracking-wide">
                   Quick Add from Favorites
                 </Text>
                 <View className="flex-row flex-wrap">
@@ -206,7 +249,7 @@ export function LabRequestForm({
                 </View>
               </View>
             ) : (
-              <Text className="text-gray-400 text-sm text-center py-2">
+              <Text style={{ color: colors.textSubtle }} className="text-sm text-center py-2">
                 Frequently used items will appear here for quick add.
               </Text>
             )}
@@ -217,7 +260,7 @@ export function LabRequestForm({
         {isSearching && (
           <View>
             {searchResults === undefined ? (
-              <Text className="text-gray-400 text-sm text-center py-4">
+              <Text style={{ color: colors.textSubtle }} className="text-sm text-center py-4">
                 Searching...
               </Text>
             ) : searchResults.length > 0 ? (
@@ -226,32 +269,42 @@ export function LabRequestForm({
                   <Pressable
                     key={item.id}
                     onPress={() => quickAddFromCatalog(item)}
-                    className={`flex-row items-center justify-between py-2 ${
-                      index < searchResults.length - 1
-                        ? "border-b border-gray-100 dark:border-gray-700"
-                        : ""
-                    }`}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingVertical: 8,
+                      borderBottomWidth: index < searchResults.length - 1 ? 1 : 0,
+                      borderBottomColor: colors.border,
+                    }}
                   >
                     <View className="flex-1">
-                      <Text className="font-medium text-gray-900 dark:text-white">
+                      <Text style={{ color: colors.text }} className="font-medium">
                         {item.name}
                       </Text>
                       {(item.code || item.description) && (
-                        <Text className="text-gray-400 text-sm">
+                        <Text style={{ color: colors.textSubtle }} className="text-sm">
                           {item.code && `${item.code}`}
                           {item.code && item.description && " • "}
                           {item.description}
                         </Text>
                       )}
                     </View>
-                    <View className="bg-blue-500 rounded-full p-1.5 ml-2">
+                    <View
+                      style={{
+                        backgroundColor: colors.accent,
+                        borderRadius: 20,
+                        padding: 6,
+                        marginLeft: 8,
+                      }}
+                    >
                       <Plus size={14} color="white" strokeWidth={2.5} />
                     </View>
                   </Pressable>
                 ))}
               </ScrollView>
             ) : (
-              <Text className="text-gray-400 text-sm text-center py-4">
+              <Text style={{ color: colors.textSubtle }} className="text-sm text-center py-4">
                 No lab tests found for "{searchQuery}"
               </Text>
             )}
@@ -259,21 +312,28 @@ export function LabRequestForm({
         )}
 
         {/* Manual Entry - Collapsible */}
-        <View className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+        <View
+          style={{
+            marginTop: 12,
+            paddingTop: 12,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          }}
+        >
           <Pressable
             onPress={() => setShowManualEntry(!showManualEntry)}
             className="flex-row items-center justify-between py-1"
           >
             <View className="flex-row items-center">
-              <Edit3 size={14} color="#6b7280" strokeWidth={1.5} />
-              <Text className="text-gray-500 dark:text-gray-400 text-sm ml-2">
+              <Edit3 size={14} color={colors.textMuted} strokeWidth={1.5} />
+              <Text style={{ color: colors.textMuted }} className="text-sm ml-2">
                 Manual Entry
               </Text>
             </View>
             {showManualEntry ? (
-              <ChevronUp size={16} color="#6b7280" strokeWidth={1.5} />
+              <ChevronUp size={16} color={colors.textMuted} strokeWidth={1.5} />
             ) : (
-              <ChevronDown size={16} color="#6b7280" strokeWidth={1.5} />
+              <ChevronDown size={16} color={colors.textMuted} strokeWidth={1.5} />
             )}
           </Pressable>
 
@@ -281,11 +341,19 @@ export function LabRequestForm({
             <View className="mt-3">
               {/* Lab test name */}
               <View className="mb-3">
-                <Text className="text-gray-400 text-xs mb-1">Lab Test</Text>
+                <Text style={{ color: colors.textSubtle }} className="text-xs mb-1">Lab Test</Text>
                 <TextInput
-                  className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                  }}
                   placeholder="e.g., Complete Blood Count"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.textSubtle}
                   value={currentLab.name}
                   onChangeText={(v) => setCurrentLab({ ...currentLab, name: v })}
                 />
@@ -293,63 +361,72 @@ export function LabRequestForm({
 
               {/* Priority */}
               <View className="mb-3">
-                <Text className="text-gray-400 text-xs mb-1">Priority</Text>
+                <Text style={{ color: colors.textSubtle }} className="text-xs mb-1">Priority</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                 >
-                  {PRIORITY_OPTIONS.map((option) => (
-                    <Pressable
-                      key={option.value}
-                      onPress={() => setCurrentLab({ ...currentLab, priority: option.value })}
-                      className={`px-4 py-2 mr-2 rounded-lg border ${
-                        currentLab.priority === option.value
-                          ? option.value === "routine"
-                            ? "bg-gray-500 border-gray-500"
-                            : option.value === "urgent"
-                              ? "bg-amber-500 border-amber-500"
-                              : "bg-red-500 border-red-500"
-                          : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                      }`}
-                    >
-                      <Text
-                        className={
-                          currentLab.priority === option.value
-                            ? "text-white text-sm font-medium"
-                            : "text-gray-600 dark:text-gray-300 text-sm"
-                        }
+                  {PRIORITY_OPTIONS.map((option) => {
+                    const isSelected = currentLab.priority === option.value;
+                    const priorityColors = getPriorityColors(option.value, isSelected);
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => setCurrentLab({ ...currentLab, priority: option.value })}
+                        style={{
+                          paddingHorizontal: 16,
+                          paddingVertical: 8,
+                          marginRight: 8,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          backgroundColor: priorityColors.bg,
+                          borderColor: priorityColors.border,
+                        }}
                       >
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  ))}
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: isSelected ? "500" : "400",
+                            color: priorityColors.text,
+                          }}
+                        >
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </ScrollView>
               </View>
 
               {/* Due Date (optional) */}
               <View className="mb-3">
-                <Text className="text-gray-400 text-xs mb-1">
+                <Text style={{ color: colors.textSubtle }} className="text-xs mb-1">
                   Due Date (optional)
                 </Text>
                 <Pressable
                   onPress={() => setShowDueDatePicker(true)}
-                  className={`flex-row items-center border rounded-lg px-3 py-2 ${
-                    currentLab.dueDate
-                      ? "border-blue-400 bg-blue-50 dark:bg-blue-900/30"
-                      : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
-                  }`}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: currentLab.dueDate ? colors.accent : colors.border,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    backgroundColor: currentLab.dueDate ? colors.accentLight : colors.background,
+                  }}
                 >
                   <Calendar
                     size={16}
-                    color={currentLab.dueDate ? "#3b82f6" : "#9ca3af"}
+                    color={currentLab.dueDate ? colors.accent : colors.textSubtle}
                     strokeWidth={1.5}
                   />
                   <Text
-                    className={`ml-2 text-sm ${
-                      currentLab.dueDate
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-400"
-                    }`}
+                    style={{
+                      marginLeft: 8,
+                      fontSize: 14,
+                      color: currentLab.dueDate ? colors.accent : colors.textSubtle,
+                    }}
                   >
                     {currentLab.dueDate
                       ? formatDate(currentLab.dueDate)
@@ -360,7 +437,7 @@ export function LabRequestForm({
                       onPress={() => setCurrentLab({ ...currentLab, dueDate: null })}
                       className="ml-auto"
                     >
-                      <X size={16} color="#9ca3af" strokeWidth={1.5} />
+                      <X size={16} color={colors.textSubtle} strokeWidth={1.5} />
                     </Pressable>
                   )}
                 </Pressable>
@@ -377,7 +454,12 @@ export function LabRequestForm({
                   <View className="flex-row justify-end mt-2">
                     <Pressable
                       onPress={() => setShowDueDatePicker(false)}
-                      className="bg-blue-500 px-4 py-2 rounded-lg"
+                      style={{
+                        backgroundColor: colors.accent,
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                      }}
                     >
                       <Text className="text-white font-medium">Done</Text>
                     </Pressable>
@@ -387,11 +469,19 @@ export function LabRequestForm({
 
               {/* Notes (optional) */}
               <View className="mb-3">
-                <Text className="text-gray-400 text-xs mb-1">Notes (optional)</Text>
+                <Text style={{ color: colors.textSubtle }} className="text-xs mb-1">Notes (optional)</Text>
                 <TextInput
-                  className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                  }}
                   placeholder="e.g., Fasting required"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.textSubtle}
                   value={currentLab.notes}
                   onChangeText={(v) => setCurrentLab({ ...currentLab, notes: v })}
                 />
@@ -400,23 +490,26 @@ export function LabRequestForm({
               <Pressable
                 onPress={handleAddLabToPending}
                 disabled={!currentLab.name}
-                className={`flex-row items-center justify-center py-2 rounded-lg ${
-                  currentLab.name
-                    ? "bg-blue-500"
-                    : "bg-gray-200"
-                }`}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  backgroundColor: currentLab.name ? colors.accent : colors.surface2,
+                }}
               >
                 <Plus
                   size={16}
-                  color={currentLab.name ? "white" : "#9ca3af"}
+                  color={currentLab.name ? "white" : colors.textSubtle}
                   strokeWidth={1.5}
                 />
                 <Text
-                  className={`ml-1 font-medium ${
-                    currentLab.name
-                      ? "text-white"
-                      : "text-gray-400"
-                  }`}
+                  style={{
+                    marginLeft: 4,
+                    fontWeight: "500",
+                    color: currentLab.name ? "white" : colors.textSubtle,
+                  }}
                 >
                   Add Lab Request
                 </Text>
@@ -436,8 +529,8 @@ interface EditablePendingLabProps {
   onToggleExpand: () => void;
   onRemove: () => void;
   onUpdate?: (updates: Partial<PendingLabRequest>) => void;
-  getPriorityBadgeColor: (priority: LabPriority) => string;
-  getPriorityTextColor: (priority: LabPriority) => string;
+  colors: ReturnType<typeof useThemeColors>;
+  getPriorityColors: (priority: LabPriority, isSelected: boolean) => { bg: string; border: string; text: string };
 }
 
 function EditablePendingLab({
@@ -446,8 +539,8 @@ function EditablePendingLab({
   onToggleExpand,
   onRemove,
   onUpdate,
-  getPriorityBadgeColor,
-  getPriorityTextColor,
+  colors,
+  getPriorityColors,
 }: EditablePendingLabProps) {
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
@@ -460,8 +553,43 @@ function EditablePendingLab({
     }
   };
 
+  // Get priority badge colors (muted version for display)
+  const getPriorityBadgeColors = (priority: LabPriority) => {
+    switch (priority) {
+      case "urgent":
+        return {
+          bg: "rgba(245, 158, 11, 0.15)",
+          border: "rgba(245, 158, 11, 0.3)",
+          text: "#d97706",
+        };
+      case "stat":
+        return {
+          bg: colors.dangerLight,
+          border: colors.danger,
+          text: colors.danger,
+        };
+      default:
+        return {
+          bg: colors.surface2,
+          border: colors.border,
+          text: colors.textMuted,
+        };
+    }
+  };
+
+  const badgeColors = getPriorityBadgeColors(lab.priority);
+
   return (
-    <View className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg mb-2 overflow-hidden">
+    <View
+      style={{
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 8,
+        marginBottom: 8,
+        overflow: "hidden",
+      }}
+    >
       {/* Collapsed view */}
       <Pressable
         onPress={onToggleExpand}
@@ -469,19 +597,33 @@ function EditablePendingLab({
       >
         <View className="flex-1">
           <View className="flex-row items-center">
-            <Text className="font-medium text-gray-900 dark:text-white">
+            <Text style={{ color: colors.text }} className="font-medium">
               {lab.name}
             </Text>
             <View
-              className={`ml-2 px-2 py-0.5 rounded border ${getPriorityBadgeColor(lab.priority)}`}
+              style={{
+                marginLeft: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 4,
+                borderWidth: 1,
+                backgroundColor: badgeColors.bg,
+                borderColor: badgeColors.border,
+              }}
             >
-              <Text className={`text-xs font-medium ${getPriorityTextColor(lab.priority)}`}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "500",
+                  color: badgeColors.text,
+                }}
+              >
                 {lab.priority.toUpperCase()}
               </Text>
             </View>
           </View>
           {(lab.dueDate || lab.notes) && (
-            <Text className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+            <Text style={{ color: colors.textMuted }} className="text-sm mt-0.5">
               {lab.dueDate && `Due: ${formatDate(lab.dueDate)}`}
               {lab.notes && (lab.dueDate ? " • " : "") + lab.notes}
             </Text>
@@ -489,9 +631,9 @@ function EditablePendingLab({
         </View>
         <View className="flex-row items-center">
           {isExpanded ? (
-            <ChevronUp size={18} color="#6b7280" strokeWidth={1.5} />
+            <ChevronUp size={18} color={colors.textMuted} strokeWidth={1.5} />
           ) : (
-            <ChevronDown size={18} color="#6b7280" strokeWidth={1.5} />
+            <ChevronDown size={18} color={colors.textMuted} strokeWidth={1.5} />
           )}
           <Pressable
             onPress={(e) => {
@@ -500,68 +642,83 @@ function EditablePendingLab({
             }}
             className="ml-2 p-1"
           >
-            <Trash2 size={18} color="#ef4444" strokeWidth={1.5} />
+            <Trash2 size={18} color={colors.danger} strokeWidth={1.5} />
           </Pressable>
         </View>
       </Pressable>
 
       {/* Expanded edit view */}
       {isExpanded && onUpdate && (
-        <View className="px-3 pb-3 border-t border-blue-200 dark:border-blue-700">
+        <View
+          style={{
+            paddingHorizontal: 12,
+            paddingBottom: 12,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          }}
+        >
           {/* Priority */}
           <View className="mt-3">
-            <Text className="text-gray-400 text-xs mb-1">Priority</Text>
+            <Text style={{ color: colors.textSubtle }} className="text-xs mb-1">Priority</Text>
             <View className="flex-row">
-              {PRIORITY_OPTIONS.map((option) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => onUpdate({ priority: option.value })}
-                  className={`px-3 py-2 mr-1 rounded-lg border ${
-                    lab.priority === option.value
-                      ? option.value === "routine"
-                        ? "bg-gray-500 border-gray-500"
-                        : option.value === "urgent"
-                          ? "bg-amber-500 border-amber-500"
-                          : "bg-red-500 border-red-500"
-                      : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-                  }`}
-                >
-                  <Text
-                    className={
-                      lab.priority === option.value
-                        ? "text-white text-sm"
-                        : "text-gray-600 dark:text-gray-300 text-sm"
-                    }
+              {PRIORITY_OPTIONS.map((option) => {
+                const isSelected = lab.priority === option.value;
+                const priorityColors = getPriorityColors(option.value, isSelected);
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => onUpdate({ priority: option.value })}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      marginRight: 4,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      backgroundColor: priorityColors.bg,
+                      borderColor: priorityColors.border,
+                    }}
                   >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: priorityColors.text,
+                      }}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
 
           {/* Due Date */}
           <View className="mt-3">
-            <Text className="text-gray-400 text-xs mb-1">Due Date</Text>
+            <Text style={{ color: colors.textSubtle }} className="text-xs mb-1">Due Date</Text>
             <Pressable
               onPress={() => setShowDueDatePicker(true)}
-              className={`flex-row items-center border rounded-lg px-3 py-2 ${
-                lab.dueDate
-                  ? "border-blue-400 bg-blue-100 dark:bg-blue-800/30"
-                  : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
-              }`}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: lab.dueDate ? colors.accent : colors.border,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                backgroundColor: lab.dueDate ? colors.accentLight : colors.background,
+              }}
             >
               <Calendar
                 size={16}
-                color={lab.dueDate ? "#3b82f6" : "#9ca3af"}
+                color={lab.dueDate ? colors.accent : colors.textSubtle}
                 strokeWidth={1.5}
               />
               <Text
-                className={`ml-2 text-sm ${
-                  lab.dueDate
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-gray-400"
-                }`}
+                style={{
+                  marginLeft: 8,
+                  fontSize: 14,
+                  color: lab.dueDate ? colors.accent : colors.textSubtle,
+                }}
               >
                 {lab.dueDate
                   ? formatDate(lab.dueDate)
@@ -572,7 +729,7 @@ function EditablePendingLab({
                   onPress={() => onUpdate({ dueDate: undefined })}
                   className="ml-auto"
                 >
-                  <X size={16} color="#9ca3af" strokeWidth={1.5} />
+                  <X size={16} color={colors.textSubtle} strokeWidth={1.5} />
                 </Pressable>
               )}
             </Pressable>
@@ -589,7 +746,12 @@ function EditablePendingLab({
               <View className="flex-row justify-end mt-2">
                 <Pressable
                   onPress={() => setShowDueDatePicker(false)}
-                  className="bg-blue-500 px-4 py-2 rounded-lg"
+                  style={{
+                    backgroundColor: colors.accent,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                  }}
                 >
                   <Text className="text-white font-medium">Done</Text>
                 </Pressable>
@@ -599,11 +761,19 @@ function EditablePendingLab({
 
           {/* Notes */}
           <View className="mt-3">
-            <Text className="text-gray-400 text-xs mb-1">Notes</Text>
+            <Text style={{ color: colors.textSubtle }} className="text-xs mb-1">Notes</Text>
             <TextInput
-              className="border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                backgroundColor: colors.background,
+                color: colors.text,
+              }}
               placeholder="e.g., Fasting required"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.textSubtle}
               value={lab.notes || ""}
               onChangeText={(v) => onUpdate({ notes: v })}
             />

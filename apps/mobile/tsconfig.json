@@ -12,6 +12,7 @@
       "@/data": ["src/data"],
       "@/hooks": ["src/hooks"],
       "@/utils": ["src/utils"],
+      "@/theme": ["src/theme"],
       "@/components/*": ["src/components/*"],
       "@convex/*": ["../../convex/*"]
     }

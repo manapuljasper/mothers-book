@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -12,6 +12,8 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus } from "lucide-react-native";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useCurrentUser,
   useUpdateDoctorProfile,
@@ -20,12 +22,12 @@ import {
   useSetPrimaryClinic,
   useSignOut,
 } from "../../src/hooks";
+import { ModalHeader, Button, ClinicCard } from "../../src/components/ui";
+import { FormTextField } from "../../src/components/form";
 import {
-  ModalHeader,
-  TextField,
-  Button,
-  ClinicCard,
-} from "../../src/components/ui";
+  doctorProfileSchema,
+  DoctorProfileFormData,
+} from "../../src/utils/validation";
 import { useThemeStore } from "../../src/stores";
 
 interface ScheduleItem {
@@ -67,24 +69,34 @@ export default function EditDoctorProfileScreen() {
   // Get clinics for this doctor
   const clinics = useClinicsByDoctor(doctorProfile?._id as string);
 
-  // Form state (personal info only)
-  const [fullName, setFullName] = useState("");
-  const [specialization, setSpecialization] = useState("");
-  const [prcNumber, setPrcNumber] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<DoctorProfileFormData>({
+    resolver: zodResolver(doctorProfileSchema),
+    defaultValues: {
+      fullName: "",
+      specialization: "",
+      prcNumber: "",
+      contactNumber: "",
+    },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
 
   // Initialize form values when user data loads
   useEffect(() => {
-    if (user && doctorProfile && !initialized) {
-      setFullName(user.fullName || "");
-      setSpecialization(doctorProfile.specialization || "");
-      setPrcNumber(doctorProfile.prcNumber || "");
-      setContactNumber(doctorProfile.contactNumber || "");
-      setInitialized(true);
+    if (user && doctorProfile) {
+      reset({
+        fullName: user.fullName || "",
+        specialization: doctorProfile.specialization || "",
+        prcNumber: doctorProfile.prcNumber || "",
+        contactNumber: doctorProfile.contactNumber || "",
+      });
     }
-  }, [user, doctorProfile, initialized]);
+  }, [user, doctorProfile, reset]);
 
   // Show loading while data is loading
   if (
@@ -98,21 +110,7 @@ export default function EditDoctorProfileScreen() {
     );
   }
 
-  const handleSave = async () => {
-    // Validation
-    if (!fullName.trim()) {
-      Alert.alert("Error", "Full name is required");
-      return;
-    }
-    if (!prcNumber.trim()) {
-      Alert.alert("Error", "PRC License Number is required");
-      return;
-    }
-    if (!contactNumber.trim()) {
-      Alert.alert("Error", "Contact number is required");
-      return;
-    }
-
+  const onSubmit = async (data: DoctorProfileFormData) => {
     // In create mode, require at least one clinic
     if (isCreateMode && (!clinics || clinics.length === 0)) {
       Alert.alert(
@@ -122,17 +120,16 @@ export default function EditDoctorProfileScreen() {
       return;
     }
 
-    setIsSaving(true);
     try {
       if (!doctorProfile?._id) {
         throw new Error("No doctor profile found");
       }
       await updateProfile({
         doctorId: doctorProfile._id as string,
-        fullName: fullName.trim(),
-        specialization: specialization.trim() || undefined,
-        prcNumber: prcNumber.trim(),
-        contactNumber: contactNumber.trim(),
+        fullName: data.fullName.trim(),
+        specialization: data.specialization?.trim() || undefined,
+        prcNumber: data.prcNumber.trim(),
+        contactNumber: data.contactNumber.trim(),
       });
 
       if (isCreateMode) {
@@ -142,8 +139,6 @@ export default function EditDoctorProfileScreen() {
       }
     } catch (error) {
       Alert.alert("Error", "Failed to update profile. Please try again.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -219,51 +214,47 @@ export default function EditDoctorProfileScreen() {
               Personal Information
             </Text>
 
-            <View className="mb-5">
-              <TextField
-                label="Full Name"
-                required
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Dr. Maria Santos"
-                autoCapitalize="words"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="fullName"
+              label="Full Name"
+              required
+              placeholder="Dr. Maria Santos"
+              autoCapitalize="words"
+              containerClassName="mb-5"
+            />
 
-            <View className="mb-5">
-              <TextField
-                label="Specialization"
-                value={specialization}
-                onChangeText={setSpecialization}
-                placeholder="e.g., Obstetrician-Gynecologist (OB-GYN)"
-                autoCapitalize="words"
-                helperText="Your medical specialty helps mothers find the right doctor"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="specialization"
+              label="Specialization"
+              placeholder="e.g., Obstetrician-Gynecologist (OB-GYN)"
+              autoCapitalize="words"
+              helperText="Your medical specialty helps mothers find the right doctor"
+              containerClassName="mb-5"
+            />
 
-            <View className="mb-5">
-              <TextField
-                label="PRC License Number"
-                required
-                value={prcNumber}
-                onChangeText={setPrcNumber}
-                placeholder="0012345"
-                autoCapitalize="characters"
-                helperText="Your Professional Regulation Commission number"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="prcNumber"
+              label="PRC License Number"
+              required
+              placeholder="0012345"
+              autoCapitalize="characters"
+              helperText="Your Professional Regulation Commission number"
+              containerClassName="mb-5"
+            />
 
-            <View className="mb-8">
-              <TextField
-                label="Contact Number"
-                required
-                value={contactNumber}
-                onChangeText={setContactNumber}
-                placeholder="+63 917 123 4567"
-                keyboardType="phone-pad"
-                helperText="Your personal contact number"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="contactNumber"
+              label="Contact Number"
+              required
+              placeholder="+63 917 123 4567"
+              keyboardType="phone-pad"
+              helperText="Your personal contact number"
+              containerClassName="mb-8"
+            />
 
             {/* Section: Clinics */}
             <View className="flex-row items-center justify-between mb-4">
@@ -325,9 +316,9 @@ export default function EditDoctorProfileScreen() {
         <View className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
           <Button
             variant="primary"
-            onPress={handleSave}
-            loading={isSaving}
-            disabled={isSaving}
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+            disabled={isSubmitting}
           >
             {isCreateMode ? "Get Started" : "Save Changes"}
           </Button>

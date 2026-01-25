@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -10,14 +10,15 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useCurrentUser, useUpdateMotherProfile, useSignOut } from "../../src/hooks";
+import { ModalHeader, Button } from "../../src/components/ui";
+import { FormTextField, FormDatePicker } from "../../src/components/form";
 import {
-  ModalHeader,
-  TextField,
-  Button,
-  DatePickerButton,
-} from "../../src/components/ui";
+  motherProfileSchema,
+  MotherProfileFormData,
+} from "../../src/utils/validation";
 
 export default function EditMotherProfileScreen() {
   const router = useRouter();
@@ -30,35 +31,47 @@ export default function EditMotherProfileScreen() {
 
   // Extract user and profile only when available and not pending
   const user = currentUser && "user" in currentUser ? currentUser.user : null;
-  const motherProfile = currentUser && "motherProfile" in currentUser ? currentUser.motherProfile : null;
+  const motherProfile =
+    currentUser && "motherProfile" in currentUser
+      ? currentUser.motherProfile
+      : null;
 
-  // Form state
-  const [fullName, setFullName] = useState("");
-  const [birthdate, setBirthdate] = useState<Date>(new Date());
-  const [contactNumber, setContactNumber] = useState("");
-  const [address, setAddress] = useState("");
-  const [emergencyContactName, setEmergencyContactName] = useState("");
-  const [emergencyContact, setEmergencyContact] = useState("");
-  const [babyName, setBabyName] = useState("");
-
-  // Date picker state
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<MotherProfileFormData>({
+    resolver: zodResolver(motherProfileSchema),
+    defaultValues: {
+      fullName: "",
+      birthdate: new Date(),
+      contactNumber: "",
+      address: "",
+      emergencyContactName: "",
+      emergencyContact: "",
+      babyName: "",
+    },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
 
   // Initialize form values when user data loads
   useEffect(() => {
-    if (user && motherProfile && !initialized) {
-      setFullName(user.fullName || "");
-      setBirthdate(motherProfile.birthdate ? new Date(motherProfile.birthdate) : new Date());
-      setContactNumber(motherProfile.contactNumber || "");
-      setAddress(motherProfile.address || "");
-      setEmergencyContactName(motherProfile.emergencyContactName || "");
-      setEmergencyContact(motherProfile.emergencyContact || "");
-      setBabyName(motherProfile.babyName || "");
-      setInitialized(true);
+    if (user && motherProfile) {
+      reset({
+        fullName: user.fullName || "",
+        birthdate: motherProfile.birthdate
+          ? new Date(motherProfile.birthdate)
+          : new Date(),
+        contactNumber: motherProfile.contactNumber || "",
+        address: motherProfile.address || "",
+        emergencyContactName: motherProfile.emergencyContactName || "",
+        emergencyContact: motherProfile.emergencyContact || "",
+        babyName: motherProfile.babyName || "",
+      });
     }
-  }, [user, motherProfile, initialized]);
+  }, [user, motherProfile, reset]);
 
   // Show loading while data is loading
   if (currentUser === undefined || (currentUser && "pending" in currentUser)) {
@@ -69,26 +82,20 @@ export default function EditMotherProfileScreen() {
     );
   }
 
-  const handleSave = async () => {
-    if (!fullName.trim()) {
-      Alert.alert("Error", "Full name is required");
-      return;
-    }
-
-    setIsSaving(true);
+  const onSubmit = async (data: MotherProfileFormData) => {
     try {
       if (!motherProfile?._id) {
         throw new Error("No mother profile found");
       }
       await updateProfile({
         motherId: motherProfile._id as string,
-        fullName: fullName.trim(),
-        birthdate,
-        contactNumber: contactNumber.trim() || undefined,
-        address: address.trim() || undefined,
-        emergencyContactName: emergencyContactName.trim() || undefined,
-        emergencyContact: emergencyContact.trim() || undefined,
-        babyName: babyName.trim() || undefined,
+        fullName: data.fullName.trim(),
+        birthdate: data.birthdate,
+        contactNumber: data.contactNumber?.trim() || undefined,
+        address: data.address?.trim() || undefined,
+        emergencyContactName: data.emergencyContactName?.trim() || undefined,
+        emergencyContact: data.emergencyContact?.trim() || undefined,
+        babyName: data.babyName?.trim() || undefined,
       });
 
       if (isCreateMode) {
@@ -98,15 +105,6 @@ export default function EditMotherProfileScreen() {
       }
     } catch (error) {
       Alert.alert("Error", "Failed to update profile. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDateChange = (_: unknown, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === "ios");
-    if (selectedDate) {
-      setBirthdate(selectedDate);
     }
   };
 
@@ -138,89 +136,83 @@ export default function EditMotherProfileScreen() {
             </Text>
 
             <View className="mb-6">
-              <TextField
+              <FormTextField
+                control={control}
+                name="fullName"
                 label="Full Name"
                 required
-                value={fullName}
-                onChangeText={setFullName}
                 placeholder="Enter your full name"
                 autoCapitalize="words"
               />
             </View>
 
             <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Date of Birth
-              </Text>
-              <DatePickerButton
-                value={birthdate}
-                onPress={() => setShowDatePicker(true)}
+              <FormDatePicker
+                control={control}
+                name="birthdate"
+                label="Date of Birth"
                 variant="selected"
                 selectedColor="pink"
+                maximumDate={new Date()}
               />
             </View>
 
-            <View className="mb-6">
-              <TextField
-                label="Contact Number"
-                value={contactNumber}
-                onChangeText={setContactNumber}
-                placeholder="Enter your contact number"
-                keyboardType="phone-pad"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="contactNumber"
+              label="Contact Number"
+              placeholder="Enter your contact number"
+              keyboardType="phone-pad"
+              containerClassName="mb-6"
+            />
 
-            <View className="mb-6">
-              <TextField
-                label="Address"
-                value={address}
-                onChangeText={setAddress}
-                placeholder="Enter your address"
-                multiline
-                numberOfLines={2}
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="address"
+              label="Address"
+              placeholder="Enter your address"
+              multiline
+              numberOfLines={2}
+              containerClassName="mb-6"
+            />
 
             {/* Emergency Contact */}
             <Text className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 mt-4 uppercase">
               Emergency Contact
             </Text>
 
-            <View className="mb-6">
-              <TextField
-                label="Emergency Contact Name"
-                value={emergencyContactName}
-                onChangeText={setEmergencyContactName}
-                placeholder="Enter emergency contact name"
-                autoCapitalize="words"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="emergencyContactName"
+              label="Emergency Contact Name"
+              placeholder="Enter emergency contact name"
+              autoCapitalize="words"
+              containerClassName="mb-6"
+            />
 
-            <View className="mb-6">
-              <TextField
-                label="Emergency Contact Number"
-                value={emergencyContact}
-                onChangeText={setEmergencyContact}
-                placeholder="Enter emergency contact number"
-                keyboardType="phone-pad"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="emergencyContact"
+              label="Emergency Contact Number"
+              placeholder="Enter emergency contact number"
+              keyboardType="phone-pad"
+              containerClassName="mb-6"
+            />
 
             {/* Baby Info */}
             <Text className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 mt-4 uppercase">
               Baby Information
             </Text>
 
-            <View className="mb-6">
-              <TextField
-                label="Baby Name"
-                value={babyName}
-                onChangeText={setBabyName}
-                placeholder="Enter baby's name (if born)"
-                autoCapitalize="words"
-                helperText="Leave empty if baby is not yet born"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="babyName"
+              label="Baby Name"
+              placeholder="Enter baby's name (if born)"
+              autoCapitalize="words"
+              helperText="Leave empty if baby is not yet born"
+              containerClassName="mb-6"
+            />
           </View>
         </ScrollView>
 
@@ -228,24 +220,13 @@ export default function EditMotherProfileScreen() {
         <View className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
           <Button
             variant="primary"
-            onPress={handleSave}
-            loading={isSaving}
-            disabled={isSaving}
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+            disabled={isSubmitting}
           >
             {isCreateMode ? "Get Started" : "Save Changes"}
           </Button>
         </View>
-
-        {/* Date Picker Modal */}
-        {showDatePicker && (
-          <DateTimePicker
-            value={birthdate}
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={handleDateChange}
-            maximumDate={new Date()}
-          />
-        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

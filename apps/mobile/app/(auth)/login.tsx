@@ -1,46 +1,59 @@
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { View, Text, ScrollView, Alert } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stethoscope, Heart, ArrowLeft, Mail } from "lucide-react-native";
+import { ArrowLeft, Mail } from "lucide-react-native";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useSignIn, SignInResult } from "../../src/hooks";
-import { useAuthStore } from "../../src/stores";
-import { TextField, Button, ListItemPressable } from "../../src/components/ui";
+import { Button, ListItemPressable } from "../../src/components/ui";
+import { FormTextField } from "../../src/components/form";
+import {
+  loginSchema,
+  LoginFormData,
+  verificationCodeSchema,
+  VerificationCodeFormData,
+} from "../../src/utils/validation";
 
 type SecondFactorFns = Extract<SignInResult, { status: "needs_second_factor" }>;
 
 export default function LoginScreen() {
   const router = useRouter();
   const signIn = useSignIn();
-  const selectedRole = useAuthStore((s) => s.selectedRole);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  // Login form
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting },
+    getValues,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+
+  // Verification code form
+  const {
+    control: verifyControl,
+    handleSubmit: handleVerifySubmit,
+    formState: { isSubmitting: isVerifying },
+    reset: resetVerifyForm,
+  } = useForm<VerificationCodeFormData>({
+    resolver: zodResolver(verificationCodeSchema),
+    defaultValues: { code: "" },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
 
   // Second factor state
-  const [needsSecondFactor, setNeedsSecondFactor] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
   const secondFactorFns = useRef<SecondFactorFns | null>(null);
+  const needsSecondFactor = secondFactorFns.current !== null;
 
-  const isDoctor = selectedRole === "doctor";
-  const roleLabel = isDoctor ? "Healthcare Provider" : "Patient";
-  const RoleIcon = isDoctor ? Stethoscope : Heart;
-  const roleColor = isDoctor ? "#2563eb" : "#db2777";
-
-  const handleLogin = async () => {
-    if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email");
-      return;
-    }
-    if (!password) {
-      Alert.alert("Error", "Please enter your password");
-      return;
-    }
-
-    setIsLoading(true);
+  const onLoginSubmit = async (data: LoginFormData) => {
     try {
-      const result = await signIn({ email: email.trim(), password });
+      const result = await signIn({ email: data.email.trim(), password: data.password });
 
       if (result.status === "complete") {
         router.replace("/");
@@ -49,41 +62,30 @@ export default function LoginScreen() {
         secondFactorFns.current = result;
         // Send verification code immediately
         await result.prepareSecondFactor();
-        setNeedsSecondFactor(true);
       }
     } catch (error) {
       Alert.alert(
         "Login Failed",
         error instanceof Error ? error.message : "Please try again"
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleVerifyCode = async () => {
-    if (!verificationCode.trim()) {
-      Alert.alert("Error", "Please enter the verification code");
-      return;
-    }
-
+  const onVerifySubmit = async (data: VerificationCodeFormData) => {
     if (!secondFactorFns.current) {
       Alert.alert("Error", "Session expired. Please sign in again.");
       handleBackToLogin();
       return;
     }
 
-    setIsLoading(true);
     try {
-      await secondFactorFns.current.attemptSecondFactor(verificationCode.trim());
+      await secondFactorFns.current.attemptSecondFactor(data.code.trim());
       router.replace("/");
     } catch (error) {
       Alert.alert(
         "Verification Failed",
         error instanceof Error ? error.message : "Invalid code. Please try again."
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -94,7 +96,6 @@ export default function LoginScreen() {
       return;
     }
 
-    setIsLoading(true);
     try {
       await secondFactorFns.current.prepareSecondFactor();
       Alert.alert("Code Sent", "A new verification code has been sent to your email.");
@@ -103,19 +104,18 @@ export default function LoginScreen() {
         "Error",
         error instanceof Error ? error.message : "Failed to send code. Please try again."
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleBackToLogin = () => {
-    setNeedsSecondFactor(false);
-    setVerificationCode("");
     secondFactorFns.current = null;
+    resetVerifyForm();
   };
 
   // Verification code UI
   if (needsSecondFactor) {
+    const email = getValues("email");
+
     return (
       <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
         <ScrollView
@@ -148,22 +148,22 @@ export default function LoginScreen() {
             </Text>
           </Text>
 
-          <TextField
+          <FormTextField
+            control={verifyControl}
+            name="code"
             label="Verification Code"
             placeholder="Enter 6-digit code"
-            value={verificationCode}
-            onChangeText={setVerificationCode}
             keyboardType="number-pad"
             autoComplete="one-time-code"
-            editable={!isLoading}
+            editable={!isVerifying}
             containerClassName="mb-6"
             maxLength={6}
           />
 
           <Button
             variant="primary"
-            onPress={handleVerifyCode}
-            loading={isLoading}
+            onPress={handleVerifySubmit(onVerifySubmit)}
+            loading={isVerifying}
             fullWidth
           >
             Verify
@@ -173,7 +173,7 @@ export default function LoginScreen() {
             <Text className="text-gray-500 dark:text-gray-400">
               Didn't receive the code?{" "}
             </Text>
-            <ListItemPressable onPress={handleResendCode} disabled={isLoading}>
+            <ListItemPressable onPress={handleResendCode} disabled={isVerifying}>
               <Text className="text-indigo-600 dark:text-indigo-400 font-medium">
                 Resend
               </Text>
@@ -196,54 +196,37 @@ export default function LoginScreen() {
           Welcome Back
         </Text>
 
-        {selectedRole && (
-          <View className="flex-row items-center justify-center mb-6">
-            <RoleIcon size={20} color={roleColor} />
-            <Text
-              className={`ml-2 font-medium ${
-                isDoctor
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-pink-600 dark:text-pink-400"
-              }`}
-            >
-              Sign in as {roleLabel}
-            </Text>
-          </View>
-        )}
+        <Text className="text-gray-500 dark:text-gray-400 text-center mb-8">
+          Sign in to continue
+        </Text>
 
-        {!selectedRole && (
-          <Text className="text-gray-500 dark:text-gray-400 text-center mb-8">
-            Sign in to continue
-          </Text>
-        )}
-
-        <TextField
+        <FormTextField
+          control={control}
+          name="email"
           label="Email"
           placeholder="you@example.com"
-          value={email}
-          onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
-          editable={!isLoading}
+          editable={!isSubmitting}
           containerClassName="mb-4"
         />
 
-        <TextField
+        <FormTextField
+          control={control}
+          name="password"
           label="Password"
           placeholder="Enter your password"
-          value={password}
-          onChangeText={setPassword}
           secureTextEntry
           autoComplete="password"
-          editable={!isLoading}
+          editable={!isSubmitting}
           containerClassName="mb-6"
         />
 
         <Button
           variant="primary"
-          onPress={handleLogin}
-          loading={isLoading}
+          onPress={handleSubmit(onLoginSubmit)}
+          loading={isSubmitting}
           fullWidth
         >
           Sign In
@@ -261,18 +244,6 @@ export default function LoginScreen() {
             </ListItemPressable>
           </Link>
         </View>
-
-        {selectedRole && (
-          <View className="flex-row justify-center mt-4">
-            <Link href="/(auth)/welcome" asChild>
-              <ListItemPressable>
-                <Text className="text-gray-500 dark:text-gray-400">
-                  Switch role
-                </Text>
-              </ListItemPressable>
-            </Link>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

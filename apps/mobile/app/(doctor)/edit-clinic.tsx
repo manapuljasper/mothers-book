@@ -11,6 +11,8 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link2 } from "lucide-react-native";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useCurrentUser,
   useClinic,
@@ -19,10 +21,11 @@ import {
 } from "../../src/hooks";
 import {
   ModalHeader,
-  TextField,
   Button,
   ScheduleEditor,
 } from "../../src/components/ui";
+import { FormTextField } from "../../src/components/form";
+import { clinicSchema, ClinicFormData } from "../../src/utils/validation";
 import type { ScheduleItem } from "../../src/components/ui";
 
 export default function EditClinicScreen() {
@@ -43,28 +46,40 @@ export default function EditClinicScreen() {
   const createClinic = useCreateClinic();
   const updateClinic = useUpdateClinic();
 
-  // Form state
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [googleMapsLink, setGoogleMapsLink] = useState("");
+  // Schedule state (managed separately as it's complex)
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<ClinicFormData>({
+    resolver: zodResolver(clinicSchema),
+    defaultValues: {
+      name: "",
+      address: "",
+      contactNumber: "",
+      googleMapsLink: "",
+    },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
 
   // Initialize form values when clinic data loads (edit mode)
   useEffect(() => {
-    if (!isCreateMode && existingClinic && !initialized) {
-      setName(existingClinic.name || "");
-      setAddress(existingClinic.address || "");
-      setContactNumber(existingClinic.contactNumber || "");
-      setGoogleMapsLink(existingClinic.googleMapsLink || "");
+    if (!isCreateMode && existingClinic) {
+      reset({
+        name: existingClinic.name || "",
+        address: existingClinic.address || "",
+        contactNumber: existingClinic.contactNumber || "",
+        googleMapsLink: existingClinic.googleMapsLink || "",
+      });
       if (existingClinic.schedule && Array.isArray(existingClinic.schedule)) {
         setSchedule(existingClinic.schedule);
       }
-      setInitialized(true);
     }
-  }, [existingClinic, isCreateMode, initialized]);
+  }, [existingClinic, isCreateMode, reset]);
 
   // Show loading while data is loading
   if (
@@ -78,35 +93,7 @@ export default function EditClinicScreen() {
     );
   }
 
-  const handleSave = async () => {
-    // Validation
-    if (!name.trim()) {
-      Alert.alert("Error", "Clinic name is required");
-      return;
-    }
-    if (!address.trim()) {
-      Alert.alert("Error", "Clinic address is required");
-      return;
-    }
-
-    // Validate Google Maps link format if provided
-    if (googleMapsLink.trim()) {
-      const isValidGoogleMapsLink =
-        googleMapsLink.includes("google.com/maps") ||
-        googleMapsLink.includes("maps.google.com") ||
-        googleMapsLink.includes("goo.gl/maps") ||
-        googleMapsLink.includes("maps.app.goo.gl");
-
-      if (!isValidGoogleMapsLink) {
-        Alert.alert(
-          "Invalid Link",
-          "Please provide a valid Google Maps link. You can get this by:\n\n1. Open Google Maps\n2. Search for your clinic\n3. Tap Share\n4. Copy the link"
-        );
-        return;
-      }
-    }
-
-    setIsSaving(true);
+  const onSubmit = async (data: ClinicFormData) => {
     try {
       if (isCreateMode) {
         if (!doctorProfile?._id) {
@@ -114,10 +101,10 @@ export default function EditClinicScreen() {
         }
         await createClinic({
           doctorId: doctorProfile._id as string,
-          name: name.trim(),
-          address: address.trim(),
-          contactNumber: contactNumber.trim() || undefined,
-          googleMapsLink: googleMapsLink.trim() || undefined,
+          name: data.name.trim(),
+          address: data.address.trim(),
+          contactNumber: data.contactNumber?.trim() || undefined,
+          googleMapsLink: data.googleMapsLink?.trim() || undefined,
           schedule: schedule.length > 0 ? schedule : undefined,
         });
       } else {
@@ -126,18 +113,16 @@ export default function EditClinicScreen() {
         }
         await updateClinic({
           clinicId,
-          name: name.trim(),
-          address: address.trim(),
-          contactNumber: contactNumber.trim() || undefined,
-          googleMapsLink: googleMapsLink.trim() || undefined,
+          name: data.name.trim(),
+          address: data.address.trim(),
+          contactNumber: data.contactNumber?.trim() || undefined,
+          googleMapsLink: data.googleMapsLink?.trim() || undefined,
           schedule: schedule.length > 0 ? schedule : undefined,
         });
       }
       router.back();
     } catch (error) {
       Alert.alert("Error", "Failed to save clinic. Please try again.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -163,52 +148,48 @@ export default function EditClinicScreen() {
               Clinic Details
             </Text>
 
-            <View className="mb-5">
-              <TextField
-                label="Clinic Name"
-                required
-                value={name}
-                onChangeText={setName}
-                placeholder="Angat Women's Clinic"
-                autoCapitalize="words"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="name"
+              label="Clinic Name"
+              required
+              placeholder="Angat Women's Clinic"
+              autoCapitalize="words"
+              containerClassName="mb-5"
+            />
 
-            <View className="mb-5">
-              <TextField
-                label="Clinic Address"
-                required
-                value={address}
-                onChangeText={setAddress}
-                placeholder="Unit 204, Medical Arts Building, Governor's Drive, Manila"
-                multiline
-                numberOfLines={2}
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="address"
+              label="Clinic Address"
+              required
+              placeholder="Unit 204, Medical Arts Building, Governor's Drive, Manila"
+              multiline
+              numberOfLines={2}
+              containerClassName="mb-5"
+            />
 
-            <View className="mb-5">
-              <TextField
-                label="Clinic Contact Number"
-                value={contactNumber}
-                onChangeText={setContactNumber}
-                placeholder="+63 2 1234 5678"
-                keyboardType="phone-pad"
-                helperText="Optional - clinic-specific contact"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="contactNumber"
+              label="Clinic Contact Number"
+              placeholder="+63 2 1234 5678"
+              keyboardType="phone-pad"
+              helperText="Optional - clinic-specific contact"
+              containerClassName="mb-5"
+            />
 
-            <View className="mb-8">
-              <TextField
-                label="Google Maps Link"
-                value={googleMapsLink}
-                onChangeText={setGoogleMapsLink}
-                placeholder="https://maps.google.com/..."
-                keyboardType="url"
-                autoCapitalize="none"
-                leftIcon={Link2}
-                helperText="Paste your clinic's Google Maps share link for easy directions"
-              />
-            </View>
+            <FormTextField
+              control={control}
+              name="googleMapsLink"
+              label="Google Maps Link"
+              placeholder="https://maps.google.com/..."
+              keyboardType="url"
+              autoCapitalize="none"
+              leftIcon={Link2}
+              helperText="Paste your clinic's Google Maps share link for easy directions"
+              containerClassName="mb-8"
+            />
 
             {/* Schedule */}
             <Text className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
@@ -228,9 +209,9 @@ export default function EditClinicScreen() {
         <View className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
           <Button
             variant="primary"
-            onPress={handleSave}
-            loading={isSaving}
-            disabled={isSaving}
+            onPress={handleSubmit(onSubmit)}
+            loading={isSubmitting}
+            disabled={isSubmitting}
           >
             {isCreateMode ? "Add Clinic" : "Save Changes"}
           </Button>

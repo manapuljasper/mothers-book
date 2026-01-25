@@ -6,6 +6,8 @@ import { api } from "@convex/_generated/api";
 import { useCurrentUser, useClinicsByDoctor } from "../src/hooks";
 import { useAuthStore } from "../src/stores";
 
+type Role = "doctor" | "mother";
+
 // Profile completeness check for doctor
 // Doctor: prcNumber, contactNumber required, AND at least one clinic
 function isDoctorProfileComplete(
@@ -35,11 +37,24 @@ function isMotherProfileComplete(
 
 export default function Index() {
   const currentUser = useCurrentUser();
-  const { selectedRole } = useAuthStore();
+  const { selectedRole, pendingBirthdate, setSelectedRole, clearPendingBirthdate } =
+    useAuthStore();
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
   const createDoctorProfile = useMutation(api.users.createDoctorProfile);
   const createMotherProfile = useMutation(api.users.createMotherProfile);
+
+  // Get backend role as source of truth
+  const userRole = currentUser?.user?.role as Role | undefined;
+  // Use backend role if available, otherwise fall back to local store
+  const effectiveRole = userRole || selectedRole;
+
+  // Sync backend role to local store
+  useEffect(() => {
+    if (userRole && userRole !== selectedRole) {
+      setSelectedRole(userRole);
+    }
+  }, [userRole, selectedRole, setSelectedRole]);
 
   // Get the profile for the selected role
   const doctorProfile =
@@ -53,28 +68,31 @@ export default function Index() {
 
   // Get clinics for doctor profile (if doctor role selected)
   const clinics = useClinicsByDoctor(
-    selectedRole === "doctor" && doctorProfile?._id
+    effectiveRole === "doctor" && doctorProfile?._id
       ? (doctorProfile._id as string)
       : undefined
   );
 
   const selectedProfile =
-    selectedRole === "doctor" ? doctorProfile : motherProfile;
+    effectiveRole === "doctor" ? doctorProfile : motherProfile;
 
   // Create profile if needed
   useEffect(() => {
     async function createProfileIfNeeded() {
-      // Only run if we have a selected role, user is loaded, and profile doesn't exist
-      if (!selectedRole || currentUser === undefined || !currentUser) return;
+      // Only run if we have a role, user is loaded, and profile doesn't exist
+      if (!effectiveRole || currentUser === undefined || !currentUser) return;
       if (selectedProfile !== null) return; // Profile exists
       if (isCreatingProfile) return; // Already creating
 
       setIsCreatingProfile(true);
       try {
-        if (selectedRole === "doctor") {
+        if (effectiveRole === "doctor") {
           await createDoctorProfile();
         } else {
-          await createMotherProfile();
+          // Use pending birthdate from signup, or fallback to current date
+          const birthdateTs = pendingBirthdate || Date.now();
+          await createMotherProfile({ birthdate: birthdateTs });
+          clearPendingBirthdate();
         }
       } catch (error) {
         console.error("Failed to create profile:", error);
@@ -85,12 +103,14 @@ export default function Index() {
 
     createProfileIfNeeded();
   }, [
-    selectedRole,
+    effectiveRole,
     currentUser,
     selectedProfile,
     isCreatingProfile,
+    pendingBirthdate,
     createDoctorProfile,
     createMotherProfile,
+    clearPendingBirthdate,
   ]);
 
   // Still loading auth state
@@ -105,15 +125,16 @@ export default function Index() {
   // Not authenticated
   if (!currentUser) {
     // No role selected - go to welcome to pick role first
-    if (!selectedRole) {
+    if (!effectiveRole) {
       return <Redirect href="/(auth)/welcome" />;
     }
     // Has role - go directly to login
     return <Redirect href="/(auth)/login" />;
   }
 
-  // Authenticated but no role selected - redirect to role selection
-  if (!selectedRole) {
+  // Authenticated but no role - redirect to role selection
+  // This can happen for existing users without a role or new users who haven't selected one
+  if (!effectiveRole) {
     return <Redirect href="/(auth)/role-select" />;
   }
 
@@ -135,7 +156,7 @@ export default function Index() {
   }
 
   // For doctors, wait for clinics to load before checking completeness
-  if (selectedRole === "doctor" && clinics === undefined) {
+  if (effectiveRole === "doctor" && clinics === undefined) {
     return (
       <View className="flex-1 items-center justify-center bg-white dark:bg-gray-900">
         <ActivityIndicator size="large" color="#6366f1" />
@@ -147,7 +168,7 @@ export default function Index() {
   }
 
   // Redirect based on role and profile completeness
-  if (selectedRole === "doctor") {
+  if (effectiveRole === "doctor") {
     const clinicsCount = clinics?.length ?? 0;
     const profileComplete = isDoctorProfileComplete(
       doctorProfile,
@@ -159,7 +180,7 @@ export default function Index() {
     return <Redirect href="/(doctor)/(tabs)" />;
   }
 
-  if (selectedRole === "mother") {
+  if (effectiveRole === "mother") {
     const profileComplete = isMotherProfileComplete(motherProfile);
     if (!profileComplete) {
       return <Redirect href="/(mother)/edit-profile?mode=create" />;

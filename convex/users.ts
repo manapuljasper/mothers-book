@@ -44,14 +44,28 @@ export const getById = query({
   },
 });
 
+// Check if email exists and get its role
+export const getUserRoleByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email.toLowerCase()))
+      .first();
+    return user ? { exists: true, role: user.role } : { exists: false, role: null };
+  },
+});
+
 // ============================================================================
 // USER SYNC (Clerk -> Convex)
 // ============================================================================
 
 // Create or get user from Clerk identity
 export const createOrGetUser = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    role: v.optional(v.union(v.literal("doctor"), v.literal("mother"))),
+  },
+  handler: async (ctx, { role }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -61,13 +75,31 @@ export const createOrGetUser = mutation({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .first();
 
-    if (existing) return existing._id;
+    if (existing) {
+      // If trying to set a different role, throw error
+      if (role && existing.role && existing.role !== role) {
+        throw new Error(
+          `This account is registered as a ${existing.role}. Please use the correct app.`
+        );
+      }
+      // If existing user has no role and we're providing one, update it
+      if (role && !existing.role) {
+        await ctx.db.patch(existing._id, { role });
+      }
+      return existing._id;
+    }
 
-    // Create new user
+    // For new users, role is required
+    if (!role) {
+      throw new Error("Role is required for new users");
+    }
+
+    // Create new user with role
     return await ctx.db.insert("users", {
       clerkId: identity.subject,
       email: identity.email,
       fullName: identity.name,
+      role,
     });
   },
 });
@@ -82,6 +114,13 @@ export const createDoctorProfile = mutation({
   handler: async (ctx) => {
     const userId = await getCurrentUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
+
+    // Verify user role
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+    if (user.role && user.role !== "doctor") {
+      throw new Error("This account is not registered as a healthcare provider");
+    }
 
     // Check if already exists
     const existing = await ctx.db
@@ -100,10 +139,19 @@ export const createDoctorProfile = mutation({
 
 // Create mother profile for current user
 export const createMotherProfile = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    birthdate: v.number(), // Required - collected during signup
+  },
+  handler: async (ctx, { birthdate }) => {
     const userId = await getCurrentUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
+
+    // Verify user role
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+    if (user.role && user.role !== "mother") {
+      throw new Error("This account is not registered as a patient");
+    }
 
     // Check if already exists
     const existing = await ctx.db
@@ -114,7 +162,7 @@ export const createMotherProfile = mutation({
 
     return await ctx.db.insert("motherProfiles", {
       userId,
-      birthdate: Date.now(),
+      birthdate,
     });
   },
 });

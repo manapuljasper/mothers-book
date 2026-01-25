@@ -57,6 +57,8 @@ import {
   VitalInput,
   LoadingScreen,
   AnimatedCollapsible,
+  SectionCard,
+  SegmentedControl,
 } from "@/components/ui";
 import {
   MedicationForm,
@@ -66,7 +68,7 @@ import {
   LabRequestForm,
   hasUnfinishedLabForm,
 } from "@/components/doctor/LabRequestForm";
-import { SOAPSectionWrapper } from "@/components/doctor/SOAPSectionWrapper";
+import { useThemeColors } from "@/theme";
 import { ClinicSelector } from "@/components/doctor/ClinicSelector";
 import { ActiveMedicationsManager } from "@/components/doctor/ActiveMedicationsManager";
 import { AllergyWarningBanner } from "@/components/medical";
@@ -84,6 +86,7 @@ export default function AddEntryScreen() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const themeColors = useThemeColors();
   const colors = getColors(isDark);
   const styles = createStyles(colors);
 
@@ -112,10 +115,10 @@ export default function AddEntryScreen() {
 
   // Initialize clinic from primary clinic
   useEffect(() => {
-    if (primaryClinic && !selectedClinicId) {
-      setSelectedClinicId(primaryClinic._id);
+    if (primaryClinic) {
+      setSelectedClinicId((current: Id<"doctorClinics"> | null) => current ?? primaryClinic._id);
     }
-  }, [primaryClinic, selectedClinicId]);
+  }, [primaryClinic]);
 
   // Form state
   const [entryDate, setEntryDate] = useState(new Date());
@@ -565,7 +568,7 @@ export default function AddEntryScreen() {
   };
 
   // Initialize form on mount - check if today has an existing entry
-  useMemo(() => {
+  useEffect(() => {
     if (entries && entries.length > 0) {
       const todayEntry = findEntryByDate(new Date());
       if (todayEntry) {
@@ -730,7 +733,7 @@ export default function AddEntryScreen() {
 
         {/* ===== S - SUBJECTIVE ===== */}
         <View style={{ marginTop: 24 }}>
-          <SOAPSectionWrapper section="subjective">
+          <SectionCard section="subjective">
             <TextInput
               style={styles.textArea}
               value={notes}
@@ -741,12 +744,12 @@ export default function AddEntryScreen() {
               numberOfLines={4}
               textAlignVertical="top"
             />
-          </SOAPSectionWrapper>
+          </SectionCard>
         </View>
 
         {/* ===== O - OBJECTIVE ===== */}
         <View style={{ marginTop: 24 }}>
-          <SOAPSectionWrapper section="objective">
+          <SectionCard section="objective">
             <View style={styles.vitalsGrid}>
               <View style={styles.vitalItem}>
                 <VitalInput
@@ -781,17 +784,17 @@ export default function AddEntryScreen() {
               <View style={styles.vitalItem}>
                 <Text style={styles.inputLabel}>AOG</Text>
                 <View style={styles.aogDisplay}>
-                  <Calendar size={18} color="#14b8a6" strokeWidth={1.5} />
-                  <Text style={styles.aogValue}>{aogDisplay || "—"}</Text>
+                  <Calendar size={18} color={themeColors.textMuted} strokeWidth={1.5} />
+                  <Text style={[styles.aogValue, { color: themeColors.textMuted }]}>{aogDisplay || "—"}</Text>
                 </View>
               </View>
             </View>
-          </SOAPSectionWrapper>
+          </SectionCard>
         </View>
 
         {/* ===== A - ASSESSMENT ===== */}
         <View style={{ marginTop: 24 }}>
-          <SOAPSectionWrapper section="assessment">
+          <SectionCard section="assessment">
             {/* Diagnosis Field */}
             <TextInput
               style={[styles.textArea, { minHeight: 80 }]}
@@ -804,64 +807,23 @@ export default function AddEntryScreen() {
               textAlignVertical="top"
             />
             {/* Risk Level Toggle */}
-            <View style={[styles.riskToggleContainer, { marginTop: 12 }]}>
-              <TouchableOpacity
-                onPress={() => setRiskLevel("low")}
-                style={[
-                  styles.riskToggleButton,
-                  riskLevel === "low" && styles.riskToggleLowActive,
+            <View style={{ marginTop: 12 }}>
+              <SegmentedControl
+                variant="risk"
+                options={[
+                  { value: 'low', label: 'Low Risk' },
+                  { value: 'high', label: 'High Risk' },
                 ]}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.riskToggleText,
-                    riskLevel === "low" && styles.riskToggleLowActiveText,
-                  ]}
-                >
-                  LR
-                </Text>
-                <Text
-                  style={[
-                    styles.riskToggleLabel,
-                    riskLevel === "low" && styles.riskToggleLowActiveText,
-                  ]}
-                >
-                  Low Risk
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setRiskLevel("high")}
-                style={[
-                  styles.riskToggleButton,
-                  riskLevel === "high" && styles.riskToggleHighActive,
-                ]}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.riskToggleText,
-                    riskLevel === "high" && styles.riskToggleHighActiveText,
-                  ]}
-                >
-                  HR
-                </Text>
-                <Text
-                  style={[
-                    styles.riskToggleLabel,
-                    riskLevel === "high" && styles.riskToggleHighActiveText,
-                  ]}
-                >
-                  High Risk
-                </Text>
-              </TouchableOpacity>
+                value={riskLevel}
+                onChange={setRiskLevel}
+              />
             </View>
-          </SOAPSectionWrapper>
+          </SectionCard>
         </View>
 
         {/* ===== P - PLAN ===== */}
         <View style={{ marginTop: 24 }}>
-          <SOAPSectionWrapper section="plan">
+          <SectionCard section="plan">
             {/* Recommendations */}
             <TextInput
               style={styles.textArea}
@@ -892,7 +854,7 @@ export default function AddEntryScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.collapsibleHeaderLeft}>
-                <Pill size={18} color="#22c55e" strokeWidth={1.5} />
+                <Pill size={18} color={themeColors.textMuted} strokeWidth={1.5} />
                 <Text style={styles.collapsibleHeaderText}>
                   New Medications{" "}
                   {pendingMedications.length > 0
@@ -901,9 +863,9 @@ export default function AddEntryScreen() {
                 </Text>
               </View>
               {medicationsExpanded ? (
-                <ChevronDown size={20} color="#6b7280" strokeWidth={1.5} />
+                <ChevronDown size={20} color={themeColors.textMuted} strokeWidth={1.5} />
               ) : (
-                <ChevronRight size={20} color="#6b7280" strokeWidth={1.5} />
+                <ChevronRight size={20} color={themeColors.textMuted} strokeWidth={1.5} />
               )}
             </TouchableOpacity>
             <AnimatedCollapsible expanded={medicationsExpanded}>
@@ -927,7 +889,7 @@ export default function AddEntryScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.collapsibleHeaderLeft}>
-                <FlaskConical size={18} color="#3b82f6" strokeWidth={1.5} />
+                <FlaskConical size={18} color={themeColors.textMuted} strokeWidth={1.5} />
                 <Text style={styles.collapsibleHeaderText}>
                   Lab Requests{" "}
                   {pendingLabRequests.length > 0
@@ -936,9 +898,9 @@ export default function AddEntryScreen() {
                 </Text>
               </View>
               {labsExpanded ? (
-                <ChevronDown size={20} color="#6b7280" strokeWidth={1.5} />
+                <ChevronDown size={20} color={themeColors.textMuted} strokeWidth={1.5} />
               ) : (
-                <ChevronRight size={20} color="#6b7280" strokeWidth={1.5} />
+                <ChevronRight size={20} color={themeColors.textMuted} strokeWidth={1.5} />
               )}
             </TouchableOpacity>
             <AnimatedCollapsible expanded={labsExpanded}>
@@ -968,7 +930,7 @@ export default function AddEntryScreen() {
               >
                 <CalendarClock
                   size={20}
-                  color={followUpDate ? "#10b981" : "#6b7280"}
+                  color={followUpDate ? themeColors.success : themeColors.textMuted}
                   strokeWidth={1.5}
                 />
                 <Text
@@ -988,11 +950,11 @@ export default function AddEntryScreen() {
                   style={styles.clearButton}
                   activeOpacity={0.7}
                 >
-                  <X size={18} color="#94a3b8" strokeWidth={2} />
+                  <X size={18} color={themeColors.textSubtle} strokeWidth={2} />
                 </TouchableOpacity>
               )}
             </View>
-          </SOAPSectionWrapper>
+          </SectionCard>
         </View>
         {/* End of Plan Section */}
         {showFollowUpPicker && (
@@ -1196,7 +1158,7 @@ function createStyles(colors: ColorPalette) {
       flex: 1,
     },
     scrollContent: {
-      padding: 16,
+      padding: 20,
     },
     sectionLabel: {
       fontSize: 12,
@@ -1233,7 +1195,6 @@ function createStyles(colors: ColorPalette) {
     aogValue: {
       fontSize: 14,
       fontWeight: "500",
-      color: "#14b8a6",
     },
     divider: {
       height: 1,
@@ -1244,7 +1205,7 @@ function createStyles(colors: ColorPalette) {
       backgroundColor: colors.inputBg,
       borderWidth: 1,
       borderColor: colors.inputBorder,
-      borderRadius: 12,
+      borderRadius: 14,
       padding: 16,
       fontSize: 16,
       color: colors.inputText,
@@ -1335,46 +1296,6 @@ function createStyles(colors: ColorPalette) {
     },
     collapsibleContent: {
       marginTop: 8,
-    },
-    riskToggleContainer: {
-      flexDirection: "row",
-      gap: 12,
-    },
-    riskToggleButton: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.inputBg,
-      borderWidth: 1,
-      borderColor: colors.inputBorder,
-      borderRadius: 12,
-      paddingVertical: 14,
-      gap: 8,
-    },
-    riskToggleLowActive: {
-      backgroundColor: "rgba(34, 197, 94, 0.15)",
-      borderColor: "#22c55e",
-    },
-    riskToggleHighActive: {
-      backgroundColor: "rgba(239, 68, 68, 0.15)",
-      borderColor: "#ef4444",
-    },
-    riskToggleText: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: "#6b7280",
-    },
-    riskToggleLowActiveText: {
-      color: "#22c55e",
-    },
-    riskToggleHighActiveText: {
-      color: "#ef4444",
-    },
-    riskToggleLabel: {
-      fontSize: 14,
-      fontWeight: "500",
-      color: "#6b7280",
     },
   });
 }

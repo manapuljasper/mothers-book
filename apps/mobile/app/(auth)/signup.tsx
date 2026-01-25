@@ -2,30 +2,49 @@ import { useState } from "react";
 import { View, Text, ScrollView, Alert } from "react-native";
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stethoscope, Heart } from "lucide-react-native";
 import { useAuth } from "@clerk/clerk-expo";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useSignUp, useSignOut } from "../../src/hooks";
 import { useAuthStore } from "../../src/stores";
-import { TextField, Button, ListItemPressable } from "../../src/components/ui";
+import { Button, ListItemPressable } from "../../src/components/ui";
+import {
+  FormTextField,
+  FormDatePicker,
+  FormRoleSelector,
+} from "../../src/components/form";
+import { signupSchema, SignupFormData } from "../../src/utils/validation";
 
 export default function SignupScreen() {
   const router = useRouter();
   const signUp = useSignUp();
   const signOut = useSignOut();
   const { isSignedIn } = useAuth();
-  const selectedRole = useAuthStore((s) => s.selectedRole);
+  const setSelectedRole = useAuthStore((s) => s.setSelectedRole);
+  const setPendingBirthdate = useAuthStore((s) => s.setPendingBirthdate);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      role: undefined,
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      birthdate: null,
+    },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
 
-  const isDoctor = selectedRole === "doctor";
-  const roleLabel = isDoctor ? "Healthcare Provider" : "Patient";
-  const RoleIcon = isDoctor ? Stethoscope : Heart;
-  const roleColor = isDoctor ? "#2563eb" : "#db2777";
+  const role = watch("role");
+  const isMother = role === "mother";
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -71,36 +90,25 @@ export default function SignupScreen() {
     );
   }
 
-  const handleSignUp = async () => {
-    if (!firstName.trim()) {
-      Alert.alert("Error", "Please enter your first name");
-      return;
-    }
-    if (!lastName.trim()) {
-      Alert.alert("Error", "Please enter your last name");
-      return;
-    }
-    if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email");
-      return;
-    }
-    if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
-      return;
-    }
+  const onSubmit = async (data: SignupFormData) => {
+    // Role is guaranteed to be defined after validation
+    if (!data.role) return;
 
-    setIsLoading(true);
     try {
-      const fullName = `${firstName.trim()} ${lastName.trim()}`;
-      await signUp({ email: email.trim(), password, fullName });
+      const fullName = `${data.firstName.trim()} ${data.lastName.trim()}`;
+      // Set the role in store before signup so it's available for user creation
+      setSelectedRole(data.role);
+      await signUp({ email: data.email.trim(), password: data.password, fullName });
+      // Store birthdate for mother profile creation
+      if (data.role === "mother" && data.birthdate) {
+        setPendingBirthdate(data.birthdate.getTime());
+      }
       router.replace("/");
     } catch (error) {
       Alert.alert(
         "Sign Up Failed",
         error instanceof Error ? error.message : "Please try again"
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -114,80 +122,90 @@ export default function SignupScreen() {
         <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
           Create Account
         </Text>
+        <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
+          Select your role to get started
+        </Text>
 
-        {selectedRole && (
-          <View className="flex-row items-center justify-center mb-6">
-            <RoleIcon size={20} color={roleColor} />
-            <Text
-              className={`ml-2 font-medium ${
-                isDoctor
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-pink-600 dark:text-pink-400"
-              }`}
-            >
-              Sign up as {roleLabel}
-            </Text>
-          </View>
-        )}
+        {/* Role Selection */}
+        <View className="mb-6">
+          <FormRoleSelector
+            control={control}
+            name="role"
+            disabled={isSubmitting}
+          />
+        </View>
 
-        {!selectedRole && (
-          <Text className="text-gray-500 dark:text-gray-400 text-center mb-8">
-            Sign up to get started
-          </Text>
-        )}
-
+        {/* Form Fields */}
         <View className="flex-row gap-3 mb-4">
           <View className="flex-1">
-            <TextField
+            <FormTextField
+              control={control}
+              name="firstName"
               label="First Name"
               placeholder="Juan"
-              value={firstName}
-              onChangeText={setFirstName}
               autoComplete="given-name"
               autoCapitalize="words"
-              editable={!isLoading}
+              editable={!isSubmitting}
             />
           </View>
           <View className="flex-1">
-            <TextField
+            <FormTextField
+              control={control}
+              name="lastName"
               label="Last Name"
               placeholder="Dela Cruz"
-              value={lastName}
-              onChangeText={setLastName}
               autoComplete="family-name"
               autoCapitalize="words"
-              editable={!isLoading}
+              editable={!isSubmitting}
             />
           </View>
         </View>
 
-        <TextField
+        <FormTextField
+          control={control}
+          name="email"
           label="Email"
           placeholder="you@example.com"
-          value={email}
-          onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
-          editable={!isLoading}
+          editable={!isSubmitting}
           containerClassName="mb-4"
         />
 
-        <TextField
+        <FormTextField
+          control={control}
+          name="password"
           label="Password"
           placeholder="At least 8 characters"
-          value={password}
-          onChangeText={setPassword}
           secureTextEntry
           autoComplete="new-password"
-          editable={!isLoading}
-          containerClassName="mb-6"
+          editable={!isSubmitting}
+          containerClassName="mb-4"
         />
+
+        {/* Date of Birth - only for mothers */}
+        {isMother && (
+          <View className="mb-6">
+            <FormDatePicker
+              control={control}
+              name="birthdate"
+              label="Date of Birth"
+              required
+              placeholder="Select your date of birth"
+              variant="selected"
+              selectedColor="pink"
+              maximumDate={new Date()}
+            />
+          </View>
+        )}
+
+        {!isMother && <View className="mb-2" />}
 
         <Button
           variant="primary"
-          onPress={handleSignUp}
-          loading={isLoading}
+          onPress={handleSubmit(onSubmit)}
+          loading={isSubmitting}
           fullWidth
         >
           Sign Up
@@ -205,18 +223,6 @@ export default function SignupScreen() {
             </ListItemPressable>
           </Link>
         </View>
-
-        {selectedRole && (
-          <View className="flex-row justify-center mt-4">
-            <Link href="/(auth)/welcome" asChild>
-              <ListItemPressable>
-                <Text className="text-gray-500 dark:text-gray-400">
-                  Switch role
-                </Text>
-              </ListItemPressable>
-            </Link>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

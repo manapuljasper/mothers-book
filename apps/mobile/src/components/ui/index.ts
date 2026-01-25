@@ -40,6 +40,10 @@ export { VitalCard } from "./VitalCard";
 export { VitalInput } from "./VitalInput";
 export { InstructionsCard } from "./InstructionsCard";
 
+// Form components
+export { SectionCard, type SectionType } from "./SectionCard";
+export { SegmentedControl } from "./SegmentedControl";
+
 export { ScheduleEditor } from "./ScheduleEditor";
 export type { ScheduleItem } from "./ScheduleEditor";
 export { ClinicCard } from "./ClinicCard";

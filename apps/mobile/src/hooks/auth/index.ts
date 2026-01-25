@@ -6,6 +6,7 @@ import {
 } from "@clerk/clerk-expo";
 import { api } from "@convex/_generated/api";
 import { useEffect } from "react";
+import { useAuthStore } from "../../stores";
 
 /**
  * Get current authenticated user with profiles
@@ -13,6 +14,7 @@ import { useEffect } from "react";
  */
 export function useCurrentUser() {
   const { isSignedIn, isLoaded: clerkLoaded } = useClerkAuth();
+  const selectedRole = useAuthStore((s) => s.selectedRole);
   const createOrGetUser = useMutation(api.users.createOrGetUser);
   const data = useQuery(api.users.getCurrentUser);
 
@@ -20,9 +22,10 @@ export function useCurrentUser() {
   useEffect(() => {
     if (clerkLoaded && isSignedIn && data === null) {
       // User is signed in with Clerk but not in Convex yet
-      createOrGetUser();
+      // Pass the selected role (required for new users, optional for existing)
+      createOrGetUser({ role: selectedRole ?? undefined });
     }
-  }, [clerkLoaded, isSignedIn, data, createOrGetUser]);
+  }, [clerkLoaded, isSignedIn, data, selectedRole, createOrGetUser]);
 
   // Return undefined while loading to match existing component behavior
   if (!clerkLoaded) return undefined;
@@ -66,8 +69,6 @@ export function useSignIn() {
       identifier: email,
     });
 
-    console.log("[Auth] Initial sign in result:", result.status);
-
     // If we need first factor (password), attempt it
     if (result.status === "needs_first_factor") {
       const passwordFactor = result.supportedFirstFactors?.find(
@@ -79,12 +80,7 @@ export function useSignIn() {
           strategy: "password",
           password,
         });
-        console.log("[Auth] After password attempt:", result.status);
       } else {
-        console.log(
-          "[Auth] Supported first factors:",
-          result.supportedFirstFactors
-        );
         throw new Error(
           "Password authentication not available for this account."
         );
@@ -97,17 +93,11 @@ export function useSignIn() {
     }
 
     if (result.status === "needs_second_factor") {
-      console.log(
-        "[Auth] Second factors required:",
-        result.supportedSecondFactors
-      );
-
       // Return object with helper functions for second factor flow
       return {
         status: "needs_second_factor",
         prepareSecondFactor: async () => {
           await signIn.prepareSecondFactor({ strategy: "email_code" });
-          console.log("[Auth] Second factor email code sent");
         },
         attemptSecondFactor: async (code: string) => {
           const verifyResult = await signIn.attemptSecondFactor({
@@ -117,7 +107,6 @@ export function useSignIn() {
 
           if (verifyResult.status === "complete") {
             await setActive({ session: verifyResult.createdSessionId });
-            console.log("[Auth] Second factor verification complete");
           } else {
             throw new Error(`Verification failed: ${verifyResult.status}`);
           }

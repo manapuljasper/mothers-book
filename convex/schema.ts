@@ -7,6 +7,7 @@ export default defineSchema({
     clerkId: v.optional(v.string()), // Clerk user ID (from identity.subject) - optional for migration
     email: v.optional(v.string()),
     fullName: v.optional(v.string()),
+    role: v.optional(v.union(v.literal("doctor"), v.literal("mother"))), // One email = one role
     requiresPasswordChange: v.optional(v.boolean()), // True for accounts created by doctors
   })
     .index("by_clerk_id", ["clerkId"])
